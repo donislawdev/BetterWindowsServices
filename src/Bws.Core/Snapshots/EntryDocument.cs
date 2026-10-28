@@ -52,7 +52,20 @@ public sealed record TriggerDocument(
 /// One data item of a trigger: its type in our words and its values as text - see
 /// <see cref="TriggerData"/> for which form each type is written in and why.
 /// </summary>
-public sealed record TriggerDataDocument(string Type, IReadOnlyList<string> Values);
+public sealed record TriggerDataDocument(string Type, IReadOnlyList<string> Values)
+{
+    /// <summary>
+    /// An item as every build writes it: present, with a type and at least one value, none of them missing.
+    ///
+    /// <b>One answer for two questions</b>, since the review of PR #98: whether a schema seven file holds
+    /// what its schema promises (<c>Snapshot.BrokenEntries</c> refuses it otherwise), and whether the
+    /// comparison can say a trigger as a line at all, in a file of any schema (<c>SnapshotDiff.Change</c>
+    /// shows the whole lists otherwise). The reader fills a missing type or list with null whatever the
+    /// record declares, which is why both are asked.
+    /// </summary>
+    internal static bool IsWhole(TriggerDataDocument? item) =>
+        item is { Type: not null, Values.Count: > 0 } && item.Values.All(value => value is not null);
+}
 
 /// <summary>
 /// What the system concluded about a file's signature.

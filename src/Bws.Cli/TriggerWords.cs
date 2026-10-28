@@ -42,14 +42,14 @@ internal static class TriggerWords
         Items(trigger).Select(item => Texts.Of("cli.show.trigger.data", item)).Prepend(Head(trigger));
 
     /// <summary>
-    /// One trigger on one line, for a comparison, which says "before -> after" per line - the items joined
-    /// by a bar, the one character no value on the machine this was measured on holds.
+    /// One trigger on one line, for a comparison, which says "before -> after" per line - the items on one
+    /// line as <see cref="TriggerParts.OneLine"/> joins them, the same as the window.
     /// </summary>
     internal static string Line(TriggerDocument trigger)
     {
         var items = Items(trigger).ToList();
 
-        return items.Count == 0 ? Head(trigger) : Texts.Of("cli.trigger.withData", Head(trigger), string.Join(" | ", items));
+        return items.Count == 0 ? Head(trigger) : Texts.Of("cli.trigger.withData", Head(trigger), TriggerParts.OneLine(items));
     }
 
     /// <summary>

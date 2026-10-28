@@ -144,7 +144,9 @@ internal static class DiffLines
     /// as JSON, about three thousand characters for an entry losing one of thirteen.
     ///
     /// <b>The two whole lists are still the row when there is no trigger to name</b> - nothing against an
-    /// empty list, which a file can hold. A difference with no row under it would be silence.
+    /// empty list, which a file can hold. A difference with no row under it would be silence. And when a
+    /// side holds a trigger that is not one to say, which the core answers with no rows at all (since the
+    /// review of PR #98).
     /// </summary>
     private static IEnumerable<ChangedRow> Rows(FieldDifference difference)
     {

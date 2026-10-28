@@ -25,7 +25,9 @@ public sealed record FieldDifference(string Field, DifferenceGroup Group, string
 {
     /// <summary>
     /// For the triggers field, the triggers each side holds and the other does not - null for every
-    /// other field (backlog 625, owner's decision "a line per trigger").
+    /// other field (backlog 625, owner's decision "a line per trigger"). Null for the triggers field too
+    /// when either side holds a trigger that is not one to say - null as a whole, or with a data item
+    /// missing its type or values - and a person is then shown the two whole lists.
     ///
     /// <b>Beside <see cref="Before"/> and <see cref="After"/>, not instead of them</b>: those two are the
     /// whole lists as JSON, which is what <c>--json</c> writes and a script reads - a frozen contract.

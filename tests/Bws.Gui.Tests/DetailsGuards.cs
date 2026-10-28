@@ -169,12 +169,6 @@ public sealed class DetailsGuards
     }
 
     /// <summary>
-    /// Every line sits under the heading its own column belongs to in the picker.
-    ///
-    /// One grouping decided in one place - <see cref="Columns"/> - so somebody who learned where a
-    /// field lives while choosing columns finds it in the same place while reading about an entry.
-    /// </summary>
-    /// <summary>
     /// <b>Every trigger is a line of a section of its own, after the four sections of fields</b> - backlog
     /// 625, the owner's decisions of 2026-10-27 ("V1 - full width", "after Advanced, before History"). The
     /// label is the kind and the action, the value the subtype and each data item on a line under it, and
@@ -242,6 +236,12 @@ public sealed class DetailsGuards
         ])
     };
 
+    /// <summary>
+    /// Every line sits under the heading its own column belongs to in the picker.
+    ///
+    /// One grouping decided in one place - <see cref="Columns"/> - so somebody who learned where a
+    /// field lives while choosing columns finds it in the same place while reading about an entry.
+    /// </summary>
     [Fact]
     public void Every_line_sits_under_the_heading_its_column_belongs_to()
     {

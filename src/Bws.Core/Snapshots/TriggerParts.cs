@@ -1,3 +1,5 @@
+using System.Buffers;
+
 namespace Bws.Core.Snapshots;
 
 /// <summary>
@@ -68,6 +70,19 @@ public static class TriggerParts
         [(nameof(TriggerKind.IpAddress), new Guid("cc4ba62a-162e-4648-847a-b6bdf993e335"))] = TriggerSubtypeName.LastAddressRemoved
     };
 
+    /// <summary>Between the values of one data item - see <see cref="Values"/>.</summary>
+    private const string ValueSeparator = ", ";
+
+    /// <summary>Between the data items of one trigger on one line - see <see cref="OneLine"/>.</summary>
+    private const string ItemSeparator = " | ";
+
+    /// <summary>
+    /// What puts a value in quotation marks: the two separators above, and the quotation mark itself.
+    /// <b>Written out rather than built from the two constants</b>, so a separator changed without this
+    /// changing with it stops the tests that pin a value holding each of them.
+    /// </summary>
+    private static readonly SearchValues<char> Mistakable = SearchValues.Create([',', '|', '"']);
+
     /// <summary>
     /// Which documented subtype the trigger points at, or null - for a GUID the documentation does not
     /// name, for a named one under another kind, and for a trigger with no subtype at all, which every
@@ -90,11 +105,18 @@ public static class TriggerParts
     ///
     /// <b>Bytes as pairs with a space between them</b>, the way <c>sc qtriggerinfo</c> prints them, for
     /// the binary type and for a type nobody documented - both are written as unbroken hex in the
-    /// document, where nobody counts them. <b>The values of one item joined by a comma</b>, where
-    /// <c>sc</c> uses a semicolon: the house rule keeps semicolons out of what this program writes for a
-    /// person, and no value on the machine this was measured on holds a comma. An empty value is two
-    /// quotation marks rather than nothing, so an item of one empty string does not read as a missing
-    /// line.
+    /// document, where nobody counts them. A value of either that is not an even run of hex digits, which
+    /// only a file written by hand holds, is shown as text instead, so no pair is cut out of something that
+    /// is not a byte. <b>The values of one item joined by a comma</b>, where <c>sc</c> uses a semicolon: the
+    /// house rule keeps semicolons out of what this program writes for a person.
+    ///
+    /// <b>A value that could be read as something else is in quotation marks, its own doubled</b> - empty,
+    /// holding a comma, the bar <see cref="OneLine"/> joins items with or a quotation mark, or starting or
+    /// ending in white space. Since the review of PR #98: until then only the empty one was, on the argument
+    /// that no value on the machine this was measured on holds a comma. A firewall rule's program path may,
+    /// and <c>C:\a, b.exe</c> read exactly like the two values <c>C:\a</c> and <c>b.exe</c> - so a comparison
+    /// printed two identical lines for a change that was real (<c>tools/snapshot-probe/trigger-shapes.ps1</c>,
+    /// case <c>comma-in-a-value</c>).
     /// </summary>
     public static string Values(TriggerDataDocument item)
     {
@@ -102,14 +124,32 @@ public static class TriggerParts
 
         var bytes = item.Type is nameof(TriggerDataType.Binary) or nameof(TriggerDataType.Unknown);
 
-        return string.Join(", ", item.Values.Select(value => bytes ? Pairs(value) : Shown(value)));
+        return string.Join(ValueSeparator, item.Values.Select(value => bytes && IsHex(value) ? Pairs(value) : Shown(value)));
     }
 
-    private static string Shown(string value) => value.Length == 0 ? "\"\"" : value;
+    /// <summary>
+    /// The data items of one trigger on one line, for a comparison, which says "before -> after" per line.
+    ///
+    /// <b>Here, beside the rule that quotes, rather than in the two language files</b> - the review of PR
+    /// #98 asked for those, and until it the bar was written in both interfaces. The bar and the comma are
+    /// safe only because <see cref="Values"/> quotes every value holding one, and a translation choosing
+    /// another separator would bring back, silently, two lines that read the same for two triggers.
+    /// </summary>
+    public static string OneLine(IEnumerable<string> items) => string.Join(ItemSeparator, items);
 
-    private static string Pairs(string hex) => hex.Length == 0
-        ? Shown(hex)
-        : string.Join(' ', hex.Chunk(2).Select(pair => new string(pair)));
+    private static string Shown(string value) => NeedsQuotes(value)
+        ? "\"" + value.Replace("\"", "\"\"", StringComparison.Ordinal) + "\""
+        : value;
+
+    private static bool NeedsQuotes(string value) =>
+        value.Length == 0
+        || value.AsSpan().ContainsAny(Mistakable)
+        || char.IsWhiteSpace(value[0])
+        || char.IsWhiteSpace(value[^1]);
+
+    private static bool IsHex(string value) => value.Length > 0 && value.Length % 2 == 0 && value.All(char.IsAsciiHexDigit);
+
+    private static string Pairs(string hex) => string.Join(' ', hex.Chunk(2).Select(pair => new string(pair)));
 
     /// <summary>
     /// A data item's type as the member it names, or <see cref="TriggerDataType.Unknown"/> for a word this

@@ -215,7 +215,9 @@ internal static class DiffText
     ///
     /// <b>The whole lists are still the answer when there are no trigger lines to give</b> - a field that
     /// differs only as "none" against an empty list, which no real reading writes but a file can hold.
-    /// A difference reported with nothing under it would be the silence rule 8 forbids.
+    /// A difference reported with nothing under it would be the silence rule 8 forbids. And when a side
+    /// holds a trigger that is not one to say, which the core answers with no lines at all (since the
+    /// review of PR #98 - a null trigger read as "/", and a data item of nulls ended the run with code 1).
     /// </summary>
     private static IEnumerable<string> Lines(FieldDifference difference)
     {

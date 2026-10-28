@@ -84,7 +84,9 @@ public sealed partial record SnapshotDiff
     /// <summary>
     /// Narrows every trigger in a document to its kind and action - what a file older than schema seven
     /// holds - so the two sides of <see cref="ComparisonCaveats.TriggerDetailDiffers"/> compare the same
-    /// question. A document without triggers is left as it is.
+    /// question. A document without triggers is left as it is, and a trigger held as nothing stays nothing
+    /// rather than becoming one of no kind and no action (the review of PR #98), so <see cref="Change"/>
+    /// sees it for what it is.
     /// </summary>
     private static void KindsAndActions(JsonObject document)
     {
@@ -95,11 +97,13 @@ public sealed partial record SnapshotDiff
 
         document[Triggers] = new JsonArray(
         [
-            .. triggers.Select(trigger => new JsonObject
-            {
-                ["kind"] = trigger?["kind"]?.DeepClone(),
-                ["action"] = trigger?["action"]?.DeepClone()
-            })
+            .. triggers.Select(trigger => trigger is null
+                ? null
+                : new JsonObject
+                {
+                    ["kind"] = trigger["kind"]?.DeepClone(),
+                    ["action"] = trigger["action"]?.DeepClone()
+                })
         ]);
     }
 
@@ -108,8 +112,23 @@ public sealed partial record SnapshotDiff
     ///
     /// <b>Keyed by the very text <see cref="Compared"/> sorts</b>, so this agrees with the decision that the
     /// field differs: exact case since schema seven, and the narrowed kind and action when one side is older
-    /// (the two documents arrive already narrowed by <see cref="Documents"/>). A quadratic match, said rather
-    /// than hidden: the most triggers one entry holds on the machine this was written on is thirteen.
+    /// (the two documents arrive already narrowed by <see cref="Documents"/>).
+    ///
+    /// <b>Counted rather than searched, since the review of PR #98.</b> The first version looked for every
+    /// earlier trigger in the later list and took it out, which is quadratic - harmless at the thirteen one
+    /// entry holds on the machine this was written on, and a snapshot is a file anybody can hand over.
+    /// Measured with <c>tools/snapshot-probe/trigger-shapes.ps1</c>, forty thousand triggers in one entry,
+    /// five runs after a first one not counted: 12.8 to 20.4 s searching, 1.78 to 1.82 s counting, and 1.33
+    /// to 1.56 s for the build before this list existed, which compared two texts and named no trigger. The
+    /// copies of one trigger that are matched are still its first ones on the later side, so the lines come
+    /// out as they did.
+    ///
+    /// <b>Null as well when either side holds a trigger that is not one to say</b> - null as a whole, or a
+    /// data item without its type or its values, which no build writes and a file older than schema seven is
+    /// not refused for (<see cref="Snapshot"/> asks it of a seven). Each interface then shows the two whole
+    /// lists, as it did before backlog 625, rather than a line it would have to make up: until that review a
+    /// null trigger came out as a line reading "/", and a data item of nulls ended the comparison with an
+    /// exception and code 1.
     /// </summary>
     private static TriggerChange? Change(string field, JsonNode? was, JsonNode? now)
     {
@@ -118,31 +137,64 @@ public sealed partial record SnapshotDiff
             return null;
         }
 
-        var added = Listed(now).ToList();
+        var earlier = Listed(was).ToList();
+        var later = Listed(now).ToList();
+
+        if (earlier.Concat(later).Any(item => item.Trigger is not { } trigger || !Sayable(trigger)))
+        {
+            return null;
+        }
+
+        var copies = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        foreach (var (key, _) in later)
+        {
+            copies[key] = copies.GetValueOrDefault(key) + 1;
+        }
+
+        var matched = new Dictionary<string, int>(StringComparer.Ordinal);
         var removed = new List<TriggerDocument>();
 
-        foreach (var (key, trigger) in Listed(was))
+        foreach (var (key, trigger) in earlier)
         {
-            var match = added.FindIndex(other => other.Key == key);
-
-            if (match < 0)
+            if (matched.GetValueOrDefault(key) < copies.GetValueOrDefault(key))
             {
-                removed.Add(trigger);
+                matched[key] = matched.GetValueOrDefault(key) + 1;
             }
             else
             {
-                added.RemoveAt(match);
+                removed.Add(trigger!);
             }
         }
 
-        return new TriggerChange(removed, [.. added.Select(item => item.Trigger)]);
+        var added = new List<TriggerDocument>();
+
+        foreach (var (key, trigger) in later)
+        {
+            if (matched.GetValueOrDefault(key) > 0)
+            {
+                matched[key]--;
+            }
+            else
+            {
+                added.Add(trigger!);
+            }
+        }
+
+        return new TriggerChange(removed, added);
     }
 
-    /// <summary>The triggers of one side with the text they are compared by. A side with none holds an empty list.</summary>
-    private static IEnumerable<(string Key, TriggerDocument Trigger)> Listed(JsonNode? node) =>
+    /// <summary>
+    /// The triggers of one side with the text they are compared by - a trigger the side holds as nothing
+    /// comes with none. A side with no list holds an empty one.
+    /// </summary>
+    private static IEnumerable<(string Key, TriggerDocument? Trigger)> Listed(JsonNode? node) =>
         node is JsonArray items
             ? items.Select(item => (Text(item) ?? string.Empty, SnapshotJson.Trigger(item)))
             : [];
+
+    /// <summary>A trigger whose data, where it has any, is whole - see <see cref="TriggerDataDocument.IsWhole"/>.</summary>
+    private static bool Sayable(TriggerDocument trigger) => trigger.Data?.All(TriggerDataDocument.IsWhole) ?? true;
 
     /// <summary>
     /// Fields whose value names something Windows itself compares without case.

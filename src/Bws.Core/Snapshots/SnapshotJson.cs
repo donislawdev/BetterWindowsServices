@@ -241,11 +241,14 @@ public static class SnapshotJson
 
     /// <summary>
     /// One trigger of a document tree back as its record, in the shape the file is read with - for the
-    /// comparison, which works on trees and tells a person about triggers. A trigger a tree holds as
-    /// nothing comes back as one of no kind, so the person is told something rather than nothing.
+    /// comparison, which works on trees and tells a person about triggers.
+    ///
+    /// <b>A trigger the tree holds as nothing comes back as nothing</b>, since the review of PR #98. Until
+    /// then it came back as one of no kind and no action, "so the person is told something" - and what the
+    /// person was told was a line reading "/", a trigger nobody wrote. The comparison now shows that field
+    /// as its two whole lists instead (<c>SnapshotDiff.Change</c>).
     /// </summary>
-    internal static TriggerDocument Trigger(JsonNode? node) =>
-        node?.Deserialize<TriggerDocument>(Shape) ?? new TriggerDocument(string.Empty, string.Empty, null, null);
+    internal static TriggerDocument? Trigger(JsonNode? node) => node?.Deserialize<TriggerDocument>(Shape);
 
     private static void Drop(JsonObject entry, string property)
     {

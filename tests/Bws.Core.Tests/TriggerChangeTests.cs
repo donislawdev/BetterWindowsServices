@@ -65,6 +65,75 @@ public sealed class TriggerChangeTests
         Assert.Empty(change.Added);
     }
 
+    /// <summary>
+    /// <b>The copies matched are the first ones on the later side</b>, so what is left over keeps its place -
+    /// the order the lines came out in while the match searched the list, kept when it started counting (the
+    /// review of PR #98).
+    /// </summary>
+    [Fact]
+    public void The_copies_matched_are_the_first_so_what_arrived_keeps_its_order()
+    {
+        var before = Tree(Seven);
+        var held = Entry(before, "Appinfo")["triggers"]!.AsArray();
+        var first = held[0]!.DeepClone();
+        var second = held[1]!.DeepClone();
+        Entry(before, "Appinfo")["triggers"] = new JsonArray(first.DeepClone());
+
+        var after = Tree(Seven);
+        Entry(after, "Appinfo")["triggers"] = new JsonArray(first.DeepClone(), second, first.DeepClone());
+
+        var change = Triggers(before, after).Triggers!;
+
+        Assert.Empty(change.Removed);
+        Assert.Equal(
+            ["5f54ce7d-5b79-4175-8584-cb65313a0e98", "201ef99a-7fa0-444c-9399-19ba84f12a1a"],
+            change.Added.Select(trigger => trigger.Data![0].Values[0]));
+    }
+
+    /// <summary>
+    /// <b>A trigger held as nothing gives no lines</b>, and the person is shown the two whole lists instead -
+    /// the reader lets it through in every schema, and until the review of PR #98 it came out as a line
+    /// reading "/". The same against an older file, where the narrowing to kind and action once turned the
+    /// nothing into a trigger of no kind.
+    /// </summary>
+    [Theory]
+    [InlineData(Seven)]
+    [InlineData(Six)]
+    public void A_trigger_held_as_nothing_gives_no_lines_and_the_whole_lists_stay(string earlier)
+    {
+        var after = Tree(Seven);
+        Entry(after, "sppsvc")["triggers"]!.AsArray().Insert(0, null);
+
+        var difference = Assert.Single(Assert.Single(Diff(Tree(earlier), after).Changed).Differences);
+
+        Assert.Equal("triggers", difference.Field);
+        Assert.Null(difference.Triggers);
+        Assert.StartsWith("[null,", difference.After, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// <b>A data item that is not whole gives no lines either</b> - a file older than seven is not refused
+    /// for one, because that schema never held data, and each of these ended the comparison with an
+    /// exception and code 1 before the review of PR #98 (<c>tools/snapshot-probe/trigger-shapes.ps1</c>).
+    /// </summary>
+    [Theory]
+    [InlineData("[null]")]
+    [InlineData("""[{"type":"String","values":null}]""")]
+    [InlineData("""[{"type":"String","values":["a",null]}]""")]
+    [InlineData("""[{"type":null,"values":["a"]}]""")]
+    [InlineData("""[{"type":"String","values":[]}]""")]
+    public void An_older_file_whose_data_item_is_not_whole_gives_no_lines(string data)
+    {
+        var after = Tree(Six);
+        Entry(after, "sppsvc")["triggers"]![1]!["data"] = JsonNode.Parse(data);
+
+        var difference = Assert.Single(Assert.Single(Diff(Tree(Six), after).Changed).Differences);
+
+        Assert.Equal("triggers", difference.Field);
+        Assert.Null(difference.Triggers);
+        Assert.Contains(data, difference.After, StringComparison.Ordinal);
+    }
+
     /// <summary>An entry with no triggers on one side has all of the other side's arriving.</summary>
     [Fact]
     public void Triggers_where_there_were_none_have_all_arrived()

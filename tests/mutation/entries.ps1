@@ -14902,16 +14902,17 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # Backlog 625: bytes read the way sc qtriggerinfo prints them.
         Name = 'triggers: bytes are read in pairs'
         File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
-        From = ": string.Join(' ', hex.Chunk(2).Select(pair => new string(pair)));"
-        To = ': hex;'
+        From = "private static string Pairs(string hex) => string.Join(' ', hex.Chunk(2).Select(pair => new string(pair)));"
+        To = 'private static string Pairs(string hex) => hex;'
         Test = 'TriggerPartsTests.Bytes_are_read_in_pairs'
     }
     @{
-        # Backlog 625: a multiset - a set would report a difference with no line under it.
+        # Backlog 625: a multiset - a set would report a difference with no line under it. Re-anchored in
+        # the review of PR #98, when the search became a count: a set is "any copy matches".
         Name = 'diff: the triggers on one side only are counted as a multiset'
         File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
-        From = 'added.RemoveAt(match);'
-        To = '_ = match;'
+        From = 'if (matched.GetValueOrDefault(key) < copies.GetValueOrDefault(key))'
+        To = 'if (copies.ContainsKey(key))'
         Test = 'TriggerChangeTests.A_trigger_held_twice_on_one_side_and_once_on_the_other_leaves_one'
     }
     @{
@@ -14980,6 +14981,89 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = '<Setter TargetName="Label" Property="Grid.ColumnSpan" Value="3" />'
         To = '<!-- the label left in the shared column -->'
         Test = 'DetailsViewGuards.A_trigger_label_does_not_move_the_column_the_values_start_at'
+    }
+    @{
+        # Review of PR #98: counting replaced a quadratic search, and the lines must come out in the order
+        # the search gave - the first copies on the later side matched, the rest in their places.
+        Name = 'diff: what arrived keeps the order of the later side'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = 'added.Add(trigger!);'
+        To = 'added.Insert(0, trigger!);'
+        Test = 'TriggerChangeTests.The_copies_matched_are_the_first_so_what_arrived_keeps_its_order'
+    }
+    @{
+        # Review of PR #98: a trigger held as nothing came out as a line reading "/".
+        Name = 'diff: a trigger held as nothing gives no lines'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = 'if (earlier.Concat(later).Any(item => item.Trigger is not { } trigger || !Sayable(trigger)))'
+        To = 'if (earlier.Concat(later).Any(item => item.Trigger is { } trigger && !Sayable(trigger)))'
+        Test = 'TriggerChangeTests.A_trigger_held_as_nothing_gives_no_lines_and_the_whole_lists_stay'
+    }
+    @{
+        # Review of PR #98: a data item without its type or values, in a file older than seven, ended the
+        # comparison with an exception and code 1. Weakened to "present", which is the half-check.
+        Name = 'diff: a data item that is not whole gives no lines'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = 'private static bool Sayable(TriggerDocument trigger) => trigger.Data?.All(TriggerDataDocument.IsWhole) ?? true;'
+        To = 'private static bool Sayable(TriggerDocument trigger) => trigger.Data?.All(item => item is not null) ?? true;'
+        Test = 'TriggerChangeTests.An_older_file_whose_data_item_is_not_whole_gives_no_lines'
+    }
+    @{
+        # Review of PR #98: narrowing to kind and action turned a trigger held as nothing into one of no
+        # kind, which the comparison then said as a line. The mutation is that old behaviour.
+        Name = 'diff: narrowing keeps a trigger held as nothing'
+        File = 'src\Bws.Core\Snapshots\SnapshotDiff.Values.cs'
+        From = '? null'
+        To = '? new JsonObject { ["kind"] = null, ["action"] = null }'
+        Test = 'TriggerChangeTests.A_trigger_held_as_nothing_gives_no_lines_and_the_whole_lists_stay'
+    }
+    @{
+        # Review of PR #98: a value holding a comma read like two values, and one holding the bar like two items.
+        Name = 'triggers: a value holding a separator is quoted'
+        File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
+        From = '|| value.AsSpan().ContainsAny(Mistakable)'
+        To = '|| value.AsSpan().ContainsAny(Mistakable) && false'
+        Test = 'TriggerPartsTests.A_value_that_could_be_read_as_something_else_is_quoted'
+    }
+    @{
+        # Review of PR #98: white space at the start of a value is invisible on a line.
+        Name = 'triggers: a value starting with white space is quoted'
+        File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
+        From = '|| char.IsWhiteSpace(value[0])'
+        To = '|| char.IsWhiteSpace(value[0]) && false'
+        Test = 'TriggerPartsTests.A_value_that_could_be_read_as_something_else_is_quoted'
+    }
+    @{
+        # Review of PR #98: and at the end of one.
+        Name = 'triggers: a value ending in white space is quoted'
+        File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
+        From = '|| char.IsWhiteSpace(value[^1]);'
+        To = '|| char.IsWhiteSpace(value[^1]) && false;'
+        Test = 'TriggerPartsTests.A_value_that_could_be_read_as_something_else_is_quoted'
+    }
+    @{
+        # Review of PR #98: a quotation mark inside a quoted value is doubled, or the quoting is ambiguous itself.
+        Name = 'triggers: a quotation mark inside a value is doubled'
+        File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
+        From = 'value.Replace("\"", "\"\"", StringComparison.Ordinal)'
+        To = 'value'
+        Test = 'TriggerPartsTests.A_value_that_could_be_read_as_something_else_is_quoted'
+    }
+    @{
+        # Review of PR #98: pairs only where there are bytes - so no pair is cut out of a comma.
+        Name = 'triggers: a binary value that is not bytes is text'
+        File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
+        From = 'bytes && IsHex(value) ? Pairs(value) : Shown(value)'
+        To = 'bytes ? Pairs(value) : Shown(value)'
+        Test = 'TriggerPartsTests.A_binary_value_that_is_not_bytes_is_shown_as_text'
+    }
+    @{
+        # Review of PR #98: the bar joins the items of one trigger, in one place for both interfaces.
+        Name = 'triggers: the items of one trigger are joined by a bar'
+        File = 'src\Bws.Core\Snapshots\TriggerParts.cs'
+        From = 'private const string ItemSeparator = " | ";'
+        To = 'private const string ItemSeparator = " / ";'
+        Test = 'TriggerPartsTests.The_items_of_one_trigger_are_joined_by_a_bar'
     }
 )
 

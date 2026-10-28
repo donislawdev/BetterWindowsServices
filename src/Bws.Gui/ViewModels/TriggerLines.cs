@@ -17,13 +17,13 @@ internal static class TriggerLines
 {
     /// <summary>
     /// One trigger on one line, for a row of the comparison table - the kind, the action, the subtype, and the
-    /// data items joined by a bar, the one character no value on the machine this was measured on holds.
+    /// data items on one line as <see cref="TriggerParts.OneLine"/> joins them, the same as the command line.
     /// </summary>
     internal static string Line(TriggerDocument trigger)
     {
         var items = Items(trigger).ToList();
 
-        return items.Count == 0 ? Head(trigger) : Texts.Of("gui.trigger.withData", Head(trigger), string.Join(" | ", items));
+        return items.Count == 0 ? Head(trigger) : Texts.Of("gui.trigger.withData", Head(trigger), TriggerParts.OneLine(items));
     }
 
     /// <summary>

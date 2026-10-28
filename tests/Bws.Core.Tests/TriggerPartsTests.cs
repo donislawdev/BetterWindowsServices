@@ -68,6 +68,47 @@ public sealed class TriggerPartsTests
         Assert.Equal("0x0000000000000001", TriggerParts.Values(new TriggerDataDocument("KeywordAny", ["0x0000000000000001"])));
     }
 
+    /// <summary>
+    /// <b>A value that could be read as something else is in quotation marks</b> (the review of PR #98): a
+    /// comma, the bar items are joined with, a quotation mark - doubled inside - or white space at either end.
+    /// One firewall path holding a comma no longer reads like two values, and a value holding the bar no
+    /// longer reads like two items.
+    /// </summary>
+    [Fact]
+    public void A_value_that_could_be_read_as_something_else_is_quoted()
+    {
+        var one = TriggerParts.Values(new TriggerDataDocument("String", [@"C:\a, b.exe"]));
+        var two = TriggerParts.Values(new TriggerDataDocument("String", [@"C:\a", "b.exe"]));
+
+        Assert.Equal(@"""C:\a, b.exe""", one);
+        Assert.Equal(@"C:\a, b.exe", two);
+        Assert.Equal("\"x | y\"", TriggerParts.Values(new TriggerDataDocument("String", ["x | y"])));
+        Assert.NotEqual(
+            TriggerParts.OneLine([TriggerParts.Values(new TriggerDataDocument("String", ["x | y"]))]),
+            TriggerParts.OneLine(["x", "y"]));
+        Assert.Equal("\"say \"\"hi\"\"\"", TriggerParts.Values(new TriggerDataDocument("String", ["say \"hi\""])));
+        Assert.Equal("\" lead\", \"trail \"", TriggerParts.Values(new TriggerDataDocument("String", [" lead", "trail "])));
+        Assert.Equal("in the middle", TriggerParts.Values(new TriggerDataDocument("String", ["in the middle"])));
+    }
+
+    /// <summary>
+    /// Bytes are pairs only where they are bytes - an even run of hex digits. Anything else a hand-written file
+    /// puts under the binary type is text, quoted by the same rule, so no pair is cut out of a comma.
+    /// </summary>
+    [Fact]
+    public void A_binary_value_that_is_not_bytes_is_shown_as_text()
+    {
+        Assert.Equal("abc", TriggerParts.Values(new TriggerDataDocument("Binary", ["abc"])));
+        Assert.Equal("not hex", TriggerParts.Values(new TriggerDataDocument("Binary", ["not hex"])));
+        Assert.Equal("\"ab,cd\"", TriggerParts.Values(new TriggerDataDocument("Binary", ["ab,cd"])));
+        Assert.Equal("\"\"", TriggerParts.Values(new TriggerDataDocument("Binary", [""])));
+    }
+
+    /// <summary>The data items of one trigger on one line, joined by the bar, for a comparison.</summary>
+    [Fact]
+    public void The_items_of_one_trigger_are_joined_by_a_bar() =>
+        Assert.Equal("level 4 | any of 0x1", TriggerParts.OneLine(["level 4", "any of 0x1"]));
+
     /// <summary>A type word this build does not know - a later build could write one - is the unknown type, with its values left as they are.</summary>
     [Fact]
     public void A_type_this_build_does_not_know_is_the_unknown_type()
