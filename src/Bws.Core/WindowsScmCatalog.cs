@@ -193,7 +193,7 @@ public sealed partial class WindowsScmCatalog(NetworkPaths networkPaths = Networ
         // Skipping this is exactly what sc.exe does, and it is why sc.exe reports three
         // dependents for a service that has a hundred and sixty two.
         var probed = PInvoke.EnumDependentServices(
-            service, ENUM_SERVICE_STATE.SERVICE_STATE_ALL, default, out var needed, out _);
+            service, ENUM_SERVICE_STATE.SERVICE_STATE_ALL, null, 0, out var needed, out _);
 
         var probeError = Marshal.GetLastWin32Error();
 
@@ -224,12 +224,13 @@ public sealed partial class WindowsScmCatalog(NetworkPaths networkPaths = Networ
         List<string> names;
 
         // Pinned across the call and the reading - the argument is at ReadConfiguration. Each
-        // record here names a service through a pointer into this block.
+        // record here names a service through a pointer into this block, which is also why the
+        // call has taken this pointer rather than a span since CsWin32 0.3.366 - Queried says more.
         fixed (byte* pinned = buffer)
         {
             if (!PInvoke.EnumDependentServices(
                     service, ENUM_SERVICE_STATE.SERVICE_STATE_ALL,
-                    new Span<byte>(pinned, buffer.Length), out _, out var returned))
+                    (ENUM_SERVICE_STATUSW*)pinned, (uint)buffer.Length, out _, out var returned))
             {
                 return Refused<IReadOnlyList<string>>(Marshal.GetLastWin32Error());
             }

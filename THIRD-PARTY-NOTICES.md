@@ -122,18 +122,20 @@ list should be able to tell at a glance which side of the line each one falls on
 
 | Package | Licence | What it does |
 |---|---|---|
-| Microsoft.Windows.CsWin32 0.3.363 | MIT | Generates the P/Invoke declarations at build time. Marked `PrivateAssets="all"`, so the generator itself does not ship - the code it generates is compiled into ours |
-| Meziantou.Analyzer 3.0.313 | MIT, (c) Gérald Barré | Extra analyser rules |
+| Microsoft.Windows.CsWin32 0.3.367 | MIT | Generates the P/Invoke declarations at build time. Marked `PrivateAssets="all"`, so the generator itself does not ship - the code it generates is compiled into ours |
+| Meziantou.Analyzer 3.0.317 | MIT, (c) Gérald Barré | Extra analyser rules |
 | xunit.v3.mtp-off 4.0.2, xunit.runner.visualstudio 4.0.1 | Apache-2.0 | Test framework |
 | Microsoft.NET.Test.Sdk 18.11.0 | MIT | Test host |
 | coverlet.collector 6.0.4 | MIT | Coverage collection |
 | CsCheck 4.9.1 | Apache-2.0 | Property-based testing |
-| Microsoft.Windows.SDK.Win32Metadata 71.0.30-preview | Windows SDK licence terms | The machine-readable description of the Win32 API that CsWin32 reads to generate from. Arrives as its dependency rather than being asked for |
+| Microsoft.Windows.SDK.Win32Metadata 71.0.37-preview | Windows SDK licence terms | The machine-readable description of the Win32 API that CsWin32 reads to generate from. Arrives as its dependency rather than being asked for |
 | Microsoft.Windows.WDK.Win32Metadata 0.13.25-experimental | Windows SDK licence terms | The same thing for the driver-facing half of the API |
 | Microsoft.Windows.SDK.Win32Docs 0.1.42-alpha | Windows SDK licence terms | The documentation text CsWin32 copies into the generated declarations, so that hovering a generated method shows what Microsoft says about it |
 
 **The last three rows are not open source and that is worth stating rather than leaving to be
-assumed.** Read from the packages on disk on 2026-09-22 rather than from a listing: two of them
+assumed.** Read from the packages on disk on 2026-09-22 rather than from a listing, and read again
+on 2026-11-02 for Win32Metadata 71.0.37-preview, whose `sdk_license.txt` is byte for byte the one
+71.0.30-preview carried and whose files are laid out the same way: two of them
 carry `sdk_license.txt`, which is `MICROSOFT SOFTWARE LICENSE TERMS - MICROSOFT WINDOWS SOFTWARE
 DEVELOPMENT KIT (SDK) FOR WINDOWS 10`, and the third points at the same terms through
 <https://aka.ms/WinSDKLicenseURL>. Those terms license the use of the SDK for building software

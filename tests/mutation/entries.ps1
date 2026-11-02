@@ -3218,9 +3218,12 @@ $mutations = @(
         # holder's name, which carries accented letters, and came back STALE - Windows PowerShell
         # reads a file with no byte order mark differently from how the text was written, so the
         # two sides stopped being the same string without either being wrong.
-        # Re-anchored 2026-10-27: the analyser moved to 3.0.313 and this anchor stayed behind.
-        From = '| Meziantou.Analyzer 3.0.313 |'
-        To = '| An analyser |'
+        # NO VERSION IN THIS ANCHOR SINCE 2026-11-02, after it went stale twice for the same reason:
+        # re-anchored on 2026-10-27 when the analyser moved to 3.0.313, and stale again when it moved
+        # to 3.0.317. The rule is at 'dependencies: a package in a shipped project is refused' - an
+        # anchor must not contain a number somebody else maintains. The package's name is ours.
+        From = '| Meziantou.Analyzer '
+        To = '| An analyser '
         Test = 'LicenceNoticeGuards.Every_package_that_ships_is_named_in_the_notices'
     },
     @{
@@ -6667,8 +6670,8 @@ $mutations = @(
         # native call standing as a statement under a name nobody argued for.
         Name = 'interop: a native call does not get to drop its answer unargued'
         File = 'src\Bws.Core\ScmDetailReader.cs'
-        From = 'var probed = PInvoke.QueryServiceConfig2W(service, level, default, out needed);'
-        To = 'PInvoke.QueryServiceConfig2W(service, level, default, out needed); var probed = true;'
+        From = 'var probed = PInvoke.QueryServiceConfig2W(service, level, null, 0, out needed);'
+        To = 'PInvoke.QueryServiceConfig2W(service, level, null, 0, out needed); var probed = true;'
         Test = 'NativeCallGuards.Every_native_call_that_drops_its_answer_has_argued_for_dropping_it'
     },
     @{

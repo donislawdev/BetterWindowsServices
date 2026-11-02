@@ -92,8 +92,7 @@ public sealed class WindowsChangeHistoryReader : IChangeHistoryReader
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not read how the System event log is configured.");
         }
 
-        if (!PInvoke.EvtGetChannelConfigProperty(
-                channel, EVT_CHANNEL_CONFIG_PROPERTY_ID.EvtChannelLoggingConfigMaxSize, 0, out EVT_VARIANT maximum, out _))
+        if (!ChannelProperty(channel, EVT_CHANNEL_CONFIG_PROPERTY_ID.EvtChannelLoggingConfigMaxSize, out var maximum))
         {
             throw new Win32Exception(Marshal.GetLastWin32Error(), "Could not read the size limit of the System event log.");
         }
@@ -121,7 +120,7 @@ public sealed class WindowsChangeHistoryReader : IChangeHistoryReader
 
     private static bool Configured(SafeHandle channel, EVT_CHANNEL_CONFIG_PROPERTY_ID property, string what)
     {
-        if (!PInvoke.EvtGetChannelConfigProperty(channel, property, 0, out EVT_VARIANT value, out _))
+        if (!ChannelProperty(channel, property, out var value))
         {
             throw new Win32Exception(Marshal.GetLastWin32Error(), $"Could not read the {what} setting of the System event log.");
         }
@@ -129,6 +128,26 @@ public sealed class WindowsChangeHistoryReader : IChangeHistoryReader
         Expect(value, EVT_VARIANT_TYPE.EvtVarTypeBoolean, what);
 
         return value.BooleanVal;
+    }
+
+    /// <summary>
+    /// One property of the channel's configuration, written straight into a variant on the stack.
+    ///
+    /// CsWin32 0.3.363 generated an overload that took the variant by reference, and 0.3.367 generates
+    /// only the pointer and the size, because a variant may point past itself into the buffer it was
+    /// written to. A local on the stack does not move, so nothing needs pinning. The room is one variant,
+    /// as it was then: every property asked for here is a number or a boolean, which the variant holds
+    /// itself, and a property that wanted more would fail with ERROR_INSUFFICIENT_BUFFER and be refused
+    /// by the caller rather than read short. The last error is still this call's when the caller reads it.
+    /// </summary>
+    private static unsafe bool ChannelProperty(SafeHandle channel, EVT_CHANNEL_CONFIG_PROPERTY_ID property, out EVT_VARIANT value)
+    {
+        var answer = default(EVT_VARIANT);
+        var read = PInvoke.EvtGetChannelConfigProperty(channel, property, 0, (uint)sizeof(EVT_VARIANT), &answer, out _);
+
+        value = answer;
+
+        return read;
     }
 
     private static EVT_VARIANT Property(SafeHandle log, EVT_LOG_PROPERTY_ID property, EVT_VARIANT_TYPE type)
@@ -227,11 +246,23 @@ public sealed class WindowsChangeHistoryReader : IChangeHistoryReader
     {
         private byte[] _buffer = new byte[16 * 1024];
 
-        internal string Xml(SafeHandle one)
+        internal unsafe string Xml(SafeHandle one)
         {
             while (true)
             {
-                if (PInvoke.EvtRender(null, one, (uint)EVT_RENDER_FLAGS.EvtRenderEventXml, _buffer, out var used, out _))
+                bool rendered;
+                uint used;
+
+                // Pinned for the call alone. Rendered as XML the answer is text, with nothing in it that
+                // points back into the buffer, so the array may move again once the call returns. CsWin32
+                // 0.3.363 took a span here and 0.3.367 takes only the pointer and the size.
+                fixed (byte* pinned = _buffer)
+                {
+                    rendered = PInvoke.EvtRender(
+                        null, one, (uint)EVT_RENDER_FLAGS.EvtRenderEventXml, (uint)_buffer.Length, pinned, out used, out _);
+                }
+
+                if (rendered)
                 {
                     return Encoding.Unicode.GetString(_buffer, 0, (int)used).TrimEnd('\0');
                 }

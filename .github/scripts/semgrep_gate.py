@@ -109,12 +109,14 @@ BLOCKING = ("ERROR", "HIGH", "CRITICAL")
 # a gate that goes red for a legitimate reason is a gate people learn to bypass. Measured on
 # this repository:
 #
-#   files   301 (before the Python scripts existed), 306, 309, 399 - it tracks the tree
-#   rules   131, 374, 419 - it tracks WHICH LANGUAGES ARE IN THE TREE, not the ruleset alone.
+#   files   301 (before the Python scripts existed), 306, 309, 399, then 680 on 2026-10-26 and
+#           730 on 2026-11-02 - it tracks the tree
+#   rules   131, 374, 419, 424 - it tracks WHICH LANGUAGES ARE IN THE TREE, not the ruleset alone.
 #           Two .py files took it from 131 to 374 by pulling in Python's rules. On 2026-10-14,
 #           with 1.180.0, ONE run said both 374 (semgrep's summary) and 419 (the timing list
 #           this gate counts), so the last two may be one run read two ways - the earlier runs
-#           did not keep both, and that is not settled.
+#           did not keep both, and that is not settled. With 1.181.0 and 1.182.1 the pair was
+#           379 and 424, and .github/requirements-semgrep.txt carries those runs.
 #
 # Both floors were checked against that run: 399 files over 200, 419 rules over 50. Still floors
 # against a collapse, far under a healthy run on purpose.

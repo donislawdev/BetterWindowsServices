@@ -12,37 +12,38 @@
 # release turning a green branch red on a commit that touched nothing teaches everybody to
 # ignore the check.
 #
-# THE GATE'S NUMBERS ARE MEASURED WITH THE VERSION BELOW. Measured again on 2026-10-26, when the
-# version moved from 1.180.0 to 1.181.0. The run is the Semgrep job of Dependabot's own pull request
-# for that bump (run 40335089268, on the merge of its branch into main with `--config p/default`):
-# the gate read zero blocking findings, zero scan errors, 680 files and 424 rules, and semgrep's own
-# summary said it loaded 1074 code rules, ran 379 of them and found nothing. The two rule counts
-# are one run read two ways - 379 is semgrep's own summary, 424 the timing list in the report,
-# which is what the gate counts. For 1.180.0 on 2026-10-14 the same pair was 374 and 419, over 399
+# THE GATE'S NUMBERS ARE MEASURED WITH THE VERSION BELOW. Measured again on 2026-11-02, after the
+# version moved from 1.181.0 to 1.182.1. Two runs say the same thing: the Semgrep job of Dependabot's
+# pull request for that bump (run 41457342283, on the merge of its branch into main) and the push of
+# that merge to main at 5305d7c (run 41479127786), both with `--config p/default`. The gate read zero
+# blocking findings, zero scan errors, 730 files and 424 rules, and semgrep's own summary said it
+# loaded 1074 code rules, ran 379 of them and found nothing. The two rule counts are one run read
+# two ways - 379 is semgrep's own summary, 424 the timing list in the report, which is what the gate
+# counts. 1.181.0 on 2026-10-26 gave the same 379 and 424, over 680 files - equal counts, which is
+# not the same claim as equal rules. For 1.180.0 on 2026-10-14 the pair was 374 and 419, over 399
 # files. Before that the numbers here were from 1.177.0 on 2026-09-22 (131 rules, 301 files), and
 # 1.178.0 was never measured. Moving this line means measuring again rather than assuming the
 # report will look the same.
 #
-# WHY 1.181.0 AND NOT THE NEWEST. 1.182.0 was uploaded on 2026-10-20 and 1.182.1 on 2026-10-22,
-# both inside the seven days of cooldown .github/dependabot.yml asks for, and 1.181.0 (uploaded on
-# 2026-10-14) is the release whose run is measured above. Choosing a newer one would mean pinning a
-# version nobody has measured here. It would also not change the entries in osv-scanner.toml, because
-# on 2026-10-26 the package index showed every release from 1.180.0 to 1.182.1 requiring the same
-# mcp==1.29.0 and opentelemetry-api~=1.37.0.
+# WHY 1.182.1 AND NOT THE NEWEST. 1.183.0 was uploaded on 2026-10-29, inside the seven days of
+# cooldown .github/dependabot.yml asks for, and 1.182.1 (uploaded on 2026-10-22) is the release whose
+# run is measured above. Choosing a newer one would mean pinning a version nobody has measured here.
+# It would also not change the entries in osv-scanner.toml, because on 2026-11-02 the package index
+# showed 1.182.0, 1.182.1 and 1.183.0 requiring the same mcp==1.29.0 and opentelemetry-api~=1.37.0
+# as every release since 1.180.0.
 #
-# 680 OF 1081 FILES, AND THAT IS NOT A FAULT. Semgrep's own default ignore patterns exclude
-# tests/, which is 393 of this repository's files on main at 845c8a4, and one picture is skipped
-# for being over 1 MB. That leaves 688 and the scan read 680, so eight files are neither tests nor
-# the oversized picture - the other pictures are what is left, but that is the arithmetic of the
-# count and not a line semgrep prints. The same eight were left over on 2026-10-14, when the scan
-# read 399 of 407 files outside tests/. The growth since then is 281 files added outside tests/,
-# of which 221 are the language pages and strings in site/. So a healthy run of this tree reads
-# src/, site/, .github/, packaging/ and the root - about seven hundred files today - and a collapse
-# to a handful is the shape of a scan that ran somewhere else. The gate prints the number on every
-# run for exactly that reason.
+# 730 OF 1155 FILES, AND THAT IS NOT A FAULT. Semgrep's own default ignore patterns exclude
+# tests/, which is 417 of this repository's files on main at 5305d7c - semgrep's summary says 417
+# files matched them - and one picture is skipped for being over 1 MB. That leaves 737 and the scan
+# read 730, so seven files are neither tests nor the oversized picture. Seven is the number of
+# binary pictures outside tests/ (four PNG, two icons and one GIF), but that is the arithmetic of the
+# count and not a line semgrep prints. On 2026-10-26 eight were left over, when the scan read 680 of
+# 688 files outside tests/. So a healthy run of this tree reads src/, site/, .github/, packaging/ and
+# the root - about seven hundred files today - and a collapse to a handful is the shape of a scan
+# that ran somewhere else. The gate prints the number on every run for exactly that reason.
 #
 # Licence, read on 2026-09-22 from that version's own metadata rather than recalled, and read again
-# on 2026-10-26 from 1.181.0's, which says the same. The
+# on 2026-10-26 from 1.181.0's and on 2026-11-02 from 1.182.1's, which say the same. The
 # package index reports `license_expression` as LGPL-2.1-or-later, with the older `license`
 # field null and no licence classifier - which is the modern shape and worth saying, because a
 # reader checking the field that used to hold this would find nothing and could conclude the
