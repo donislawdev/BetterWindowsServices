@@ -29,15 +29,30 @@ What is read, and why none of it is trusted to be complete
 The packages come from `dotnet list package --format json` after a restore,
 which is what NuGet resolved rather than what a file seems to say. Two checks
 keep that list honest. Every project git tracks has to appear in it, so a
-project the solution forgot is a refusal rather than a shorter list. And every
-package a tracked project or props file names in a PackageReference has to
-appear in it, so a listing that lost a package is a refusal too.
+project the solution forgot is a refusal rather than a shorter list. And the
+PackageReference items the repository's own files name have to appear in it:
+
+  - one written in a project file, in the listing of THAT project, so a package
+    one project lost is a refusal even while another project still lists it.
+  - one written in a props or targets file, somewhere in the listing. Which
+    projects import such a file is MSBuild's evaluation, and this gate does not
+    repeat it.
+
+The files are read as XML, so a reference inside a comment is not a reference.
+A reference whose Condition is false for every framework is read as one all the
+same, and comes back as a refusal naming it - loud, and the fix is in the file.
 
 The versions come from NuGet's registration resource, found through the service
 index rather than written here. A package with many versions is split into pages
 that have to be fetched one by one, and a page that was not read would make a
-package look current. So the version in the tree has to be among the versions
-read, and a package whose own version is missing from them is a refusal.
+package look current. So the count of pages the index names, and the count of
+versions each page names, have to match what was read, and the version in the
+tree has to be among the versions read.
+
+Only NuGet is asked. Every address this gate opens - the service index, the
+registration, every page the registration names, every redirect - has to be
+HTTPS on the host of the service index, so a crafted answer cannot point the job
+at a file on the runner or at another host.
 
 What counts as newer
 --------------------
@@ -75,18 +90,25 @@ that never says newer.
 import argparse
 import datetime
 import http.client
+import io
 import json
 import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 import tomllib
 import urllib.error
+import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ElementTree
 import zlib
 
 SERVICE_INDEX = "https://api.nuget.org/v3/index.json"
+
+# The one host this gate talks to, taken from the address above rather than written twice.
+NUGET_HOST = urllib.parse.urlsplit(SERVICE_INDEX).hostname
 
 # The registration resource that lists every version with its publication date, compressed,
 # SemVer 2 versions included. Found by this type in the service index on every run.
@@ -96,9 +118,10 @@ REGISTRATION_TYPE = "RegistrationsBaseUrl/3.6.0"
 # cannot be withdrawn by a registry changing its mind about something recent.
 CANARIES = (("Newtonsoft.Json", "12.0.3", "major"),)
 
-# A ceiling on any one answer, far above anything real. The largest registration page this
-# check reads is in the hundreds of kilobytes. The ceiling applies after decompression too,
-# so a small compressed answer cannot unpack into something that fills the runner.
+# A ceiling on any one answer and on any one file, far above anything real. The largest
+# registration page this check reads is in the hundreds of kilobytes, the listing in the tens.
+# The ceiling applies after decompression too, so a small compressed answer cannot unpack
+# into something that fills the runner.
 MOST_BYTES = 32 * 1024 * 1024
 
 ATTEMPTS = 3
@@ -106,7 +129,6 @@ ATTEMPTS = 3
 PACKAGE_ID = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,99}$")
 VERSION = re.compile(
     r"^(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:\.(\d+))?(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z.-]+)?$")
-REFERENCE = re.compile(r"<PackageReference\b[^>]*?\bInclude\s*=\s*\"([^\"]+)\"", re.DOTALL)
 
 HOLD_KEYS = {"package", "through", "until", "reason"}
 
@@ -125,6 +147,11 @@ class Unreadable(Exception):
 def refused(exc):
     print("REFUSED: %s" % exc)
     return 2
+
+
+def one_line(text):
+    """Text for a table cell or a log line: whitespace collapsed, newlines included."""
+    return " ".join(text.split())
 
 
 # ---- versions -----------------------------------------------------------------------------------
@@ -172,16 +199,45 @@ def step(old, new):
 # ---- answers from outside -------------------------------------------------------------------------
 
 
+def checked_url(url):
+    """The URL itself, when this gate may open it: HTTPS, on NuGet's host, nothing else in it."""
+    try:
+        parts = urllib.parse.urlsplit(url) if isinstance(url, str) else None
+        port = parts.port if parts is not None else None
+    except ValueError:
+        parts = None
+        port = None
+    if (parts is None or parts.scheme != "https" or parts.hostname != NUGET_HOST
+            or parts.username or parts.password or port not in (None, 443)):
+        raise Unreadable("%r is not an address on %s over HTTPS, so it is not opened" % (url, NUGET_HOST))
+    return url
+
+
+class CheckedRedirects(urllib.request.HTTPRedirectHandler):
+    """Follows a redirect only to an address checked_url accepts."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        checked_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+OPENER = urllib.request.build_opener(CheckedRedirects)
+
+
 def decompress(body):
     inflater = zlib.decompressobj(16 + zlib.MAX_WBITS)
     out = inflater.decompress(body, MOST_BYTES + 1)
     if len(out) > MOST_BYTES or inflater.unconsumed_tail:
         raise Unreadable("an answer unpacks to more than %d bytes" % MOST_BYTES)
+    if not inflater.eof:
+        raise Unreadable("an answer ends before its compressed stream does")
     return out
 
 
-def fetch_json(url):
+def fetch_json(url, open_url=None, sleep=time.sleep):
     """One JSON answer from NuGet, retried on a transient failure, refused on anything else."""
+    checked_url(url)
+    open_url = open_url or OPENER.open
     last = None
     for attempt in range(ATTEMPTS):
         try:
@@ -189,7 +245,7 @@ def fetch_json(url):
                 "Accept-Encoding": "gzip",
                 "User-Agent": "BetterWindowsServices-outdated-gate",
             })
-            with urllib.request.urlopen(request, timeout=30) as response:
+            with open_url(request, timeout=30) as response:
                 body = response.read(MOST_BYTES + 1)
                 encoding = (response.headers.get("Content-Encoding") or "").lower()
             if len(body) > MOST_BYTES:
@@ -198,15 +254,19 @@ def fetch_json(url):
                 body = decompress(body)
             return json.loads(body.decode("utf-8"))
         except urllib.error.HTTPError as exc:
-            if exc.code < 500 and exc.code != 429:
-                raise Unreadable("%s: HTTP %d" % (url, exc.code)) from exc
-            last = exc
+            # An HTTPError is a response as well and holds its connection until it is closed.
+            # Closed here on every path, and only its code is kept for the message.
+            code = exc.code
+            exc.close()
+            if code < 500 and code != 429:
+                raise Unreadable("%s: HTTP %d" % (url, code)) from None
+            last = "HTTP %d" % code
         except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.HTTPException) as exc:
-            last = exc
+            last = str(exc) or type(exc).__name__
         except (UnicodeDecodeError, json.JSONDecodeError, zlib.error) as exc:
             raise Unreadable("%s: %s" % (url, exc)) from exc
         if attempt + 1 < ATTEMPTS:
-            time.sleep(2 ** attempt * 5)
+            sleep(2 ** attempt * 5)
     raise Unreadable("%s: %s after %d attempts" % (url, last, ATTEMPTS))
 
 
@@ -214,7 +274,8 @@ def field(record, key, kind, where):
     if not isinstance(record, dict) or key not in record:
         raise Malformed("%s has no %r" % (where, key))
     value = record[key]
-    if not isinstance(value, kind):
+    # True is an int to Python. Nothing this gate reads as a number is ever written as true.
+    if not isinstance(value, kind) or (kind is int and isinstance(value, bool)):
         raise Malformed("%s: %r is %s, not %s" % (where, key, type(value).__name__, kind.__name__))
     return value
 
@@ -236,7 +297,7 @@ def registration_base(fetch):
     index = fetch(SERVICE_INDEX)
     for resource in items(index, "resources", "the service index", required=True):
         if isinstance(resource, dict) and resource.get("@type") == REGISTRATION_TYPE:
-            base = field(resource, "@id", str, "the registration resource")
+            base = checked_url(field(resource, "@id", str, "the registration resource"))
             return base if base.endswith("/") else base + "/"
     raise Malformed("the service index names no %s" % REGISTRATION_TYPE)
 
@@ -258,18 +319,29 @@ def published_at(text, where):
     return moment
 
 
+def counted(record, leaves, where):
+    """Refuse a list shorter or longer than the count the same answer gives for it."""
+    advertised = field(record, "count", int, where)
+    if advertised != len(leaves):
+        raise Unreadable("%s names %d entries and %d were read" % (where, advertised, len(leaves)))
+
+
 def releases_of(package, base, fetch):
     """Every version NuGet has of one package, each page fetched when it is not inline."""
     if not PACKAGE_ID.match(package):
         raise Malformed("%r is not a package id" % package)
-    index = fetch("%s%s/index.json" % (base, package.lower()))
+    index = fetch(checked_url("%s%s/index.json" % (base, package.lower())))
+    pages = items(index, "items", "the registration of " + package, required=True)
+    counted(index, pages, "the registration of " + package)
     found = []
-    for number, page in enumerate(items(index, "items", "the registration of " + package, required=True)):
+    for number, page in enumerate(pages):
         where = "page %d of %s" % (number, package)
-        leaves = items(page, "items", where)
-        if "items" not in page:
-            page = fetch(field(page, "@id", str, where))
-            leaves = items(page, "items", where, required=True)
+        if "items" in page:
+            leaves = items(page, "items", where)
+        else:
+            fetched = fetch(checked_url(field(page, "@id", str, where)))
+            leaves = items(fetched, "items", where, required=True)
+        counted(page, leaves, where)
         for leaf in leaves:
             entry = field(leaf, "catalogEntry", dict, where)
             version = Version(field(entry, "version", str, where))
@@ -285,8 +357,26 @@ def releases_of(package, base, fetch):
 # ---- what the repository says -----------------------------------------------------------------------
 
 
-def git_files(*patterns):
-    out = subprocess.run(["git", "ls-files", "--", *patterns], check=True, capture_output=True, text=True)
+def read_text(path, limit=MOST_BYTES):
+    """A file of the repository as text, refused past the ceiling rather than read whole."""
+    with open(path, "rb") as stream:
+        data = stream.read(limit + 1)
+    if len(data) > limit:
+        raise Unreadable("%s is larger than %d bytes" % (path, limit))
+    try:
+        return data.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise Unreadable("%s is not UTF-8: %s" % (path, exc)) from exc
+
+
+def repository_root():
+    out = subprocess.run(["git", "rev-parse", "--show-toplevel"], check=True, capture_output=True, text=True)
+    return out.stdout.strip()
+
+
+def git_files(root, *patterns):
+    out = subprocess.run(["git", "ls-files", "--", *patterns], check=True, capture_output=True, text=True,
+                         cwd=root)
     return [line for line in out.stdout.splitlines() if line]
 
 
@@ -302,14 +392,34 @@ def cooldown_days(text):
     return int(days[0])
 
 
-def declared(texts):
-    """Every package a PackageReference names, by lower-case id, from project and props files."""
-    return {name.lower(): name for text in texts for name in REFERENCE.findall(text)}
+def references(text, where):
+    """The packages one MSBuild file names in a PackageReference, by lower-case id.
+
+    Read as XML, so a reference inside a comment is not one. A document type declaration is
+    refused before parsing - no project file needs one, and it is the only way to make the
+    parser expand entities."""
+    if "<!DOCTYPE" in text:
+        raise Malformed("%s declares a document type, which no MSBuild file here needs" % where)
+    try:
+        root = ElementTree.fromstring(text)
+    except ElementTree.ParseError as exc:
+        raise Malformed("%s is not well-formed XML: %s" % (where, exc)) from exc
+    found = {}
+    for element in root.iter():
+        # The local name, so that an old-style project with the MSBuild namespace reads the same.
+        if isinstance(element.tag, str) and element.tag.rsplit("}", 1)[-1] == "PackageReference":
+            name = element.get("Include")
+            if name:
+                found[name.lower()] = name
+    return found
 
 
-def tree(listing, root, tracked, named):
-    """{(id, version): projects} from a dotnet list package listing, refused when incomplete."""
-    if not isinstance(listing, dict) or listing.get("version") != 1:
+def tree(listing, root, tracked, own, shared):
+    """{(id, version): projects} from a dotnet list package listing, refused when incomplete.
+
+    own holds what each project file names, by its path from the root. shared holds what the
+    props and targets files name, which has to be somewhere in the listing."""
+    if not isinstance(listing, dict) or listing.get("version") != 1 or isinstance(listing.get("version"), bool):
         raise Malformed("the listing is not version 1 of the dotnet list package format")
     problems = list(items(listing, "problems", "the listing"))
     for project in items(listing, "projects", "the listing", required=True):
@@ -317,23 +427,28 @@ def tree(listing, root, tracked, named):
     if problems:
         raise Unreadable("dotnet list reported a problem: %s" % json.dumps(problems[0]))
     found = {}
-    seen = set()
+    listed_by = {}
     for project in items(listing, "projects", "the listing", required=True):
         path = field(project, "path", str, "a project")
         name = os.path.relpath(path, root).replace(os.sep, "/")
-        seen.add(name)
+        listed_by.setdefault(name, set())
         for framework in items(project, "frameworks", name):
             for package in items(framework, "topLevelPackages", name):
                 package_id = field(package, "id", str, name)
                 resolved = field(package, "resolvedVersion", str, name + " " + package_id)
                 found.setdefault((package_id, resolved), set()).add(name)
-    missing = sorted(set(tracked) - seen)
+                listed_by[name].add(package_id.lower())
+    missing = sorted(set(tracked) - set(listed_by))
     if missing:
         raise Unreadable("the listing has no entry for %s, which git tracks" % ", ".join(missing))
-    listed_ids = {package_id.lower() for package_id, _ in found}
-    lost = sorted(original for lower, original in named.items() if lower not in listed_ids)
+    for name, named in sorted(own.items()):
+        lost = sorted(original for lower, original in named.items() if lower not in listed_by.get(name, set()))
+        if lost:
+            raise Unreadable("%s names %s and its listing does not have it" % (name, ", ".join(lost)))
+    everywhere = set().union(*listed_by.values()) if listed_by else set()
+    lost = sorted(original for lower, original in shared.items() if lower not in everywhere)
     if lost:
-        raise Unreadable("a PackageReference names %s and the listing does not have it" % ", ".join(lost))
+        raise Unreadable("a props or targets file names %s and the listing does not have it" % ", ".join(lost))
     if not found:
         raise Unreadable("the listing has no package at all")
     return found
@@ -351,7 +466,7 @@ class Hold:
         self.until = field(entry, "until", datetime.date, where)
         if isinstance(self.until, datetime.datetime):
             raise Malformed("%s: until is a date, without a time" % where)
-        self.reason = field(entry, "reason", str, where).strip()
+        self.reason = one_line(field(entry, "reason", str, where))
         if len(self.reason) < 20:
             raise Malformed("%s: the reason has to say why, in a sentence" % where)
 
@@ -426,7 +541,7 @@ def describe(judgement, projects=()):
         line += " -> %s (%s, published %s)" % (target.version, step(judgement.version, target.version),
                                                target.published.date())
     if judgement.note:
-        line += " - " + judgement.note
+        line += " - " + one_line(judgement.note)
     if projects:
         line += " [%s]" % ", ".join(sorted(projects))
     return line
@@ -437,8 +552,7 @@ def canary(fetch=fetch_json, now=None, days=None):
     now = now or datetime.datetime.now(datetime.timezone.utc)
     try:
         if days is None:
-            with open(".github/dependabot.yml", encoding="utf-8") as stream:
-                days = cooldown_days(stream.read())
+            days = cooldown_days(read_text(os.path.join(repository_root(), ".github", "dependabot.yml")))
         base = registration_base(fetch)
         missed = 0
         for package, version, expected in CANARIES:
@@ -447,7 +561,7 @@ def canary(fetch=fetch_json, now=None, days=None):
                       and step(judgement.version, judgement.target.version) == expected)
             print("canary: %s - %s" % (describe(judgement), "caught" if caught else "NOT CAUGHT"))
             missed += 0 if caught else 1
-    except (Malformed, Unreadable, OSError) as exc:
+    except (Malformed, Unreadable, OSError, subprocess.CalledProcessError) as exc:
         return refused(exc)
     if missed:
         print("A package years behind did not come out behind. Until it does, no verdict of this run")
@@ -463,12 +577,13 @@ def summary_table(judgements, found, hold_problems):
     for judgement in judgements:
         target = judgement.target
         projects = sorted(found[(judgement.package, judgement.version.text)])
+        note = one_line(judgement.note).replace("|", "/")
         lines.append("| %s | %s | %s | %s | %s | %s | %s |" % (
             judgement.package, judgement.version,
             target.version if target else "",
             target.published.date() if target else "",
             step(judgement.version, target.version) if target else "",
-            judgement.state + (" - " + judgement.note.replace("|", "/") if judgement.note else ""),
+            judgement.state + (" - " + note if note else ""),
             ", ".join(projects) if len(projects) < 4 else "%d projects" % len(projects)))
     for problem in hold_problems:
         lines.append("")
@@ -479,19 +594,19 @@ def summary_table(judgements, found, hold_problems):
 def verdict(listing_path, held_path, summary_path, fetch=fetch_json, now=None):
     now = now or datetime.datetime.now(datetime.timezone.utc)
     try:
-        root = subprocess.run(["git", "rev-parse", "--show-toplevel"], check=True,
-                              capture_output=True, text=True).stdout.strip()
-        with open(listing_path, encoding="utf-8-sig") as stream:
-            listing = json.load(stream)
-        texts = []
-        for path in git_files("*.csproj", "*.props", "*.targets"):
-            with open(os.path.join(root, path), encoding="utf-8-sig") as stream:
-                texts.append(stream.read())
-        found = tree(listing, root, git_files("*.csproj"), declared(texts))
-        with open(os.path.join(root, ".github", "dependabot.yml"), encoding="utf-8") as stream:
-            days = cooldown_days(stream.read())
-        with open(held_path, encoding="utf-8") as stream:
-            held = holds(stream.read())
+        root = repository_root()
+        listing = json.loads(read_text(listing_path))
+        own = {}
+        shared = {}
+        for path in git_files(root, "*.csproj", "*.props", "*.targets"):
+            named = references(read_text(os.path.join(root, path)), path)
+            if path.endswith(".csproj"):
+                own[path] = named
+            else:
+                shared.update(named)
+        found = tree(listing, root, git_files(root, "*.csproj"), own, shared)
+        days = cooldown_days(read_text(os.path.join(root, ".github", "dependabot.yml")))
+        held = holds(read_text(held_path))
         base = registration_base(fetch)
         cache = {}
         judgements = []
@@ -537,6 +652,18 @@ def verdict(listing_path, held_path, summary_path, fetch=fetch_json, now=None):
 
 
 # ---- the self-test ------------------------------------------------------------------------------------
+
+
+class Closing(io.BytesIO):
+    """A response body that remembers being closed."""
+
+    def __init__(self):
+        super().__init__(b"")
+        self.was_closed = False
+
+    def close(self):
+        self.was_closed = True
+        super().close()
 
 
 def selftest():
@@ -616,6 +743,15 @@ def selftest():
            lambda: holds(hold_text.replace("2026-12-01", "2026-12-01T10:00:00")))
     raises("a package held twice is refused", Malformed, lambda: holds(hold_text + hold_text))
     same("no holds at all", {}, holds("# nothing held\n"))
+    spread = holds(hold_text.replace('"A reason long enough to say why."',
+                                     '"""A reason long enough\nto say why, on two lines."""'))["p"]
+    same("a reason over two lines reads as one", "A reason long enough to say why, on two lines.", spread.reason)
+    row = summary_table([Judgement("P", Version("1.0.0"), "held", Release(Version("1.1.0"), True, at(200)),
+                                   "held: one\nline | two")], {("P", "1.0.0"): {"a.csproj"}}, [])
+    same("a note with a newline and a bar stays in one table row", 1,
+         sum(1 for line in row.splitlines() if line.startswith("| P |")))
+    same("the rest of that note is in the same row", True,
+         any(line.startswith("| P |") and "held: one line / two" in line for line in row.splitlines()))
 
     yml = ("updates:\n  - package-ecosystem: github-actions\n    cooldown:\n      default-days: 3\n"
            "  - package-ecosystem: nuget\n    directories:\n      - \"/src/*\"\n    cooldown:\n"
@@ -625,9 +761,22 @@ def selftest():
     raises("a nuget entry without the days is refused", Malformed,
            lambda: cooldown_days(yml.replace("      default-days: 7\n", "")))
 
-    named = declared(['<PackageReference Include="A.B" Version="1.0.0" />',
-                      '<PackageReference\n    Include="C" Version="2.0.0">'])
-    same("references read across lines", {"a.b", "c"}, set(named))
+    same("references read across lines", {"a.b": "A.B", "c": "C"},
+         references('<Project><ItemGroup><PackageReference Include="A.B" Version="1.0.0" />'
+                    '<PackageReference\n    Include="C" Version="2.0.0"></PackageReference></ItemGroup></Project>',
+                    "x.csproj"))
+    same("a reference inside a comment is not one", {"a.b": "A.B"},
+         references('<Project><ItemGroup><PackageReference Include="A.B" />'
+                    '<!-- <PackageReference Include="Gone" /> --></ItemGroup></Project>', "x.csproj"))
+    same("an old-style project in the MSBuild namespace", {"a.b": "A.B"},
+         references('<?xml version="1.0" encoding="utf-8"?>'
+                    '<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">'
+                    '<ItemGroup><PackageReference Include="A.B" /></ItemGroup></Project>', "x.csproj"))
+    raises("a document type declaration is refused", Malformed,
+           lambda: references('<!DOCTYPE p [<!ENTITY a "aaaa">]><Project>&a;</Project>', "x.csproj"))
+    raises("a file that is not XML is refused", Malformed,
+           lambda: references('<Project><PackageReference Include="A"></Project>', "x.csproj"))
+
     root = os.path.abspath(os.sep + "repo")
 
     def project(name, *packages):
@@ -637,48 +786,116 @@ def selftest():
 
     listing = {"version": 1, "projects": [project("a/a.csproj", ("A.B", "1.0.0")),
                                           project("c/c.csproj", ("C", "2.0.0"), ("A.B", "1.0.0"))]}
+    tracked = ["a/a.csproj", "c/c.csproj"]
+    own = {"a/a.csproj": {"a.b": "A.B"}, "c/c.csproj": {"c": "C", "a.b": "A.B"}}
     same("the tree, by package and version", {("A.B", "1.0.0"): {"a/a.csproj", "c/c.csproj"},
                                               ("C", "2.0.0"): {"c/c.csproj"}},
-         tree(listing, root, ["a/a.csproj", "c/c.csproj"], named))
+         tree(listing, root, tracked, own, {}))
     raises("a tracked project missing from the listing is refused", Unreadable,
-           lambda: tree(listing, root, ["a/a.csproj", "c/c.csproj", "d/d.csproj"], named))
-    raises("a referenced package missing from the listing is refused", Unreadable,
-           lambda: tree(listing, root, ["a/a.csproj", "c/c.csproj"], dict(named, e="E")))
+           lambda: tree(listing, root, tracked + ["d/d.csproj"], own, {}))
+    raises("a package one project lost is refused while another lists it", Unreadable,
+           lambda: tree({"version": 1, "projects": [project("a/a.csproj", ("A.B", "1.0.0")),
+                                                    project("c/c.csproj", ("C", "2.0.0"))]},
+                        root, tracked, own, {}))
+    raises("a package a props file names, missing everywhere, is refused", Unreadable,
+           lambda: tree(listing, root, tracked, own, {"e": "E"}))
+    same("a package a props file names, listed by one project, is enough", 2,
+         len(tree(listing, root, tracked, own, {"c": "C"})))
     raises("a listing reporting a problem is refused", Unreadable,
-           lambda: tree(dict(listing, problems=[{"level": "error", "text": "no assets"}]), root, [], {}))
+           lambda: tree(dict(listing, problems=[{"level": "error", "text": "no assets"}]), root, [], {}, {}))
     raises("a listing of another format version is refused", Malformed,
-           lambda: tree(dict(listing, version=2), root, [], {}))
+           lambda: tree(dict(listing, version=2), root, [], {}, {}))
+    raises("a listing whose version is true is refused", Malformed,
+           lambda: tree(dict(listing, version=True), root, [], {}, {}))
     raises("a package without a resolved version is refused", Malformed,
            lambda: tree({"version": 1, "projects": [{"path": os.path.join(root, "x.csproj"), "frameworks": [
-               {"framework": "net10.0", "topLevelPackages": [{"id": "A.B"}]}]}]}, root, [], {}))
+               {"framework": "net10.0", "topLevelPackages": [{"id": "A.B"}]}]}]}, root, [], {}, {}))
 
+    host = "https://" + NUGET_HOST
     pages = {
         SERVICE_INDEX: {"resources": [{"@type": "Other", "@id": "x"},
-                                      {"@type": REGISTRATION_TYPE, "@id": "https://r/"}]},
-        "https://r/p/index.json": {"items": [
-            {"items": [{"catalogEntry": {"version": "1.0.0", "published": "2025-01-01T00:00:00+00:00"}}]},
-            {"@id": "https://r/p/page/2.json"}]},
-        "https://r/p/page/2.json": {"items": [
+                                      {"@type": REGISTRATION_TYPE, "@id": host + "/r/"}]},
+        host + "/r/p/index.json": {"count": 2, "items": [
+            {"count": 1, "items": [{"catalogEntry": {"version": "1.0.0", "published": "2025-01-01T00:00:00+00:00"}}]},
+            {"count": 1, "@id": host + "/r/p/page/2.json"}]},
+        host + "/r/p/page/2.json": {"count": 1, "items": [
             {"catalogEntry": {"version": "1.1.0", "published": "2025-06-01T00:00:00+00:00", "listed": True}}]},
     }
     fetch = pages.__getitem__
     found = releases_of("P", registration_base(fetch), fetch)
     same("an inline page and a fetched one", ["1.0.0", "1.1.0"], [r.version.text for r in found])
-    raises("a package id with a slash is refused", Malformed, lambda: releases_of("a/../b", "https://r/", fetch))
+    short = dict(pages)
+    short[host + "/r/p/page/2.json"] = {"count": 1, "items": []}
+    raises("a page with fewer versions than its count is refused", Unreadable,
+           lambda: releases_of("P", host + "/r/", short.__getitem__))
+    fewer = dict(pages)
+    fewer[host + "/r/p/index.json"] = dict(pages[host + "/r/p/index.json"], count=3)
+    raises("an index with fewer pages than its count is refused", Unreadable,
+           lambda: releases_of("P", host + "/r/", fewer.__getitem__))
+    boolean = dict(pages)
+    boolean[host + "/r/p/index.json"] = dict(pages[host + "/r/p/index.json"], count=True)
+    raises("a count that is true is refused", Malformed,
+           lambda: releases_of("P", host + "/r/", boolean.__getitem__))
+    elsewhere = dict(pages)
+    elsewhere[host + "/r/p/index.json"] = {"count": 1, "items": [{"count": 1, "@id": "file:///etc/hosts"}]}
+    raises("a page on file:// is not opened", Unreadable,
+           lambda: releases_of("P", host + "/r/", elsewhere.__getitem__))
+    raises("a package id with a slash is refused", Malformed, lambda: releases_of("a/../b", host + "/r/", fetch))
     raises("a service index without registrations is refused", Malformed,
            lambda: registration_base(lambda url: {"resources": []}))
+    raises("a registration on another host is refused", Unreadable,
+           lambda: registration_base(lambda url: {"resources": [{"@type": REGISTRATION_TYPE,
+                                                                 "@id": "https://example.org/r/"}]}))
+    same("NuGet over HTTPS is opened", host + "/v3/x.json", checked_url(host + "/v3/x.json"))
+    for name, url in (("plain HTTP", "http://%s/v3/x.json" % NUGET_HOST),
+                      ("another host", "https://example.org/v3/x.json"),
+                      ("a host that only starts like NuGet's", "https://%s.example.org/x.json" % NUGET_HOST),
+                      ("credentials", "https://user:secret@%s/x.json" % NUGET_HOST),
+                      ("another port", "https://%s:8443/x.json" % NUGET_HOST),
+                      ("a file", "file:///etc/hosts")):
+        raises("%s is not opened" % name, Unreadable, lambda url=url: checked_url(url))
+    raises("a redirect to another host is not followed", Unreadable,
+           lambda: CheckedRedirects().redirect_request(None, None, 302, "Found", {}, "https://example.org/x"))
+
+    # The errors are kept alive here on purpose. CPython closes an HTTPError's body by itself when
+    # the last reference to it goes, at the end of the except block, so without these references
+    # this check passes whether the gate closes it or not - measured, the mutation that removed
+    # the close went unnoticed until they were added.
+    for code, kind in ((404, "refused at once"), (503, "retried, then refused")):
+        bodies = []
+        errors = []
+
+        def failing(request, timeout, code=code, bodies=bodies, errors=errors):
+            body = Closing()
+            bodies.append(body)
+            errors.append(urllib.error.HTTPError(request.full_url, code, "no", {}, body))
+            raise errors[-1]
+
+        raises("HTTP %d is %s" % (code, kind), Unreadable,
+               lambda: fetch_json(host + "/x.json", open_url=failing, sleep=lambda seconds: None))
+        same("every HTTP %d answer is closed" % code, (ATTEMPTS if code == 503 else 1, True),
+             (len(bodies), all(body.was_closed for body in bodies)))
+
     raises("an answer that unpacks past the ceiling is refused", Unreadable,
            lambda: decompress(gzip_of(b"0" * (MOST_BYTES + 2))))
+    raises("an answer cut short is refused", Unreadable, lambda: decompress(gzip_of(b"{}" * 500)[:-12]))
     same("an answer under the ceiling unpacks", b"{}", decompress(gzip_of(b"{}")))
 
+    with tempfile.TemporaryDirectory() as folder:
+        big = os.path.join(folder, "big.json")
+        with open(big, "wb") as stream:
+            stream.write(b"0" * 11)
+        raises("a file past the ceiling is refused", Unreadable, lambda: read_text(big, limit=10))
+        same("a file under the ceiling is read", "0" * 11, read_text(big, limit=11))
+
     canary_pages = dict(pages)
-    canary_pages["https://r/newtonsoft.json/index.json"] = {"items": [{"items": [
+    canary_pages[host + "/r/newtonsoft.json/index.json"] = {"count": 1, "items": [{"count": 2, "items": [
         {"catalogEntry": {"version": "12.0.3", "published": "2019-11-09T00:00:00+00:00"}},
         {"catalogEntry": {"version": "13.0.1", "published": "2021-03-22T00:00:00+00:00"}}]}]}
     same("the canary is caught on a registry that answers", 0,
          quiet(lambda: canary(canary_pages.__getitem__, now, 7)))
     current = dict(canary_pages)
-    current["https://r/newtonsoft.json/index.json"] = {"items": [{"items": [
+    current[host + "/r/newtonsoft.json/index.json"] = {"count": 1, "items": [{"count": 1, "items": [
         {"catalogEntry": {"version": "12.0.3", "published": "2019-11-09T00:00:00+00:00"}}]}]}
     same("the canary on a registry with nothing newer is NOT caught", 1,
          quiet(lambda: canary(current.__getitem__, now, 7)))
@@ -719,7 +936,8 @@ def main(argv=None):
     judging.add_argument("--summary", default="", help="a Markdown file to append the table to")
     args = parser.parse_args(argv)
     # An exception nobody expected would end Python with 1, which reads as "found something".
-    # Whatever this script did not foresee is a 2, with the traceback kept for whoever reads it.
+    # Whatever this script did not foresee is a 2. The verdict comes first, in a sentence, and the
+    # traceback after it, because in a CI log it is the only record of where the gate stopped.
     try:
         if args.command == "selftest":
             return selftest()
@@ -728,8 +946,9 @@ def main(argv=None):
         return verdict(args.listing, args.held, args.summary)
     except Exception:  # deliberately broad - see above
         import traceback
-        traceback.print_exc()
-        print("REFUSED: the gate stopped on something it does not handle, so this run says nothing")
+        print("REFUSED: the gate stopped on something it does not handle, so this run gives no verdict.")
+        print("Where it stopped, for whoever fixes the gate:")
+        traceback.print_exc(file=sys.stdout)
         return 2
 
 
