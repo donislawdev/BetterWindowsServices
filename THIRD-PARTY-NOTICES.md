@@ -126,7 +126,7 @@ list should be able to tell at a glance which side of the line each one falls on
 | Meziantou.Analyzer 3.0.317 | MIT, (c) Gérald Barré | Extra analyser rules |
 | xunit.v3.mtp-off 4.0.2, xunit.runner.visualstudio 4.0.1 | Apache-2.0 | Test framework |
 | Microsoft.NET.Test.Sdk 18.11.0 | MIT | Test host |
-| coverlet.collector 6.0.4 | MIT | Coverage collection |
+| coverlet.collector 10.1.0 | MIT | Coverage collection |
 | CsCheck 5.0.0 | Apache-2.0 | Property-based testing |
 | Microsoft.Windows.SDK.Win32Metadata 71.0.37-preview | Windows SDK licence terms | The machine-readable description of the Win32 API that CsWin32 reads to generate from. Arrives as its dependency rather than being asked for |
 | Microsoft.Windows.WDK.Win32Metadata 0.13.25-experimental | Windows SDK licence terms | The same thing for the driver-facing half of the API |

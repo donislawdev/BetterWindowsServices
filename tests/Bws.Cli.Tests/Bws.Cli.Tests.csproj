@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="coverlet.collector" Version="10.1.0" />
     <!--
       The same random input library as the core's tests, the same version, and still never in
       anything published - ADR-15 says so on its row. It arrives here on 2026-10-16 for the
