@@ -75,9 +75,9 @@ public sealed class AsciiJsonPropertyTests
     private static readonly Gen<char> Character = Gen.Frequency(
         (8, Gen.Char[' ', '~']),
         (2, Gen.Char[(char)0x0000, (char)0x001F]),
-        (1, Gen.OneOfConst((char)0x007F, (char)0x0085, (char)0x009F, (char)0x00A0, (char)0x00AD)),
-        (3, Gen.OneOfConst((char)0x0105, (char)0x0142, (char)0x00F3, (char)0x03A9, (char)0x4E2D, (char)0xFFFD, (char)0xFEFF)),
-        (2, Gen.OneOfConst((char)0x202A, (char)0x202E, (char)0x2066, (char)0x200B, (char)0x2028)),
+        (1, Gen.OneOf((char)0x007F, (char)0x0085, (char)0x009F, (char)0x00A0, (char)0x00AD)),
+        (3, Gen.OneOf((char)0x0105, (char)0x0142, (char)0x00F3, (char)0x03A9, (char)0x4E2D, (char)0xFFFD, (char)0xFEFF)),
+        (2, Gen.OneOf((char)0x202A, (char)0x202E, (char)0x2066, (char)0x200B, (char)0x2028)),
         (1, Gen.Char[(char)0xD800, (char)0xDFFF]));
 
     /// <summary>Text of an entry, with whole pairs from outside the basic plane spliced in now and then.</summary>

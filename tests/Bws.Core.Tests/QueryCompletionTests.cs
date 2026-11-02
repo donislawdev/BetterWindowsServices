@@ -301,7 +301,7 @@ public sealed class QueryCompletionTests
     /// </summary>
     private static readonly Gen<(string Text, int Caret)> AwkwardWithCaret =
         Gen.String[
-            Gen.OneOfConst(
+            Gen.OneOf(
                 '"', '\\', ',', ':', '!', '*', '?', '/', '=', ' ', '\t', '-', '_',
                 'a', 'd', 'e', 'g', 'i', 'n', 'o', 'p', 'r', 's', 't', 'u', 'y', 'P', 'S'),
             0,

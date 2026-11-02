@@ -28,7 +28,7 @@ public sealed class CsvPropertyTests
 
     private static readonly Gen<string> Piece = Gen.Frequency(
         (5, Gen.Char[' ', '~'].Select(character => character.ToString())),
-        (3, Gen.OneOfConst(",", ";", "\"", "\"\"", "\r", "\n", "\r\n", "=", "+", "-", "@", "\t", "'", ((char)0x060C).ToString(), ((char)0x061B).ToString())),
+        (3, Gen.OneOf(",", ";", "\"", "\"\"", "\r", "\n", "\r\n", "=", "+", "-", "@", "\t", "'", ((char)0x060C).ToString(), ((char)0x061B).ToString())),
         (1, Gen.Char[(char)0x00A0, (char)0xFFFD].Select(character => character.ToString())));
 
     private static readonly Gen<string> Value = Piece.Array[0, 12].Select(string.Concat);
@@ -40,7 +40,7 @@ public sealed class CsvPropertyTests
     /// might let somebody type, is NOT drawn and NOT MEASURED.
     /// </summary>
     private static readonly Gen<string> Separator = Gen.Frequency(
-        (6, Gen.OneOfConst(",", ";", ((char)0x060C).ToString(), ((char)0x061B).ToString())),
+        (6, Gen.OneOf(",", ";", ((char)0x060C).ToString(), ((char)0x061B).ToString())),
         (1, Gen.Char[' ', '~'].Where(character => character != '"').Select(character => character.ToString())));
 
     [Fact]

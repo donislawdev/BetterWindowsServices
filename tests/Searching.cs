@@ -14,6 +14,7 @@ namespace Bws.Tests;
 /// tests/search/search.ps1 runs each property for minutes instead of a fraction of a second, by
 /// setting CsCheck_Time, which CsCheck 4.7.0 reads whenever a test does not pass a time of its own
 /// - measured 2026-10-16, one property ran 5 s with the variable at 5 and well under one without.
+/// Still so on 5.0.0, measured 2026-11-02: three seconds drew one property 2,698,876 times.
 /// That run then has to say HOW MUCH it searched, because a green search that drew nothing looks
 /// exactly like a green search that drew a million times. So every call is counted here, and the
 /// count is written where the runner asked for it.
