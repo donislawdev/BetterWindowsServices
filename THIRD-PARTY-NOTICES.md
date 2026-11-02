@@ -133,7 +133,9 @@ list should be able to tell at a glance which side of the line each one falls on
 | Microsoft.Windows.SDK.Win32Docs 0.1.42-alpha | Windows SDK licence terms | The documentation text CsWin32 copies into the generated declarations, so that hovering a generated method shows what Microsoft says about it |
 
 **The last three rows are not open source and that is worth stating rather than leaving to be
-assumed.** Read from the packages on disk on 2026-09-22 rather than from a listing: two of them
+assumed.** Read from the packages on disk on 2026-09-22 rather than from a listing, and read again
+on 2026-11-02 for Win32Metadata 71.0.37-preview, whose `sdk_license.txt` is byte for byte the one
+71.0.30-preview carried and whose files are laid out the same way: two of them
 carry `sdk_license.txt`, which is `MICROSOFT SOFTWARE LICENSE TERMS - MICROSOFT WINDOWS SOFTWARE
 DEVELOPMENT KIT (SDK) FOR WINDOWS 10`, and the third points at the same terms through
 <https://aka.ms/WinSDKLicenseURL>. Those terms license the use of the SDK for building software
