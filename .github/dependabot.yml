@@ -88,11 +88,17 @@ updates:
   # traps paid for one at a time, and a major version of it is an afternoon of looking at the
   # window rather than a tick on a green check.
   #
-  # NOT VERIFIED YET, and written down rather than assumed: whether Meziantou.Analyzer, which
-  # is declared in Directory.Build.props at the root and in no .csproj, is proposed through the
-  # projects that import that file. It should be - Dependabot evaluates a project together with
-  # the props files above it - but nothing here proves it, and the way to find out is to look
-  # at what arrives in the first weeks rather than to argue about it. Backlog row 403.
+  # Meziantou.Analyzer, which is declared in Directory.Build.props at the root and in no .csproj,
+  # IS proposed through the projects that import that file. That was written here as not
+  # verified until the run of 2026-11-02 logged "Updated Meziantou.Analyzer from 3.0.313 to
+  # 3.0.317 in /Directory.Build.props" once for each of the ten directories. Backlog row 403.
+  #
+  # WHAT THIS ENTRY DOES NOT DO, measured in the same run: propose any package that carries an
+  # assembly. The updater answers "is not compatible. Incompatible project frameworks:
+  # net10.0-windows10.0.17763" for each of them - CsCheck and WPF-UI among them - and then "No
+  # updatable version found". Every NuGet pull request it opened here moved Meziantou.Analyzer
+  # or CsWin32, the two that carry none. .github/workflows/outdated.yml asks nuget.org itself
+  # every Tuesday, with the cooldown below, and is red for what this entry should have proposed.
   - package-ecosystem: nuget
     directories:
       - "/src/*"

@@ -1,0 +1,90 @@
+# Outdated packages - every NuGet package of this repository, asked against nuget.org once a week.
+#
+# This exists because Dependabot cannot do it here, which was measured rather than suspected. On
+# 2026-11-02 its NuGet updater logged "The package CsCheck.5.0.0 is not compatible. Incompatible
+# project frameworks: net10.0-windows10.0.17763", the same for CsCheck 4.9.1 and WPF-UI 4.3.0,
+# then "No updatable version found", and finished green. Every NuGet pull request it ever opened
+# here moved one of the two packages that carry no assembly. Everything else - the window's
+# control library, the test framework, the property-based testing library - was moved by hand,
+# when somebody happened to look. .github/scripts/outdated_gate.py says what it reads and decides.
+#
+# Red means the tree is behind a version that has been on NuGet for longer than the cooldown in
+# .github/dependabot.yml, and that nobody held in .github/outdated/held.toml with a reason. A
+# version younger than the cooldown is listed and is not red. The table goes to the job summary.
+#
+# NOT A REQUIRED CHECK, and it should not become one: it answers a question about the world, not
+# about the pull request, and a package released on Monday would block every pull request that
+# touches these files until somebody moved it.
+name: outdated packages
+
+on:
+  # Tuesday morning, the day after Dependabot's Monday run, so that a package it can propose has
+  # had its chance and what is red here is what it did not propose.
+  schedule:
+    - cron: '0 6 * * 2'
+  workflow_dispatch:
+  # Everything this check stands on, so that a change to it is proven before it is merged.
+  pull_request:
+    paths:
+      - '.github/workflows/outdated.yml'
+      - '.github/scripts/outdated_gate.py'
+      - '.github/outdated/**'
+      - '.github/dependabot.yml'
+
+permissions:
+  contents: read # checkout only - nothing in this workflow pushes, comments or labels
+
+concurrency:
+  group: outdated-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: outdated packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # MSBuild reads environment variables as properties, so these two reach both the restore and
+    # the listing - dotnet list takes no property switches. EnableWindowsTargeting because this
+    # runner is Linux and every project targets Windows. NuGetAudit off because a package with an
+    # advisory stops the restore, and that question belongs to restore in build.yml and to
+    # osv-scanner.yml, not to this one.
+    env:
+      EnableWindowsTargeting: 'true'
+      NuGetAudit: 'false'
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+
+      # Reads nothing outside. Every decision on cases whose answer is known, the red ones too,
+      # before anything below trusts them.
+      - name: The gate's own cases
+        run: python .github/scripts/outdated_gate.py selftest
+
+      # A package years behind has to come out behind, through the same registry and the same
+      # comparison the verdict uses. Otherwise a green verdict could be a registry that answered
+      # nothing.
+      - name: Canary
+        run: python .github/scripts/outdated_gate.py canary
+
+      - name: Restore
+        run: dotnet restore BetterWindowsServices.slnx
+
+      - name: What NuGet resolved
+        run: dotnet list BetterWindowsServices.slnx package --format json > "$RUNNER_TEMP/packages.json"
+
+      - name: Verdict
+        run: >-
+          python .github/scripts/outdated_gate.py verdict "$RUNNER_TEMP/packages.json"
+          --held .github/outdated/held.toml
+          --summary "$GITHUB_STEP_SUMMARY"

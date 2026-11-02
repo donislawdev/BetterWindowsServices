@@ -1,0 +1,20 @@
+# Newer NuGet versions the owner decided not to take yet, read by .github/scripts/outdated_gate.py.
+#
+# One table per package:
+#
+#   [[held]]
+#   package = "Some.Package"
+#   through = "2.0.0"         # the highest version this decision covers
+#   until = 2026-12-31        # a date, after which the package is red again
+#   reason = "Why, in a sentence somebody can check."
+#
+# A newer version past `through`, or the day after `until`, makes the package red again. So does
+# an entry that holds nothing any more, because the package moved or left the tree - a hold
+# nobody needs still reads as a decision somebody made. A key the gate does not know is refused
+# rather than ignored, so a misspelt `until` cannot hold a version for ever.
+
+[[held]]
+package = "coverlet.collector"
+through = "10.1.0"
+until = 2026-12-01
+reason = "The coverage floors in tests/coverage-floor.json are held to a tenth of a point, and coverlet 10 counts auto-properties and records differently, so the move needs a pull request of its own whose numbers CI measures (backlog 615)."
