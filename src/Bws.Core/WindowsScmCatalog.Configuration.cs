@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Windows.Win32;
 using Windows.Win32.Foundation;
+using Windows.Win32.System.Services;
 
 namespace Bws.Core;
 
@@ -47,7 +48,7 @@ public sealed partial class WindowsScmCatalog
         // ASKED THROUGH THE RETURN VALUE, the rule Enumerate sets out in full and the one this call did not
         // follow until 2026-09-02. Backlog 303. Deciding on the size alone reads whatever the previous call
         // on this thread left in the last error as though it were this call's refusal.
-        var probed = PInvoke.QueryServiceConfig(service, default, out var needed);
+        var probed = PInvoke.QueryServiceConfig(service, null, 0, out var needed);
         var probeError = Marshal.GetLastWin32Error();
 
         if (!probed && probeError != (int)WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER)
@@ -78,12 +79,14 @@ public sealed partial class WindowsScmCatalog
         // path read from freed memory is either an access violation, which ends the process on
         // somebody's server without a word, or worse - plausible rubbish in an audit.
         //
-        // THE SPAN IS BUILT FROM THE PINNED POINTER RATHER THAN FROM THE ARRAY on purpose. Passing
-        // `buffer` would work identically, and would leave nothing on the page saying why the block
-        // exists - the next person would see a `fixed` whose variable nobody uses and take it out.
+        // THE CALL TAKES THE PINNED POINTER ITSELF since CsWin32 0.3.366, for the very reason above.
+        // That release moved to Win32 metadata 71.0.37, which marks 77 more buffers as holding
+        // pointers into themselves, and the generator keeps such a buffer as a native pointer. 0.3.363
+        // still offered a span here, built from this pointer rather than from the array so that the
+        // `fixed` could not look unused and be taken out.
         fixed (byte* pinned = buffer)
         {
-            return PInvoke.QueryServiceConfig(service, new Span<byte>(pinned, buffer.Length), out _)
+            return PInvoke.QueryServiceConfig(service, (QUERY_SERVICE_CONFIGW*)pinned, (uint)buffer.Length, out _)
                 ? ManagerBlocks.ReadConfigurationBuffer(buffer)
                 : ScmConfiguration.Refused(Marshal.GetLastWin32Error());
         }

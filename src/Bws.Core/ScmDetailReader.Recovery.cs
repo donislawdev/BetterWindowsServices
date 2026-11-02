@@ -48,7 +48,7 @@ internal static partial class ScmDetailReader
         {
             if (!PInvoke.QueryServiceConfig2W(
                     service, SERVICE_CONFIG.SERVICE_CONFIG_FAILURE_ACTIONS,
-                    new Span<byte>(pinned, buffer.Length), out _))
+                    pinned, (uint)buffer.Length, out _))
             {
                 return Refused<RecoveryList>(Marshal.GetLastWin32Error());
             }

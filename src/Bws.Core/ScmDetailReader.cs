@@ -79,18 +79,21 @@ internal static partial class ScmDetailReader
 
         // Fixed size structure, so asking for the length first would only double the number
         // of calls. That matters here: this runs once per automatic entry on every listing.
-        var buffer = new byte[sizeof(SERVICE_DELAYED_AUTO_START_INFO)];
+        //
+        // Written straight into a local of its own type. CsWin32 0.3.363 generated a span overload
+        // for this call and 0.3.367 generates only the pointer and the length (Queried in
+        // WindowsScmCatalog.Configuration.cs says why), and a local on the stack does not move, so
+        // nothing needs pinning. It starts zeroed, as the array it replaces did.
+        var answer = default(SERVICE_DELAYED_AUTO_START_INFO);
 
         if (!PInvoke.QueryServiceConfig2W(
-                service, SERVICE_CONFIG.SERVICE_CONFIG_DELAYED_AUTO_START_INFO, buffer, out _))
+                service, SERVICE_CONFIG.SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
+                (byte*)&answer, (uint)sizeof(SERVICE_DELAYED_AUTO_START_INFO), out _))
         {
             return Refused<bool>(Marshal.GetLastWin32Error());
         }
 
-        fixed (byte* start = buffer)
-        {
-            return Reading<bool>.Present(((SERVICE_DELAYED_AUTO_START_INFO*)start)->fDelayedAutostart);
-        }
+        return Reading<bool>.Present(answer.fDelayedAutostart);
     }
 
     /// <summary>
@@ -125,7 +128,7 @@ internal static partial class ScmDetailReader
         {
             if (!PInvoke.QueryServiceConfig2W(
                     service, SERVICE_CONFIG.SERVICE_CONFIG_TRIGGER_INFO,
-                    new Span<byte>(pinned, buffer.Length), out _))
+                    pinned, (uint)buffer.Length, out _))
             {
                 return Refused<IReadOnlyList<ServiceTrigger>>(Marshal.GetLastWin32Error());
             }
@@ -165,7 +168,7 @@ internal static partial class ScmDetailReader
         {
             if (!PInvoke.QueryServiceConfig2W(
                     service, SERVICE_CONFIG.SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO,
-                    new Span<byte>(start, buffer.Length), out _))
+                    start, (uint)buffer.Length, out _))
             {
                 return Refused<IReadOnlyList<string>>(Marshal.GetLastWin32Error());
             }
@@ -199,30 +202,29 @@ internal static partial class ScmDetailReader
     /// </summary>
     internal static unsafe Reading<ServiceSidType> ReadSidType(SafeHandle service)
     {
-        var buffer = new byte[sizeof(SERVICE_SID_INFO)];
+        // Into a local of its own type, for the reason ReadDelayedAuto gives.
+        var answer = default(SERVICE_SID_INFO);
 
         if (!PInvoke.QueryServiceConfig2W(
-                service, SERVICE_CONFIG.SERVICE_CONFIG_SERVICE_SID_INFO, buffer, out _))
+                service, SERVICE_CONFIG.SERVICE_CONFIG_SERVICE_SID_INFO,
+                (byte*)&answer, (uint)sizeof(SERVICE_SID_INFO), out _))
         {
             return Refused<ServiceSidType>(Marshal.GetLastWin32Error());
         }
 
-        fixed (byte* start = buffer)
+        // SERVICE_SID_TYPE_NONE, _UNRESTRICTED and _RESTRICTED, which this interop
+        // metadata does not name - it carries the structure and not the three values that
+        // go in it. Written out here rather than as bare numbers at the call site.
+        return answer.dwServiceSidType switch
         {
-            // SERVICE_SID_TYPE_NONE, _UNRESTRICTED and _RESTRICTED, which this interop
-            // metadata does not name - it carries the structure and not the three values that
-            // go in it. Written out here rather than as bare numbers at the call site.
-            return ((SERVICE_SID_INFO*)start)->dwServiceSidType switch
-            {
-                // Not a kind of identity but the absence of one, so it belongs in the outcome
-                // rather than in the enumeration. See ServiceSidType for what that buys.
-                0 => Reading<ServiceSidType>.Absent(),
+            // Not a kind of identity but the absence of one, so it belongs in the outcome
+            // rather than in the enumeration. See ServiceSidType for what that buys.
+            0 => Reading<ServiceSidType>.Absent(),
 
-                1 => Reading<ServiceSidType>.Present(ServiceSidType.Unrestricted),
-                3 => Reading<ServiceSidType>.Present(ServiceSidType.Restricted),
-                _ => Reading<ServiceSidType>.Present(ServiceSidType.Unknown)
-            };
-        }
+            1 => Reading<ServiceSidType>.Present(ServiceSidType.Unrestricted),
+            3 => Reading<ServiceSidType>.Present(ServiceSidType.Restricted),
+            _ => Reading<ServiceSidType>.Present(ServiceSidType.Unknown)
+        };
     }
 
     /// <summary>
@@ -274,7 +276,7 @@ internal static partial class ScmDetailReader
         {
             if (!PInvoke.QueryServiceConfig2W(
                     service, SERVICE_CONFIG.SERVICE_CONFIG_DESCRIPTION,
-                    new Span<byte>(start, buffer.Length), out _))
+                    start, (uint)buffer.Length, out _))
             {
                 return Refused<string>(Marshal.GetLastWin32Error());
             }
@@ -412,9 +414,9 @@ internal static partial class ScmDetailReader
     /// worked and had nothing to hand over.
     /// </param>
     /// <returns>Whether there is an answer worth asking for.</returns>
-    private static bool Sized(SafeHandle service, SERVICE_CONFIG level, out uint needed, out int refusal)
+    private static unsafe bool Sized(SafeHandle service, SERVICE_CONFIG level, out uint needed, out int refusal)
     {
-        var probed = PInvoke.QueryServiceConfig2W(service, level, default, out needed);
+        var probed = PInvoke.QueryServiceConfig2W(service, level, null, 0, out needed);
         var probeError = Marshal.GetLastWin32Error();
 
         if (!probed && probeError != (int)WIN32_ERROR.ERROR_INSUFFICIENT_BUFFER)

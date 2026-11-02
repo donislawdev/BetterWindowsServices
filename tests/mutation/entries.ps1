@@ -6667,8 +6667,8 @@ $mutations = @(
         # native call standing as a statement under a name nobody argued for.
         Name = 'interop: a native call does not get to drop its answer unargued'
         File = 'src\Bws.Core\ScmDetailReader.cs'
-        From = 'var probed = PInvoke.QueryServiceConfig2W(service, level, default, out needed);'
-        To = 'PInvoke.QueryServiceConfig2W(service, level, default, out needed); var probed = true;'
+        From = 'var probed = PInvoke.QueryServiceConfig2W(service, level, null, 0, out needed);'
+        To = 'PInvoke.QueryServiceConfig2W(service, level, null, 0, out needed); var probed = true;'
         Test = 'NativeCallGuards.Every_native_call_that_drops_its_answer_has_argued_for_dropping_it'
     },
     @{
