@@ -100,20 +100,20 @@ public sealed class CommandLinePropertyTests
     private static readonly string[] Verbs =
         ["list", "show", "stop", "start", "restart", "start-type", "kill", "history", "license", "snapshot", "tool"];
 
-    private static readonly Gen<string> Cased = Gen.OneOfConst(Verbs).SelectMany(verb =>
-        Gen.OneOfConst(verb, verb.ToUpperInvariant(), char.ToUpperInvariant(verb[0]) + verb[1..]));
+    private static readonly Gen<string> Cased = Gen.OneOf(Verbs).SelectMany(verb =>
+        Gen.OneOf(verb, verb.ToUpperInvariant(), char.ToUpperInvariant(verb[0]) + verb[1..]));
 
     private static readonly Gen<string> Value = Gen.Frequency(
-        (3, Gen.OneOfConst([.. Enum.GetValues<StartSetting>().Select(setting => StartTypeWords.Of(setting) ?? "none")])),
-        (3, Gen.OneOfConst("5", "0", "-1", "600", "601", "99999999999", "1.5", "abc", "", " ", "\t")),
-        (2, Gen.OneOfConst("status:running", "!!!", "name:\"x", "\"\"", "name:spool*", "pid:>4")),
-        (2, Gen.OneOfConst("Spooler", "AMD Crash Defender Service", "MSSQL$SQLEXPRESS", "-leading", "a.json", "create", "diff", "restore", "fix", "printer", "prnter")));
+        (3, Gen.OneOf([.. Enum.GetValues<StartSetting>().Select(setting => StartTypeWords.Of(setting) ?? "none")])),
+        (3, Gen.OneOf("5", "0", "-1", "600", "601", "99999999999", "1.5", "abc", "", " ", "\t")),
+        (2, Gen.OneOf("status:running", "!!!", "name:\"x", "\"\"", "name:spool*", "pid:>4")),
+        (2, Gen.OneOf("Spooler", "AMD Crash Defender Service", "MSSQL$SQLEXPRESS", "-leading", "a.json", "create", "diff", "restore", "fix", "printer", "prnter")));
 
     private static readonly Gen<string> Switch = Gen.Frequency(
-        (8, Gen.OneOfConst([.. OptionSurface.Surface.Select(entry => entry.Option)])),
-        (2, Gen.OneOfConst("--help", "-h", "--version", "--", "-", "--=", "-json", (char)0x2014 + "json", "--JSON")),
-        (2, Gen.OneOfConst("--query=", "--note=", "--timeout=").SelectMany(option => Value.Select(value => option + value))),
-        (1, Gen.OneOfConst([.. OptionSurface.Surface.Select(entry => entry.Option)]).Select(option => option[..^1])));
+        (8, Gen.OneOf([.. OptionSurface.Surface.Select(entry => entry.Option)])),
+        (2, Gen.OneOf("--help", "-h", "--version", "--", "-", "--=", "-json", (char)0x2014 + "json", "--JSON")),
+        (2, Gen.OneOf("--query=", "--note=", "--timeout=").SelectMany(option => Value.Select(value => option + value))),
+        (1, Gen.OneOf([.. OptionSurface.Surface.Select(entry => entry.Option)]).Select(option => option[..^1])));
 
     private static readonly Gen<string> Word = Gen.Frequency(
         (4, Cased),

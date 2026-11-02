@@ -33,23 +33,23 @@ internal static class RenderedEvents
     /// <summary>One character, or a pair standing for one beyond the first plane, that XML 1.0 allows - never a carriage return.</summary>
     private static readonly Gen<string> Piece = Gen.Frequency(
         (6, Gen.Char[' ', '~'].Select(character => character.ToString())),
-        (2, Gen.OneOfConst("<", ">", "&", "\"", "'", "]]>", "\t", "\n", " ", ((char)0x00A0).ToString())),
+        (2, Gen.OneOf("<", ">", "&", "\"", "'", "]]>", "\t", "\n", " ", ((char)0x00A0).ToString())),
         (2, Gen.Char[(char)0x00A0, (char)0xD7FF].Select(character => character.ToString())),
         (1, Gen.Char[(char)0xE000, (char)0xFFFD].Select(character => character.ToString())),
         (1, Gen.Int[0x10000, 0x10FFFF].Select(char.ConvertFromUtf32)));
 
     /// <summary>A value: often empty or blank, sometimes long.</summary>
     internal static readonly Gen<string> Value = Gen.Frequency(
-        (1, Gen.OneOfConst(string.Empty, " ", "   ", "\n", "\t")),
+        (1, Gen.OneOf(string.Empty, " ", "   ", "\n", "\t")),
         (8, Piece.Array[1, 24].Select(string.Concat)));
 
     private static readonly Gen<string> Sid = Gen.Frequency(
-        (3, Gen.OneOfConst("S-1-5-18", "S-1-5-19", "S-1-5-20")),
+        (3, Gen.OneOf("S-1-5-18", "S-1-5-19", "S-1-5-20")),
         (6, Gen.Select(Gen.UInt, Gen.UInt, Gen.UInt, Gen.Int[500, 70_000], (a, b, c, rid) =>
             string.Create(CultureInfo.InvariantCulture, $"S-1-5-21-{a}-{b}-{c}-{rid}"))),
         (1, Gen.Const(string.Empty)));
 
-    private static readonly Gen<string> Channel = Gen.OneOfConst(
+    private static readonly Gen<string> Channel = Gen.OneOf(
         "System", "system", "SYSTEM", "Application", "Security", " System", "System ", "Microsoft-Windows-Foo/Operational", string.Empty);
 
     /// <summary>Any instant a DateTime can hold, written the way Windows writes SystemTime - UTC, seven decimals, a trailing Z.</summary>

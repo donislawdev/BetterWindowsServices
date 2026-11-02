@@ -15,6 +15,10 @@
     HOW A PROPERTY IS MADE TO SEARCH. CsCheck reads CsCheck_Time whenever a test passes no time of
     its own, and then samples for that many seconds instead of its iteration count - measured
     2026-10-16 on CsCheck 4.7.0, so the tests do not change between a pull request and a Sunday.
+    Measured again 2026-11-02 on 5.0.0: with three seconds a property drew 2,698,876 times, where
+    a pull request asks it for a few thousand. From 5.0.0 a CsCheck_ value that is not valid throws
+    in CsCheck's type initialiser, which takes down every test in the process, where 4.x ignored
+    it. The budget below is a whole number held to 1-600 by its own validation, so it never is.
     Each property runs alone in its own dotnet test, so it has the whole machine for its budget and
     a hang or a crash costs that one property rather than the part.
 
@@ -156,6 +160,8 @@ function Read-Calls([string] $Text) {
 }
 
 # The seed CsCheck prints with a failure: Set seed: "..." or -e CsCheck_Seed=... to reproduce.
+# Read up to the closing quote rather than by its shape: 4.x printed twelve letters and digits, 5.0.0
+# prints a hyphen in it as well (1-09FcebE2ha, the canary on 2026-11-02).
 function Get-Seed([string] $Message) {
     $match = [regex]::Match([string] $Message, 'Set seed: "([^"]+)"')
     if ($match.Success) { return $match.Groups[1].Value }
@@ -255,13 +261,13 @@ if ($SelfTest) {
     Assert-Same 'part 1 of 3' 'p2,p5,p8,p11,p14' ((Select-Part $names 1 3) -join ',')
 
     $ns = 'http://microsoft.com/schemas/VisualStudio/TeamTest/2010'
-    $red = "<TestRun xmlns='$ns'><Results><UnitTestResult testName='a' outcome='Failed'><Output><ErrorInfo><Message>CsCheck.CsCheckException : Set seed: `"2QNxRkDfTLZ2`" or -e CsCheck_Seed=2QNxRkDfTLZ2 to reproduce (12 shrinks, 4 skipped, 9 total).&#10;the canary drew 1000</Message></ErrorInfo></Output></UnitTestResult></Results></TestRun>"
+    $red = "<TestRun xmlns='$ns'><Results><UnitTestResult testName='a' outcome='Failed'><Output><ErrorInfo><Message>CsCheck.CsCheckException : Set seed: `"1-09FcebE2ha`" or -e CsCheck_Seed=1-09FcebE2ha to reproduce (0 shrinks, 999 skipped, 1,000 total).&#10;the canary drew 1000</Message></ErrorInfo></Output></UnitTestResult></Results></TestRun>"
     $green = "<TestRun xmlns='$ns'><Results><UnitTestResult testName='a' outcome='Passed' /></Results></TestRun>"
     $none = "<TestRun xmlns='$ns'><ResultSummary outcome='Completed'><Counters total='0' /></ResultSummary></TestRun>"
 
     $readRed = Read-Trx $red
     Assert-Same 'red trx outcome' 'Failed' $readRed.Outcome
-    Assert-Same 'seed from a red trx' '2QNxRkDfTLZ2' (Get-Seed $readRed.Message)
+    Assert-Same 'seed from a red trx' '1-09FcebE2ha' (Get-Seed $readRed.Message)
     Assert-Same 'green trx outcome' 'Passed' (Read-Trx $green).Outcome
     Assert-Same 'results in an empty trx' 0 (Read-Trx $none).Results
     Assert-Same 'results in no trx at all' 0 (Read-Trx '').Results

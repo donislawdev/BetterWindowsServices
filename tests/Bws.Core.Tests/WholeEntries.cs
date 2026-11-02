@@ -32,15 +32,15 @@ internal static class WholeEntries
 
     private static readonly Gen<string> Text = Gen.Frequency(
         (4, Gen.String[Gen.Char['a', 'z'], 0, 12]),
-        (3, Gen.String[Gen.OneOfConst(
+        (3, Gen.String[Gen.OneOf(
             '"', '\\', '/', '\t', '\n', '\r', '\0', '\u001f', '\u007f', '\u0105', '\u0141', '\u00df',
             '\u200b', '\ufeff', '<', '&', ' ', '\u2028', ',', ':', '{', '}', '[', ']'), 1, 10]),
-        (1, Gen.OneOfConst(
+        (1, Gen.OneOf(
             "\ud83d\ude00", "C:\\Program Files\\Some Vendor\\x.exe", "%SystemRoot%\\system32\\svchost.exe -k netsvcs -p",
             "@%SystemRoot%\\system32\\x.dll,-100", "\\??\\C:\\Windows\\x.sys", "", " ", "null", "\"quoted\"")));
 
     private static readonly Gen<IReadOnlyList<string>> Words =
-        Gen.OneOf(Text, Gen.OneOfConst("+NetBIOSGroup", "RpcSs", "rpcss")).List[0, 4].Select(list => (IReadOnlyList<string>)list);
+        Gen.OneOf(Text, Gen.OneOf("+NetBIOSGroup", "RpcSs", "rpcss")).List[0, 4].Select(list => (IReadOnlyList<string>)list);
 
     private static Gen<Reading<T>> Read<T>(Gen<T> value) => Gen.Frequency(
         (5, value.Select(Reading<T>.Present)),
@@ -48,7 +48,7 @@ internal static class WholeEntries
         (1, Gen.Const(Reading<T>.NotRead())),
         (1, Gen.Select(Gen.Int[1, 2000], Text).Select(refused => Reading<T>.Denied(refused.Item1, refused.Item2))));
 
-    private static Gen<T> AnyOf<T>() where T : struct, Enum => Gen.OneOfConst(Enum.GetValues<T>());
+    private static Gen<T> AnyOf<T>() where T : struct, Enum => Gen.OneOf(Enum.GetValues<T>());
 
     private static readonly Gen<IReadOnlyList<ServiceTrigger>> Triggers =
         Gen.Select(AnyOf<TriggerKind>(), AnyOf<TriggerAction>())
@@ -139,7 +139,7 @@ internal static class WholeEntries
     /// can say.
     /// </summary>
     private static readonly Gen<Told> Answers =
-        Gen.Select(Read(Signature), Read(Text), Read(Text), Read(Gen.OneOfConst(Names).List[0, 3].Select(list => (IReadOnlyList<string>)list)))
+        Gen.Select(Read(Signature), Read(Text), Read(Text), Read(Gen.OneOf(Names).List[0, 3].Select(list => (IReadOnlyList<string>)list)))
             .Select(drawn => new Told(
                 drawn.Item1,
                 drawn.Item2,

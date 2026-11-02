@@ -53,15 +53,15 @@ public sealed class HandOverPropertyTests
     /// cross as U+FFFD rather than as itself.
     /// </summary>
     private static readonly Gen<string> Query = Gen.Frequency(
-        (6, Gen.Frequency((8, Letter), (1, Gen.OneOfConst("\t", "\n", "\""))).Array[0, 30].Select(string.Concat)),
+        (6, Gen.Frequency((8, Letter), (1, Gen.OneOf("\t", "\n", "\""))).Array[0, 30].Select(string.Concat)),
         (1, Gen.Char['a', 'z'].Array[4000, 4200].Select(letters => new string(letters))),
         (1, Gen.Char[(char)0x0104, (char)0x017C].Array[500, 1600].Select(letters => new string(letters))));
 
     private static readonly Gen<HandOver> Handed = Gen.Select(
-        Gen.OneOfConst(Enum.GetValues<EntryScope>()),
+        Gen.OneOf(Enum.GetValues<EntryScope>()),
         Query,
         Gen.Frequency((6, Name.Array[0, 8]), (1, Name.Array[20, 80])),
-        Gen.OneOfConst([.. WriterShapes]),
+        Gen.OneOf([.. WriterShapes]),
         (scope, query, picked, plan) => new HandOver
         {
             Scope = scope,

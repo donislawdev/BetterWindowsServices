@@ -26,14 +26,14 @@ internal static class LayoutTexts
     private static readonly Gen<string> Anything = Gen.String;
 
     /// <summary>A value of whatever type is wrong where it stands, written as JSON.</summary>
-    private static readonly Gen<string> Odd = Gen.OneOfConst(
+    private static readonly Gen<string> Odd = Gen.OneOf(
         "true", "false", "null", "0", "1", "-1", "1.5", "1e400", "2147483648", "[]", "{}", "\"\"", "\"5\"");
 
-    private static readonly Gen<string> Flag = Gen.OneOf(Gen.OneOfConst("true", "false"), Odd);
+    private static readonly Gen<string> Flag = Gen.OneOf(Gen.OneOf("true", "false"), Odd);
 
     private static readonly Gen<string> Id = Gen.Frequency(
-        (8, Gen.OneOfConst(Ids)),
-        (1, Gen.OneOfConst("", "Status", "status ", "nothing")),
+        (8, Gen.OneOf(Ids)),
+        (1, Gen.OneOf("", "Status", "status ", "nothing")),
         (1, Anything));
 
     /// <summary>
@@ -41,8 +41,8 @@ internal static class LayoutTexts
     /// KeptWidthPropertyTests, which puts the same texts through the grid rather than the reader.
     /// </summary>
     internal static readonly Gen<string> Width = Gen.Frequency(
-        (4, Gen.OneOfConst("220", "2*", "Auto", "2.5*", "0", "", "SizeToCells")),
-        (2, Gen.OneOfConst("1e300", "1e300*", "-40", "-1*", "NaN", "Infinity", "5px5", "1,5", "1in", "-0")),
+        (4, Gen.OneOf("220", "2*", "Auto", "2.5*", "0", "", "SizeToCells")),
+        (2, Gen.OneOf("1e300", "1e300*", "-40", "-1*", "NaN", "Infinity", "5px5", "1,5", "1in", "-0")),
         (1, Anything));
 
     private static readonly Gen<string> Entry = Gen.Frequency(
@@ -82,7 +82,7 @@ internal static class LayoutTexts
     private static readonly Gen<string> Version = Gen.Frequency(
         (8, Gen.Int[ColumnLayout.OldestSchemaVersionRead, ColumnLayout.CurrentSchemaVersion]
             .Select(version => version.ToString(CultureInfo.InvariantCulture))),
-        (1, Gen.OneOfConst("0", "6", "99", "-1", "5.0", "\"5\"", "null", "2147483648")));
+        (1, Gen.OneOf("0", "6", "99", "-1", "5.0", "\"5\"", "null", "2147483648")));
 
     /// <summary>
     /// Each key with the value it should hold. A table rather than a switch, because the switch put
