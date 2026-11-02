@@ -29,7 +29,7 @@ public sealed class KeptWidthPropertyTests
     {
         _ = WpfHost.Resources;
 
-        Gen.Select(Gen.OneOfConst([.. Columns.All]), LayoutTexts.Width)
+        Gen.Select(Gen.OneOf([.. Columns.All]), LayoutTexts.Width)
             .Searched(
                 drawn =>
                 {

@@ -45,11 +45,11 @@ public sealed class EquivalentCommandPropertyTests
     /// of. Printable only, because each name is a key under Services and a key name is printable.
     /// </summary>
     private static readonly Gen<char> NameCharacter = Gen.Frequency(
-        (12, Gen.OneOfConst([.. "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"])),
+        (12, Gen.OneOf([.. "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"])),
         (3, Gen.Const(' ')),
-        (3, Gen.OneOfConst([.. "$`%\"'&|<>^!()[]{}@#;,=+~?*"])),
-        (2, Gen.OneOfConst((char)0x2018, (char)0x2019, (char)0x201A, (char)0x201B, (char)0x201C, (char)0x201D, (char)0x201E)),
-        (2, Gen.OneOfConst((char)0x0105, (char)0x00DF, (char)0x03A9, (char)0x4E2D, (char)0x00E9, (char)0x00A0, (char)0x2013)));
+        (3, Gen.OneOf([.. "$`%\"'&|<>^!()[]{}@#;,=+~?*"])),
+        (2, Gen.OneOf((char)0x2018, (char)0x2019, (char)0x201A, (char)0x201B, (char)0x201C, (char)0x201D, (char)0x201E)),
+        (2, Gen.OneOf((char)0x0105, (char)0x00DF, (char)0x03A9, (char)0x4E2D, (char)0x00E9, (char)0x00A0, (char)0x2013)));
 
     private static readonly Gen<string> Names = Gen.Frequency(
         (10, Gen.String[NameCharacter, 1, 24]),
@@ -68,10 +68,10 @@ public sealed class EquivalentCommandPropertyTests
     /// same shape (ForcedStop), and the window never asks for the forcing at all.
     /// </summary>
     private static readonly Gen<ServiceAction> Asks =
-        from kind in Gen.OneOfConst(Enum.GetValues<ActionKind>())
+        from kind in Gen.OneOf(Enum.GetValues<ActionKind>())
         from name in Names
         from dependents in Gen.Bool
-        from to in Gen.OneOfConst(Enum.GetValues<StartSetting>())
+        from to in Gen.OneOf(Enum.GetValues<StartSetting>())
         from immediate in Gen.Bool
         from alsoStop in Gen.Bool
         select new ServiceAction(

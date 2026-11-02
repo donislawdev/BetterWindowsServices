@@ -39,7 +39,7 @@ public sealed class ParserPropertyTests
     /// </summary>
     private static readonly Gen<string> Awkward =
         Gen.String[
-            Gen.OneOfConst(
+            Gen.OneOf(
                 '"', '\\', ',', ':', '!', '*', '?', '/', '=', '<', '>', '-', ' ', '\t',
                 '{', '}', '[', ']', '.', '%', '\'', 'a', 'b', 'e', 'i', 'm', 'n', 'o', 'r',
                 's', 't', 'u', '0', '1', '9'),
