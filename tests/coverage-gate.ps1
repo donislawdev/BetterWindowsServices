@@ -41,6 +41,16 @@
 # 2103 covered, identically. The property tests draw random seeds, so this was worth checking -
 # a gate that wobbles teaches everybody to ignore it.
 #
+# THE anywhere FLOORS SIT HALF A POINT UNDER WHAT CI MEASURES, set by hand on 2026-11-02 rather
+# than with -Mark, which writes the measurement itself. Until that day they were the August
+# figures, 5.8 to 71.1 points under seven CI runs (Bws.Cli at 80.5% over a floor of 9.5), so a
+# test project could lose most of its coverage without a word. And the paragraph above stopped
+# being the whole truth: Bws.Cli measured 80.5% and 80.6% on the same tree in two CI runs, while
+# Bws.Core (90.1%) and Bws.Gui (92%) held still in all seven. A floor equal to a figure that moves
+# by a tenth fails a build that changed nothing, and half a point is five times that movement. To
+# raise them again, read the step "coverage against its floor" in CI and take half a point off the
+# lowest figure there.
+#
 # WHAT THIS DOES NOT TELL YOU, and it is the reason backlog 62 exists: coverage says what was
 # EXECUTED, never what was CHECKED. A test with no assertions covers everything it touches. The
 # answer to "was it checked" is the mutation registry, and this does not replace it.
