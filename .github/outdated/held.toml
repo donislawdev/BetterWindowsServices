@@ -12,9 +12,3 @@
 # an entry that holds nothing any more, because the package moved or left the tree - a hold
 # nobody needs still reads as a decision somebody made. A key the gate does not know is refused
 # rather than ignored, so a misspelt `until` cannot hold a version for ever.
-
-[[held]]
-package = "coverlet.collector"
-through = "10.1.0"
-until = 2026-12-01
-reason = "The coverage floors in tests/coverage-floor.json are held to a tenth of a point, and coverlet 10 counts auto-properties and records differently, so the move needs a pull request of its own whose numbers CI measures (backlog 615)."
