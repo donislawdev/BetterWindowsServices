@@ -8728,13 +8728,15 @@ $mutations = @(
         Test = 'RightsMarkGuards.The_six_write_buttons_wear_a_shield_while_the_session_cannot_carry_their_plans_out'
     },
     @{
-        # The shield eats the button's left padding rather than adding its width - without that the
-        # nine buttons that cannot wrap push Overview out of the narrowest window (measured 60 over).
-        Name = 'rights: the shield takes the left padding so the bar still fits'
+        # The shield eats the button's left padding rather than adding its width. RE-AIMED 2026-11-03
+        # (backlog 633): this was held to the narrowest-window guard, written when the narrowest window
+        # was 640 and the whole width put Overview 60 over. Since 2026-10-14 the narrowest is 1000, the
+        # bar fits either way, and the full registry in CI said MISSED. Same mutation, its own guard.
+        Name = 'rights: the shield takes the left padding rather than widening its button'
         File = 'src\Bws.Gui\Themes\Actions.xaml'
         From = '<Setter Property="Padding" Value="{StaticResource PadButtonWithMark}" />'
         To = '<Setter Property="Padding" Value="11,5,11,6" />'
-        Test = 'ActionBarGuards.No_action_button_stands_outside_the_bar_at_the_narrowest_window'
+        Test = 'RightsMarkGuards.A_shield_takes_its_room_from_the_padding_rather_than_widening_its_button_by_all_of_it'
     },
     @{
         # The window tells the bar. The mutation tells it nothing, and no session ever sees a shield.
@@ -12547,10 +12549,17 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Test = 'DiffSheetTests.A_field_refused_to_both_sides_is_one_sentence_above_the_table_and_no_row'
     }
     @{
+        # RE-AIMED 2026-11-03 (backlog 633). Its mutation took away the ask BEFORE the reading - the
+        # courtesy the entry 'a target that will be refused costs no reading of the machine' already
+        # holds - and since logic report R11 (2026-10-27) the write asks again, so the file stayed and
+        # the full registry in CI said MISSED. Two gates for one rule, as SnapshotOnDisk.WhyNotWritten
+        # says, and no mutation of either gate can prove the rule. The rule itself can be proved - S-8,
+        # the one line both asks reach - and this test proves the WINDOW reaches it. The command line's
+        # own entry for the same line is 'snapshot: what cannot be read back is kept rather than replaced'.
         Name = 'window snapshot: a file that is not a snapshot is never written over'
-        File = 'src\Bws.Gui\ViewModels\Snapshotting.cs'
-        From = '    private static DiskRefusal? Refused(string path) => SnapshotOnDisk.WhyNotWritten(path, force: true);'
-        To = '    private static DiskRefusal? Refused(string path) => SnapshotOnDisk.WhyNotWritten(path + ".elsewhere", force: true);'
+        File = 'src\Bws.Core\Snapshots\SnapshotOnDisk.cs'
+        From = '        if (WhyNotASnapshot(target) is { } why)'
+        To = '        if (!force && WhyNotASnapshot(target) is { } why)'
         Test = 'SnapshottingTests.A_file_that_is_not_a_snapshot_is_never_written_over_and_is_left_as_it_was'
     }
     @{

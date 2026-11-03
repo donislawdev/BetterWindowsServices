@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using Bws.Gui.ViewModels;
@@ -56,6 +57,49 @@ public sealed class RightsMarkGuards
         Assert.Equal(0, shields);
         Assert.Equal(Texts.Of("gui.action.stop.hint"), tip);    }
 
+    /// <summary>
+    /// The shield takes its room out of the button's left padding rather than widening the button by
+    /// all of it - PadButtonWithMark in Spacing.xaml, so the bar that cannot wrap grows by a few units
+    /// a button and not by the mark and the gap after it.
+    ///
+    /// <b>A guard of its own since 2026-11-03.</b> Until then the mutation registry held this to the
+    /// narrowest-window guard in ActionBarGuards, which lost sight of it on 2026-10-14, when the
+    /// narrowest window went from 640 to 1000 - the bar fits with the whole width added as well, and
+    /// the full registry in CI said MISSED on two Saturdays running.
+    ///
+    /// <b>The footprint is measured off the laid-out mark</b>, its width and its margin, so the answer
+    /// does not come from the padding it judges.
+    /// </summary>
+    [Fact]
+    public void A_shield_takes_its_room_from_the_padding_rather_than_widening_its_button_by_all_of_it()
+    {
+        _ = WpfHost.Resources;
+
+        var (grown, footprint) = WpfHost.On(() =>
+        {
+            var bar = new ActionBar { NeedsRights = false };
+
+            bar.Picked(1, onlyDrivers: false);
+
+            var without = WriteWidths(bar);
+
+            bar.NeedsRights = true;
+
+            var with = WriteWidths(bar);
+            var mark = bar.FindResource("RightsMark");
+            var shield = Descendants(bar).OfType<Path>().First(path => ReferenceEquals(path.Style, mark) && path.ActualWidth > 0);
+
+            return (with.Zip(without, (wide, narrow) => wide - narrow).ToArray(), shield.ActualWidth + shield.Margin.Left + shield.Margin.Right);
+        });
+
+        // NOT VACUOUS: six buttons wear the shield, so six have to have grown at all.
+        Assert.Equal(6, grown.Count(by => by > 0));
+        Assert.All(grown.Where(by => by > 0), by => Assert.True(
+            by < footprint - 1,
+            $"A write button grew by {by} with the shield, and the shield and its gap take {footprint} - so it added its whole width "
+            + "instead of taking it out of the left padding, and the bar that cannot wrap grows by that on every one of six buttons."));
+    }
+
     /// <summary>The window tells the bar from the session's rights - both answers, so neither is a default.</summary>
     [Fact]
     public void The_window_tells_the_bar_whether_this_session_has_rights()
@@ -85,6 +129,18 @@ public sealed class RightsMarkGuards
 
         return Descendants(bar).OfType<Path>().Count(path =>
             ReferenceEquals(path.Style, mark) && path.Visibility == Visibility.Visible && path.ActualWidth > 0);
+    }
+
+    /// <summary>The laid-out widths of the six write buttons, in the order the bar holds them.</summary>
+    private static double[] WriteWidths(ActionBar bar)
+    {
+        bar.Measure(new Size(2000, 200));
+        bar.Arrange(new Rect(0, 0, 2000, 200));
+        bar.UpdateLayout();
+
+        var write = bar.FindResource("WriteAction");
+
+        return [.. Descendants(bar).OfType<Button>().Where(button => ReferenceEquals(button.Style, write)).Select(button => button.ActualWidth)];
     }
 
     private static IEnumerable<DependencyObject> Descendants(DependencyObject from)

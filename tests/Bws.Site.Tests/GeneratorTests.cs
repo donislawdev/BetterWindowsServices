@@ -118,7 +118,11 @@ public sealed class GeneratorTests : SiteTestBase
     {
         DamagePage("home", "en", "src=\"/assets/bws-in-action.gif\"", "SRC='/assets/bws-in-action.jpg'");
 
-        Assert.Contains(Build(), problem => problem.Contains("/assets/bws-in-action.jpg", StringComparison.Ordinal));
+        // THE LINK CHECK'S OWN SENTENCE, not the path anywhere in the problems. The parity check reads
+        // attributes in any case too, and its sentence about the English page no longer having the
+        // shape of the others names the same path - so with the link check reading one case only, the
+        // path alone still passed (MISSED in the full mutation registry on 2026-10-24 and 2026-10-31).
+        Assert.Contains(Build(), problem => problem.Contains("points at /assets/bws-in-action.jpg, and the built site has no /assets/bws-in-action.jpg.", StringComparison.Ordinal));
     }
 
     /// <summary>An address that is not an address is a problem to report, not an exception that stops the build.</summary>
