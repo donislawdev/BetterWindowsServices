@@ -13156,7 +13156,8 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         To = "  Tags: '{{MSI_PRODUCT_CODE}}'"
         Test = 'FeedGuards.The_window_installs_the_installer_first_and_the_archive_second'
     }
-    @{        Name = 'feeds: the window archive puts its own folder on PATH, not a link'
+    @{
+        Name = 'feeds: the window archive puts its own folder on PATH, not a link'
         File = 'packaging\winget\installer.window.yaml.in'
         From = '  ArchiveBinariesDependOnPath: true'
         To = '  ArchiveBinariesDependOnPath: false'
@@ -13245,6 +13246,27 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = '  - UpgradeCode: ''{{MSI_UPGRADE_CODE}}'''
         To = '  - UpgradeCode: ''{FD038501-7A2F-49C9-A587-E8DF3EFB9718}'''
         Test = 'FeedGuards.The_upgrade_code_reaches_the_packages_only_through_the_installer_source'
+    }
+    @{
+        Name = 'feeds: an archive that declares a program past the cap is refused before a byte is copied'
+        File = 'packaging\build-feeds.ps1'
+        From = 'if ($entry.Length -gt $ProgramCap) {'
+        To = 'if ($false) {'
+        Test = 'FeedGuards.A_folder_that_is_not_a_published_release_is_refused_and_leaves_nothing'
+    }
+    @{
+        Name = 'feeds: the copy out of an archive stops at the size the archive declares'
+        File = 'packaging\build-feeds.ps1'
+        From = 'if ($written -gt $entry.Length) {'
+        To = 'if ($false) {'
+        Test = 'FeedGuards.A_folder_that_is_not_a_published_release_is_refused_and_leaves_nothing'
+    }
+    @{
+        Name = 'feeds: the command line names stand in the command line block'
+        File = 'packaging\build-feeds.ps1'
+        From = 'Kind       = ''cli'''
+        To = 'Kind       = ''window'''
+        Test = 'FeedGuards.The_package_names_are_the_published_ones'
     }
     @{
         Name = 'installer phase D: the published page is asked for the installer'

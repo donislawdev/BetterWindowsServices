@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -209,33 +208,9 @@ public sealed class SigningRitualGuards
     }
 
     /// <summary>The driver as its own process, with what it said on both channels.</summary>
-    private static string Execute(string folder, string call)
-    {
-        var start = new ProcessStartInfo("pwsh") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
-        foreach (var argument in new[] { "-NoProfile", "-File", Path.Combine(folder, "driver.ps1"), "-Script", Path.Combine(SourceTree.Root(), Script.Replace('/', Path.DirectorySeparatorChar)), "-Fake", folder, "-Call", call })
-        {
-            start.ArgumentList.Add(argument);
-        }
-
-        // Both channels read as they arrive and a limit on the wait, for the reason InstallerGuards gives
-        // beside the same lines: a pwsh that hangs must not hang the test run with it.
-        var output = new StringBuilder();
-        var error = new StringBuilder();
-        using var process = new Process { StartInfo = start };
-        process.OutputDataReceived += (_, line) => output.AppendLine(line.Data);
-        process.ErrorDataReceived += (_, line) => error.AppendLine(line.Data);
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        if (!process.WaitForExit(TimeSpan.FromSeconds(90)))
-        {
-            process.Kill(entireProcessTree: true);
-            Assert.Fail($"The driver did not finish in 90 s and was ended. It had said:{Environment.NewLine}{output}{error}");
-        }
-
-        process.WaitForExit();
-        return output.ToString() + error;
-    }
+    private static string Execute(string folder, string call) =>
+        PwshScript.Start(["-NoProfile", "-File", Path.Combine(folder, "driver.ps1"), "-Script", Path.Combine(SourceTree.Root(), Script.Replace('/', Path.DirectorySeparatorChar)), "-Fake", folder, "-Call", call],
+            TimeSpan.FromSeconds(90), "The driver").Said;
 
     private static string Digest(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
 

@@ -5,8 +5,9 @@ namespace Bws.Architecture.Tests;
 
 /// <summary>
 /// A script of the repository run as its own process of PowerShell 7, the way the release ritual runs it,
-/// with what it said on both channels. One copy for the guards that ask packaging scripts for their
-/// refusals - InstallerGuards asks build-msi.ps1 and FeedGuards asks build-feeds.ps1.
+/// with what it said on both channels. One copy for every guard that runs pwsh: InstallerGuards asks
+/// build-msi.ps1 and FeedGuards asks build-feeds.ps1 for their refusals, and SigningRitualGuards runs its
+/// driver of sign-release.ps1 through <see cref="Start"/>.
 /// </summary>
 internal static class PwshScript
 {
@@ -28,7 +29,8 @@ internal static class PwshScript
         return said.Trim();
     }
 
-    private static (int Code, string Said) Start(IEnumerable<string> arguments, TimeSpan limit, string what)
+    /// <summary>pwsh with these arguments as they are, ended after the limit, and named in the failure as <paramref name="what"/>.</summary>
+    internal static (int Code, string Said) Start(IEnumerable<string> arguments, TimeSpan limit, string what)
     {
         var start = new ProcessStartInfo("pwsh") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
         foreach (var argument in arguments)

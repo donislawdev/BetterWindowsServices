@@ -75,6 +75,11 @@ $chocoTemplates = Join-Path $PSScriptRoot 'chocolatey'
 # on a pending pull request and asked for 1.28.0, and 1.28.0 defines every field used here.
 $WingetSchema = '1.28.0'
 
+# The most bytes one program may take out of its archive. The biggest is the window, 172,065,200 bytes in
+# v0.5.0 (read 2026-11-03), so this leaves it room to grow for years and still stops an archive that would
+# fill the disk before its signature is asked.
+$ProgramCap = 1GB
+
 # A refusal is one plain line on stderr and exit 1, the way build-msi.ps1 refuses. `exit` still runs the
 # `finally` that removes the working folders.
 function Stop-Render([string] $message) {
@@ -203,12 +208,31 @@ function Expand-Checked([string] $zip, [string] $program, [string] $version, [st
         }
         $entry = $archive.GetEntry($program)
         if ($null -eq $entry) { Stop-Render "$zipName holds no $program, which its package starts and the release signs" }
+        if ($entry.Length -gt $ProgramCap) { Stop-Render "$zipName declares $program at $($entry.Length) bytes, and no program of ours comes near $ProgramCap" }
         $copy = Join-Path $scratch ([guid]::NewGuid().ToString('N') + [System.IO.Path]::GetExtension($program))
+        # Copied by hand and counted, not by ExtractToFile: the .NET reader stops a compressed entry at the
+        # size its header declares, but reads a stored one to the end of its data whatever the header says
+        # (tools/feeds/zip-bound-probe.ps1 on .NET 10.0.14, 2026-11-03). So the count is what bounds the
+        # bytes written, and an archive whose entry holds more than it declares is refused as it is.
+        $from = $null
+        $into = $null
         try {
-            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $copy)
+            $from = $entry.Open()
+            $into = [System.IO.File]::Open($copy, [System.IO.FileMode]::CreateNew, [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+            $buffer = [byte[]]::new(1MB)
+            $written = [long]0
+            while (($read = $from.Read($buffer, 0, $buffer.Length)) -gt 0) {
+                $written += $read
+                if ($written -gt $entry.Length) { Stop-Render "$zipName holds more of $program than the $($entry.Length) bytes it declares" }
+                $into.Write($buffer, 0, $read)
+            }
         }
         catch {
             Stop-Render "$program could not be read out of $zipName`: $(Get-Reason $_)"
+        }
+        finally {
+            if ($null -ne $into) { $into.Dispose() }
+            if ($null -ne $from) { $from.Dispose() }
         }
     }
     finally {
@@ -429,11 +453,16 @@ try {
         ICON_URL           = "https://cdn.jsdelivr.net/gh/$repoPath@$Tag/$iconPath"
     }
 
-    # Every sentence below is one the README makes about the program, and none is new here.
+    # Every sentence below is one the README makes about the program, held to what the program does. Three
+    # are narrower than the README's short list: what should be up and is not is asked the way the window
+    # asks it, mismatch:stopped, because start:auto !status:running also answers per-user templates and
+    # services a trigger starts, which are stopped where they are meant to be (7 against 1 on 2026-09-23);
+    # --json is taken by the commands that read or change a service, and license, tool and tool fix refuse
+    # it with exit 2 (bws 0.5.0, 2026-11-03); and --follow-network is the one way off the machine.
     $audit = 'It freezes every service into a snapshot file and later says what changed since, configuration ' +
         'apart from what merely started or stopped, and reads from the System log who changed a start type or ' +
         'installed a service.'
-    $offline = 'It works on the local machine and never connects to the internet.'
+    $offline = 'It works on the local machine and reaches no network unless you pass --follow-network.'
     $elevated = 'Looking needs no administrator rights, and changing a service does.'
     $close = 'Close the window and every bws that is running before an upgrade.'
     # Owner's decision of 2026-11-03: the command keeps its name, and the packages say so.
@@ -452,7 +481,7 @@ try {
             Tags       = $tags + @('gui')
             Body       = ("$($identity.Name) is services.msc rebuilt for people who administer Windows machines - a " +
                 'window and a command line over one engine. Ask the machine a question instead of scrolling: ' +
-                'start:auto !status:running is what should be up and is not. Every stop, start, restart and start ' +
+                'mismatch:stopped is what should be up and is not. Every stop, start, restart and start ' +
                 'type change is shown as a plan, with the services it takes down with it, before anything runs.' +
                 "`n`n$audit It shows what services.msc hides - who signed the binary, triggers, privileges, the " +
                 'security descriptor, the process and its memory - and says when it could not read a field instead ' +
@@ -487,8 +516,8 @@ try {
             Body       = ("bws is the command line of $($identity.Name), for scripts, scheduled tasks and CI. bws list " +
                 '--query asks the machine a question in the language of the search box of the window. Every stop, ' +
                 'start, restart and start type change is a plan first and can be previewed with --dry-run.' +
-                "`n`n$audit Every command takes --json, every ending has an exit code of its own, and a diff that " +
-                "finds drift ends with 5. $offline")
+                "`n`n$audit Every command that reads or changes a service takes --json, every ending has an exit " +
+                "code of its own, and a diff that finds drift ends with 5. $offline")
             WingetHow  = ("Type bws --help in a new terminal to see the commands. $elevated The window, with a Start " +
                 "menu entry and the same command line, is the package DonislawDev.BetterWindowsServices. $sameName")
             ChocoHow   = ("Type bws --help in a new terminal to see the commands. $elevated The window, with a Start " +

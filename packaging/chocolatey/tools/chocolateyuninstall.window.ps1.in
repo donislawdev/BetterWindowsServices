@@ -14,7 +14,18 @@ $ErrorActionPreference = 'Stop'
 
 $upgradeCode = '{{MSI_UPGRADE_CODE}}'
 $installer = New-Object -ComObject WindowsInstaller.Installer
-$products = @($installer.RelatedProducts($upgradeCode))
+$related = $null
+try {
+    $related = $installer.RelatedProducts($upgradeCode)
+    # Copied into strings, so nothing below holds a COM object.
+    $products = @(foreach ($code in $related) { [string]$code })
+}
+finally {
+    # Released on every path, the way build-feeds.ps1 releases what it opens.
+    foreach ($held in @($related, $installer)) {
+        if ($null -ne $held) { [void][System.Runtime.InteropServices.Marshal]::ReleaseComObject($held) }
+    }
+}
 
 if ($products.Count -eq 0) {
     # Removed already, in Settings or with msiexec. Nothing is left to take

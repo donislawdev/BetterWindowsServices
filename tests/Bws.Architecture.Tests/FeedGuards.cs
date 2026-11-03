@@ -1,6 +1,8 @@
+using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -25,6 +27,17 @@ public sealed class FeedGuards
 {
     /// <summary>The installer's stand-in: a file validly signed by somebody else's certificate.</summary>
     private static readonly Lazy<string> SignedBySomebodyElse = new(() => Path.Combine(PwshScript.Home(), "pwsh.exe"));
+
+    /// <summary>
+    /// The size an archive's headers declare for its program, where a change has it lie: far past what the
+    /// script copies out of an archive, or less than the program it holds - stored, as these archives store
+    /// it, so the .NET reader returns every byte whatever the header says.
+    /// </summary>
+    private static readonly Dictionary<string, uint> Declared = new(StringComparer.Ordinal)
+    {
+        ["declares-huge:cli"] = 0xF0000000,
+        ["declares-less:cli"] = 1000,
+    };
 
     [Fact]
     public void The_window_installs_the_installer_first_and_the_archive_second()
@@ -111,12 +124,15 @@ public sealed class FeedGuards
         // Public for good: a person installs and upgrades by them, and a new one is a new package beside the
         // old. The owner chose these on 2026-11-03, and the command line's moniker leaves out bws, which
         // Bitwarden Secrets Manager CLI has in WinGet (backlog 635).
+        // Each name inside the block of its own package, from its Kind line to the next one: the two blocks
+        // with their names swapped would still hold all six, and the window would render as the command line.
         var script = Text("packaging/build-feeds.ps1");
-        foreach (var (key, name) in new[] { ("WingetId", "DonislawDev.BetterWindowsServices"), ("WingetId", "DonislawDev.BetterWindowsServices.CLI"),
-            ("ChocoId", "better-windows-services"), ("ChocoId", "better-windows-services-cli"),
-            ("Moniker", "betterwindowsservices"), ("Moniker", "betterwindowsservices-cli") })
+        foreach (var (kind, key, name) in new[] { ("window", "WingetId", "DonislawDev.BetterWindowsServices"), ("cli", "WingetId", "DonislawDev.BetterWindowsServices.CLI"),
+            ("window", "ChocoId", "better-windows-services"), ("cli", "ChocoId", "better-windows-services-cli"),
+            ("window", "Moniker", "betterwindowsservices"), ("cli", "Moniker", "betterwindowsservices-cli") })
         {
-            Assert.True(Regex.IsMatch(script, $@"(?m)^\s*{key}\s*=\s*'{Regex.Escape(name)}'\s*$", RegexOptions.None, TimeSpan.FromSeconds(5)), $"build-feeds.ps1 does not say {key} = '{name}'.");
+            var pattern = $@"(?m)^\s*Kind\s*=\s*'{kind}'\s*$(?:(?!^\s*Kind\s*=)[\s\S])*?^\s*{key}\s*=\s*'{Regex.Escape(name)}'\s*$";
+            Assert.True(Regex.IsMatch(script, pattern, RegexOptions.None, TimeSpan.FromSeconds(5)), $"The {kind} package of build-feeds.ps1 does not say {key} = '{name}'.");
         }
     }
 
@@ -170,6 +186,8 @@ public sealed class FeedGuards
     [InlineData("without:cli", "bws-cli-win-x64.zip holds no bws/bws.exe")]
     [InlineData("as-text:gui", "BetterWindowsServices/BetterWindowsServices.exe in BetterWindowsServices-win-x64.zip is version ''")]
     [InlineData("foreign:gui", "BetterWindowsServices/BetterWindowsServices.exe in BetterWindowsServices-win-x64.zip is version '7.")]
+    [InlineData("declares-huge:cli", "bws-cli-win-x64.zip declares bws/bws.exe at 4026531840 bytes")]
+    [InlineData("declares-less:cli", "bws-cli-win-x64.zip holds more of bws/bws.exe than the 1000 bytes it declares")]
     public void A_folder_that_is_not_a_published_release_is_refused_and_leaves_nothing(string change, string says)
     {
         var dir = Case();
@@ -220,7 +238,8 @@ public sealed class FeedGuards
     /// Builds a release folder that gets as far as the signatures: the installer as a copy of pwsh.exe, each
     /// archive holding its program as this assembly plus its licence, and a SHA256SUMS listing the three as
     /// they are. The change names one thing the folder holds otherwise: an archive that is not one, an
-    /// archive without its program, a program of no version, or a program of another release.
+    /// archive without its program, a program of no version, a program of another release, or an archive
+    /// whose headers declare a size its program does not have.
     /// </summary>
     private static string ReleaseFolder(string dir, string change)
     {
@@ -238,6 +257,10 @@ public sealed class FeedGuards
             var source = change == "foreign:" + half ? SignedBySomebodyElse.Value : change == "as-text:" + half ? null : typeof(FeedGuards).Assembly.Location;
             var licence = (program[..program.IndexOf('/', StringComparison.Ordinal)] + "/LICENSE", (string?)null);
             WriteArchive(path, change == "without:" + half ? [licence] : [(program, source), licence]);
+            if (Declared.TryGetValue(change, out var declared) && change.EndsWith(":" + half, StringComparison.Ordinal))
+            {
+                Declare(path, program, declared);
+            }
         }
 
         var names = new[] { Installer() }.Concat(Programs().Select(p => p.Zip));
@@ -273,6 +296,35 @@ public sealed class FeedGuards
         }
     }
 
+    /// <summary>
+    /// Sets the size the local and the central header of an archive declare for one entry, and leaves its
+    /// bytes as they are - an archive that lies about what it holds, which only a hand makes.
+    /// </summary>
+    private static void Declare(string path, string name, uint size)
+    {
+        var bytes = File.ReadAllBytes(path);
+        var named = Encoding.UTF8.GetBytes(name);
+        var patched = 0;
+
+        // Each header as its signature, where it keeps the uncompressed size, the name's length and the name.
+        foreach (var (signature, sizeAt, lengthAt, nameAt) in new[] { (0x04034b50u, 22, 26, 30), (0x02014b50u, 24, 28, 46) })
+        {
+            for (var at = 0; at + nameAt + named.Length <= bytes.Length; at++)
+            {
+                var header = bytes.AsSpan(at);
+                if (BinaryPrimitives.ReadUInt32LittleEndian(header) == signature && BinaryPrimitives.ReadUInt16LittleEndian(header[lengthAt..]) == named.Length
+                    && header.Slice(nameAt, named.Length).SequenceEqual(named))
+                {
+                    BinaryPrimitives.WriteUInt32LittleEndian(header[sizeAt..], size);
+                    patched++;
+                }
+            }
+        }
+
+        Assert.True(patched == 2, $"Found {patched} headers naming {name} in {Path.GetFileName(path)}, and an archive holding it once has two.");
+        File.WriteAllBytes(path, bytes);
+    }
+
     private static void Pack(ZipArchive archive, string name, string? source)
     {
         if (source is not null)
@@ -298,8 +350,11 @@ public sealed class FeedGuards
 
     private static string Installer() => Register().GetProperty("installer").GetProperty("file").GetString()!;
 
-    private static JsonElement Register() =>
-        JsonDocument.Parse(File.ReadAllText(Path.Combine(SourceTree.Root(), "packaging", "components.json"))).RootElement;
+    private static JsonElement Register()
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(SourceTree.Root(), "packaging", "components.json")));
+        return document.RootElement.Clone();
+    }
 
     /// <summary>The tag of the version this build carries, which the release commit dates in CHANGELOG.md.</summary>
     private static string Tag() =>
