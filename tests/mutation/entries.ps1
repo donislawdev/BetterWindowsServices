@@ -13087,6 +13087,62 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Test = 'SigningRitualGuards.The_draft_check_alone_comes_before_the_work_folder_is_cleared_and_the_card_is_reached'
     }
     @{
+        Name = 'signing: a read that is not JSON is asked again'
+        File = 'packaging\sign-release.ps1'
+        From = 'catch { $said = "gh printed something that is not JSON: $text" }'
+        To = 'catch { throw }'
+        Test = 'SigningRitualGuards.A_read_that_is_not_json_is_asked_again'
+    }
+    @{
+        Name = 'signing: the release is read in one place'
+        File = 'packaging\sign-release.ps1'
+        From = "`$draft = Read-Release 'assets,isDraft'"
+        To = "`$draft = gh release view `$Tag --repo `$repo --json 'assets,isDraft' | ConvertFrom-Json #"
+        Test = 'SigningRitualGuards.Every_read_of_the_release_goes_through_the_one_that_asks_again'
+    }
+    @{
+        Name = 'signing: a published release is refused before anything on it is changed'
+        File = 'packaging\sign-release.ps1'
+        From = 'if (-not $draft.isDraft) {'
+        To = 'if ($false) {'
+        Test = 'SigningRitualGuards.A_published_release_is_refused_before_anything_on_it_is_changed'
+    }
+    @{
+        Name = 'signing: a published release is refused at once while confirming'
+        File = 'packaging\sign-release.ps1'
+        From = 'if (-not $view.isDraft) {'
+        To = 'if ($false) {'
+        Test = 'SigningRitualGuards.A_release_already_published_is_refused_at_once_rather_than_waited_for'
+    }
+    @{
+        Name = 'signing: every attested file has its own bundle, by name'
+        File = 'packaging\sign-release.ps1'
+        From = 'if (-not $missing -and -not $missingBundles) { break }'
+        To = 'if (-not $missing) { break }'
+        Test = 'SigningRitualGuards.A_bundle_nobody_expects_does_not_stand_in_for_a_missing_one'
+    }
+    @{
+        Name = 'signing: each signed digest stands on the line of its own file'
+        File = 'packaging\sign-release.ps1'
+        From = 'if (-not $sums.ContainsKey($name) -or $sums[$name] -ne $signedDigests[$name]) {'
+        To = 'if ($published -notmatch [regex]::Escape($signedDigests[$name])) {'
+        Test = 'SigningRitualGuards.A_digest_under_another_name_in_the_checksums_is_refused'
+    }
+    @{
+        Name = 'signing: the files on the release are the ones signed'
+        File = 'packaging\sign-release.ps1'
+        From = 'if ($digest -ne $signedDigests[$name]) {'
+        To = 'if ($false) {'
+        Test = 'SigningRitualGuards.An_asset_replaced_after_phase_C_is_refused_by_its_own_digest'
+    }
+    @{
+        Name = 'signing: an asset with no digest is downloaded and hashed'
+        File = 'packaging\sign-release.ps1'
+        From = 'if (-not $digest) {'
+        To = 'if ($false) {'
+        Test = 'SigningRitualGuards.An_asset_without_a_digest_is_downloaded_and_hashed'
+    }
+    @{
         Name = 'installer phase D: the published page is asked for the installer'
         File = '.github\workflows\verify-release.yml'
         From = '$expected += @($installer, "$installer.spdx.json", "$installer.sigstore.json")'

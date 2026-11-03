@@ -275,17 +275,25 @@ function Confirm-Draft([string[]] $Files) {
     $deadline = (Get-Date).AddSeconds([Math]::Max(0, $Wait))
     $signedDigests = @{}
     foreach ($file in $Files) { $signedDigests[(Split-Path -Leaf $file)] = Get-Sha256 $file }
+    # One bundle per attested file, by NAME. A count would let a bundle nobody expects stand in for the
+    # one an archive is missing, and the step would print PASS over it (review of #111).
+    $expectedBundles = @($Files | ForEach-Object { (Split-Path -Leaf $_) + '.sigstore.json' })
     $names = @()
     while ($true) {
         $view = Read-Release 'assets,isDraft' 'while waiting for phase C' $again
+        # Asked on every read rather than once at the end: on a release somebody already published, a
+        # missing asset would otherwise keep this waiting out -Wait and then say nothing was published.
+        if (-not $view.isDraft) {
+            throw "sign-release: $Tag is NOT a draft any more - it is already public"
+        }
         $names = @($view.assets | ForEach-Object { $_.name })
         $missing = @($EXPECTED_ASSETS | Where-Object { $names -notcontains $_ })
-        $bundles = @($names | Where-Object { $_.EndsWith('.sigstore.json') })
-        if (-not $missing -and $bundles.Count -ge $Files.Count) { break }
+        $missingBundles = @($expectedBundles | Where-Object { $names -notcontains $_ })
+        if (-not $missing -and -not $missingBundles) { break }
         if ((Get-Date) -gt $deadline) {
             Write-Host "  waited $Wait s and the draft is still incomplete."
             if ($missing) { Write-Host "  missing: $($missing -join ', ')" }
-            if ($bundles.Count -lt $Files.Count) { Write-Host "  attestation bundles present: $($bundles.Count) of $($Files.Count)" }
+            if ($missingBundles) { Write-Host "  attestation bundles missing: $($missingBundles -join ', ')" }
             Write-Host "  assets present: $(($names | Sort-Object) -join ', ')"
             throw ('sign-release: the draft is NOT complete. Nothing was published, so nothing is broken - but do ' +
                 "not press publish until the missing piece is there. Check the run log of $attestWorkflow. " +
@@ -295,16 +303,39 @@ function Confirm-Draft([string[]] $Files) {
     }
 
     # The digests are checked against what the RELEASE carries, not against the local files we made -
-    # those are the same bytes only if the upload really landed. --clobber because -CheckDraft may run
-    # over a work folder that already holds this file from an earlier confirmation.
+    # those are the same bytes only if the upload really landed. Each one on the line of its OWN file
+    # name, because a digest found on any line would pass for local files whose names and bytes no
+    # longer go together (review of #111). The format is the one step 6 writes: digest, two spaces,
+    # name. --clobber because -CheckDraft may run over a work folder that already holds this file.
     $confirm = Join-Path $workspace 'confirm'
     New-Item -ItemType Directory -Path $confirm -Force | Out-Null
     Invoke-Step @('gh', 'release', 'download', $Tag, '--repo', $repo, '--pattern', 'SHA256SUMS', '--dir', $confirm, '--clobber') | Out-Null
     $published = Get-Content -Raw -LiteralPath (Join-Path $confirm 'SHA256SUMS')
+    $sums = @{}
+    foreach ($line in ($published -split "`r?`n")) {
+        if ($line -match '^([0-9a-f]{64})  (.+)$') { $sums[$Matches[2].Trim()] = $Matches[1] }
+    }
     foreach ($name in $signedDigests.Keys) {
-        if ($published -notmatch [regex]::Escape($signedDigests[$name])) {
-            throw ("sign-release: SHA256SUMS on the release does NOT name the digest we signed for $name.`n" +
+        if (-not $sums.ContainsKey($name) -or $sums[$name] -ne $signedDigests[$name]) {
+            throw ("sign-release: SHA256SUMS on the release does NOT give $name the digest we signed.`n" +
                 "  signed:    $($signedDigests[$name])`n  published: $published")
+        }
+    }
+
+    # AND THE FILES THEMSELVES. SHA256SUMS is one more asset, and it names the right digests even when
+    # an archive beside it was replaced after phase C (review of #111). GitHub gives every release asset
+    # a digest of its own bytes, read here from the same view. An asset without one is downloaded and
+    # hashed instead, so a missing field is never taken as a match.
+    foreach ($name in $signedDigests.Keys) {
+        $asset = @($view.assets | Where-Object { $_.name -eq $name })[0]
+        $digest = if ($asset.PSObject.Properties['digest'] -and $asset.digest) { ([string]$asset.digest) -replace '^sha256:', '' } else { '' }
+        if (-not $digest) {
+            Invoke-Step @('gh', 'release', 'download', $Tag, '--repo', $repo, '--pattern', $name, '--dir', $confirm, '--clobber') | Out-Null
+            $digest = Get-Sha256 (Join-Path $confirm $name)
+        }
+        if ($digest -ne $signedDigests[$name]) {
+            throw ("sign-release: $name on the release is NOT the file we signed.`n" +
+                "  signed:    $($signedDigests[$name])`n  on the release: $digest")
         }
     }
     $state = Read-Release 'isDraft' 'to say whether it is still a draft'
@@ -314,7 +345,7 @@ function Confirm-Draft([string[]] $Files) {
 
     Write-Host ''
     foreach ($name in ($names | Sort-Object)) { Write-Host "  asset  $name" }
-    Write-Host '  PASS: every expected asset is there, the published checksums name the digests we signed, still a draft'
+    Write-Host '  PASS: every expected asset is there, its bytes and the published checksums are the ones we signed, still a draft'
     Write-Host ''
     Write-Host 'Done. The release is still a DRAFT.'
     Write-Host 'Read it, then publish. Publishing runs phase D, which re-checks the published bytes the way a user would.'
@@ -668,7 +699,13 @@ $stale = @($attested | ForEach-Object { (Split-Path -Leaf $_) + '.sigstore.json'
 # Through Read-Release, whose exit code check matters here most: a read that failed and a draft
 # with no assets look identical from here, and the difference decides whether a stale bundle is
 # left behind.
-$draft = Read-Release 'assets' 'to see what the draft already carries' 'Phase A opens the draft - check that it ran for this tag. Nothing has been uploaded.'
+$draft = Read-Release 'assets,isDraft' 'to see what the draft already carries' 'Phase A opens the draft - check that it ran for this tag. Nothing has been uploaded.'
+# BEFORE ANYTHING ON THE RELEASE IS DELETED OR REPLACED. A second run on a release somebody already
+# published would otherwise take its attestation bundles off and overwrite its files with --clobber,
+# and the draft check in step 8 would only say so afterwards (review of #111).
+if (-not $draft.isDraft) {
+    throw "sign-release: $Tag is NOT a draft any more - it is already public, and nothing on it has been changed"
+}
 $onDraft = @($draft.assets | ForEach-Object { $_.name })
 foreach ($bundle in ($stale | Where-Object { $onDraft -contains $_ })) {
     Write-Host "  removing the previous attestation bundle $bundle"
