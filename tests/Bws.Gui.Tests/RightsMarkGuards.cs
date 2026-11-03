@@ -67,37 +67,50 @@ public sealed class RightsMarkGuards
     /// narrowest window went from 640 to 1000 - the bar fits with the whole width added as well, and
     /// the full registry in CI said MISSED on two Saturdays running.
     ///
-    /// <b>The footprint is measured off the laid-out mark</b>, its width and its margin, so the answer
-    /// does not come from the padding it judges.
+    /// <b>Measured, not read from the tokens</b> - the footprint off the laid-out mark (its width and
+    /// its margin), the ordinary left padding off a write button with no shield - so the answer does not
+    /// come from the padding it judges. "Most of the left padding" is the word Actions.xaml uses, so the
+    /// shield has to take more than half of it. And the label keeps its right edge (Spacing.xaml), so
+    /// the room cannot come out of the right padding instead - both found missing by the review of
+    /// PR #109: a left padding of 9 grew each button by 10 and passed, and so did 11 and 4 the other way
+    /// round, with every label moved seven units to the right.
     /// </summary>
     [Fact]
     public void A_shield_takes_its_room_from_the_padding_rather_than_widening_its_button_by_all_of_it()
     {
         _ = WpfHost.Resources;
 
-        var (grown, footprint) = WpfHost.On(() =>
+        var (grown, footprint, ordinary, edges) = WpfHost.On(() =>
         {
             var bar = new ActionBar { NeedsRights = false };
 
             bar.Picked(1, onlyDrivers: false);
 
-            var without = WriteWidths(bar);
+            var without = WriteButtons(bar);
 
             bar.NeedsRights = true;
 
-            var with = WriteWidths(bar);
+            var with = WriteButtons(bar);
             var mark = bar.FindResource("RightsMark");
             var shield = Descendants(bar).OfType<Path>().First(path => ReferenceEquals(path.Style, mark) && path.ActualWidth > 0);
 
-            return (with.Zip(without, (wide, narrow) => wide - narrow).ToArray(), shield.ActualWidth + shield.Margin.Left + shield.Margin.Right);
+            return (
+                with.Zip(without, (wide, narrow) => wide.Width - narrow.Width).ToArray(),
+                shield.ActualWidth + shield.Margin.Left + shield.Margin.Right,
+                without[0].LeftPadding,
+                with.Zip(without, (wide, narrow) => (Before: narrow.RightGap, After: wide.RightGap)).ToArray());
         });
 
         // NOT VACUOUS: six buttons wear the shield, so six have to have grown at all.
         Assert.Equal(6, grown.Count(by => by > 0));
         Assert.All(grown.Where(by => by > 0), by => Assert.True(
-            by < footprint - 1,
-            $"A write button grew by {by} with the shield, and the shield and its gap take {footprint} - so it added its whole width "
-            + "instead of taking it out of the left padding, and the bar that cannot wrap grows by that on every one of six buttons."));
+            footprint - by > ordinary / 2,
+            $"A write button grew by {by} with the shield, whose mark and gap take {footprint} - so the shield took {footprint - by} of "
+            + $"a left padding of {ordinary}, not most of it, and the bar that cannot wrap grows by the rest on every one of six buttons."));
+        Assert.All(edges, edge => Assert.True(
+            Math.Abs(edge.After - edge.Before) < 0.5,
+            $"A label ends {edge.Before} short of its button's right edge without the shield and {edge.After} with it - so the "
+            + "shield's room came out of the right padding, and every label of the bar moves when a session has no rights."));
     }
 
     /// <summary>The window tells the bar from the session's rights - both answers, so neither is a default.</summary>
@@ -131,8 +144,11 @@ public sealed class RightsMarkGuards
             ReferenceEquals(path.Style, mark) && path.Visibility == Visibility.Visible && path.ActualWidth > 0);
     }
 
-    /// <summary>The laid-out widths of the six write buttons, in the order the bar holds them.</summary>
-    private static double[] WriteWidths(ActionBar bar)
+    /// <summary>
+    /// The six write buttons laid out, in the order the bar holds them: each one's width, its left
+    /// padding, and how far its label ends short of its right edge.
+    /// </summary>
+    private static (double Width, double LeftPadding, double RightGap)[] WriteButtons(ActionBar bar)
     {
         bar.Measure(new Size(2000, 200));
         bar.Arrange(new Rect(0, 0, 2000, 200));
@@ -140,7 +156,13 @@ public sealed class RightsMarkGuards
 
         var write = bar.FindResource("WriteAction");
 
-        return [.. Descendants(bar).OfType<Button>().Where(button => ReferenceEquals(button.Style, write)).Select(button => button.ActualWidth)];
+        return [.. Descendants(bar).OfType<Button>().Where(button => ReferenceEquals(button.Style, write)).Select(button =>
+        {
+            var label = Descendants(button).OfType<TextBlock>().First(text => text.Text == button.Content as string);
+            var labelEnds = label.TransformToAncestor(button).Transform(new Point(label.ActualWidth, 0)).X;
+
+            return (button.ActualWidth, button.Padding.Left, button.ActualWidth - labelEnds);
+        })];
     }
 
     private static IEnumerable<DependencyObject> Descendants(DependencyObject from)

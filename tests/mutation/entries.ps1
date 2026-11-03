@@ -8739,6 +8739,24 @@ $mutations = @(
         Test = 'RightsMarkGuards.A_shield_takes_its_room_from_the_padding_rather_than_widening_its_button_by_all_of_it'
     },
     @{
+        # Review of PR #109, 2026-11-03: the room taken from the RIGHT padding instead - the same width,
+        # every label seven units further right. The mutation swaps the two sides.
+        Name = 'rights: the shield keeps the label''s right edge where it was'
+        File = 'src\Bws.Gui\Themes\Actions.xaml'
+        From = '<Setter Property="Padding" Value="{StaticResource PadButtonWithMark}" />'
+        To = '<Setter Property="Padding" Value="11,5,4,6" />'
+        Test = 'RightsMarkGuards.A_shield_takes_its_room_from_the_padding_rather_than_widening_its_button_by_all_of_it'
+    },
+    @{
+        # Review of PR #109, 2026-11-03: a little of the left padding rather than most of it - a left
+        # padding of 9, so each of six buttons grows by ten rather than by five.
+        Name = 'rights: the shield takes most of the left padding, not a little of it'
+        File = 'src\Bws.Gui\Themes\Actions.xaml'
+        From = '<Setter Property="Padding" Value="{StaticResource PadButtonWithMark}" />'
+        To = '<Setter Property="Padding" Value="9,5,11,6" />'
+        Test = 'RightsMarkGuards.A_shield_takes_its_room_from_the_padding_rather_than_widening_its_button_by_all_of_it'
+    },
+    @{
         # The window tells the bar. The mutation tells it nothing, and no session ever sees a shield.
         Name = 'rights: the window tells the bar whether the session has rights'
         File = 'src\Bws.Gui\MainWindow.xaml.cs'
