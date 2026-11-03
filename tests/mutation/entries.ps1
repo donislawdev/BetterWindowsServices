@@ -13143,6 +13143,132 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Test = 'SigningRitualGuards.An_asset_without_a_digest_is_downloaded_and_hashed'
     }
     @{
+        Name = 'feeds: the window installs the installer first'
+        File = 'packaging\winget\installer.window.yaml.in'
+        From = '  InstallerType: wix'
+        To = '  InstallerType: msi'
+        Test = 'FeedGuards.The_window_installs_the_installer_first_and_the_archive_second'
+    }
+    @{
+        Name = 'feeds: WinGet finds the installed installer by its ProductCode'
+        File = 'packaging\winget\installer.window.yaml.in'
+        From = "  ProductCode: '{{MSI_PRODUCT_CODE}}'"
+        To = "  Tags: '{{MSI_PRODUCT_CODE}}'"
+        Test = 'FeedGuards.The_window_installs_the_installer_first_and_the_archive_second'
+    }
+    @{
+        Name = 'feeds: the window archive puts its own folder on PATH, not a link'
+        File = 'packaging\winget\installer.window.yaml.in'
+        From = '  ArchiveBinariesDependOnPath: true'
+        To = '  ArchiveBinariesDependOnPath: false'
+        Test = 'FeedGuards.The_window_installs_the_installer_first_and_the_archive_second'
+    }
+    @{
+        Name = 'feeds: the command line puts its own folder on PATH, not a link named bws'
+        File = 'packaging\winget\installer.cli.yaml.in'
+        From = 'ArchiveBinariesDependOnPath: true'
+        To = 'ArchiveBinariesDependOnPath: false'
+        Test = 'FeedGuards.The_command_line_is_reached_through_its_own_folder_on_path_and_not_through_a_link_named_bws'
+    }
+    @{
+        Name = 'feeds: the chocolatey window finds the installer by its UpgradeCode'
+        File = 'packaging\chocolatey\tools\chocolateyuninstall.window.ps1.in'
+        From = '$installer.RelatedProducts($upgradeCode)'
+        To = '$installer.RelatedProducts(''{00000000-0000-0000-0000-000000000000}'')'
+        Test = 'FeedGuards.The_chocolatey_window_runs_the_installer_and_finds_it_again_by_its_upgrade_code'
+    }
+    @{
+        Name = 'feeds: an upgrade that owes a restart is a success in chocolatey'
+        File = 'packaging\chocolatey\tools\chocolateyinstall.window.ps1.in'
+        From = 'validExitCodes = @(0, 3010, 1641)'
+        To = 'validExitCodes = @(0)'
+        Test = 'FeedGuards.The_chocolatey_window_runs_the_installer_and_finds_it_again_by_its_upgrade_code'
+    }
+    @{
+        Name = 'feeds: the command line package is the published one'
+        File = 'packaging\build-feeds.ps1'
+        From = 'WingetId   = ''DonislawDev.BetterWindowsServices.CLI'''
+        To = 'WingetId   = ''DonislawDev.BetterWindowsServices.Cli'''
+        Test = 'FeedGuards.The_package_names_are_the_published_ones'
+    }
+    @{
+        Name = 'feeds: the command line moniker leaves out bws'
+        File = 'packaging\build-feeds.ps1'
+        From = 'Moniker    = ''betterwindowsservices-cli'''
+        To = 'Moniker    = ''bws'''
+        Test = 'FeedGuards.The_package_names_are_the_published_ones'
+    }
+    @{
+        Name = 'feeds: a release candidate gets no packages'
+        File = 'packaging\build-feeds.ps1'
+        From = 'if ($releaseTag.Contains(''-'')) {'
+        To = 'if ($false) {'
+        Test = 'FeedGuards.A_tag_that_is_no_release_gets_no_packages'
+    }
+    @{
+        Name = 'feeds: every file is hashed against its line in the sums'
+        File = 'packaging\build-feeds.ps1'
+        From = 'if ($hash -ne $sums[$name]) {'
+        To = 'if ($false) {'
+        Test = 'FeedGuards.A_folder_that_is_not_a_published_release_is_refused_and_leaves_nothing'
+    }
+    @{
+        Name = 'feeds: a name the sums list twice is refused'
+        File = 'packaging\build-feeds.ps1'
+        From = 'if ($sums.ContainsKey($name)) {'
+        To = 'if ($false) {'
+        Test = 'FeedGuards.A_folder_that_is_not_a_published_release_is_refused_and_leaves_nothing'
+    }
+    @{
+        Name = 'feeds: every program is at the version of the tag'
+        File = 'packaging\build-feeds.ps1'
+        From = 'if (($found -split ''\+'', 2)[0] -ne $version) {'
+        To = 'if ($false) {'
+        Test = 'FeedGuards.A_folder_that_is_not_a_published_release_is_refused_and_leaves_nothing'
+    }
+    @{
+        Name = 'feeds: the installer is held to the pinned certificate'
+        File = 'packaging\build-feeds.ps1'
+        From = '$fault = Get-SignatureFault $msiPath $pin'
+        To = '$fault = '''''
+        Test = 'FeedGuards.A_release_that_gets_past_every_other_check_stops_at_the_signatures_and_names_every_file'
+    }
+    @{
+        Name = 'feeds: nothing is rendered into the repository'
+        File = 'packaging\build-feeds.ps1'
+        From = 'if ($real -eq $repo -or $real.StartsWith('
+        To = 'if ($false -and $real.StartsWith('
+        Test = 'FeedGuards.The_packages_are_rendered_neither_into_the_repository_nor_into_a_folder_that_exists'
+    }
+    @{
+        Name = 'feeds: the UpgradeCode reaches the window manifest only from the installer source'
+        File = 'packaging\winget\installer.window.yaml.in'
+        From = '  - UpgradeCode: ''{{MSI_UPGRADE_CODE}}'''
+        To = '  - UpgradeCode: ''{FD038501-7A2F-49C9-A587-E8DF3EFB9718}'''
+        Test = 'FeedGuards.The_upgrade_code_reaches_the_packages_only_through_the_installer_source'
+    }
+    @{
+        Name = 'feeds: an archive that declares a program past the cap is refused before a byte is copied'
+        File = 'packaging\build-feeds.ps1'
+        From = 'if ($entry.Length -gt $ProgramCap) {'
+        To = 'if ($false) {'
+        Test = 'FeedGuards.A_folder_that_is_not_a_published_release_is_refused_and_leaves_nothing'
+    }
+    @{
+        Name = 'feeds: the copy out of an archive stops at the size the archive declares'
+        File = 'packaging\build-feeds.ps1'
+        From = 'if ($written -gt $entry.Length) {'
+        To = 'if ($false) {'
+        Test = 'FeedGuards.A_folder_that_is_not_a_published_release_is_refused_and_leaves_nothing'
+    }
+    @{
+        Name = 'feeds: the command line names stand in the command line block'
+        File = 'packaging\build-feeds.ps1'
+        From = 'Kind       = ''cli'''
+        To = 'Kind       = ''window'''
+        Test = 'FeedGuards.The_package_names_are_the_published_ones'
+    }
+    @{
         Name = 'installer phase D: the published page is asked for the installer'
         File = '.github\workflows\verify-release.yml'
         From = '$expected += @($installer, "$installer.spdx.json", "$installer.sigstore.json")'
