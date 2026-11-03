@@ -47,6 +47,11 @@
 .PARAMETER DryRun
     Everything except signing, uploading and dispatching.
 
+.PARAMETER CheckDraft
+    Step 8 alone - is the draft complete, and does it carry the bytes this machine signed - over the
+    work folder an earlier run of this script left behind. No card, no upload, no dispatch. For a
+    run that signed, uploaded and dispatched, and then stopped while confirming.
+
 .PARAMETER Wait
     How long to wait for phase C to attach its bundles, in seconds.
 #>
@@ -55,6 +60,7 @@ param(
     [Parameter(Position = 0)] [string] $Tag,
     [switch] $ListCertificates,
     [switch] $DryRun,
+    [switch] $CheckDraft,
     [int] $Wait = 300,
     [string] $Work
 )
@@ -223,6 +229,128 @@ function Get-SignatureStates([string] $directory) {
     return $states
 }
 
+# ONE READ OF THE RELEASE, ASKED MORE THAN ONCE, WITH WHAT gh SAID KEPT. Until 2026-11-03 every read
+# here was one call with 2>$null, so a single failed request ended the ritual and took its reason
+# with it. That is how the signing of 0.5.0 stopped in step 8: phase C had finished, the draft was
+# complete, and all this script could say was "cannot read the release". A failed read is now asked
+# again a few seconds later, and only a run of failures stops the script - with gh's own words in
+# the message, because "cannot read" without them is the silence rule 8 of CLAUDE.md forbids in a
+# result. The exit code is still what decides, as it was: a read that failed and a draft with no
+# assets look identical from here. A read that exits 0 and prints nothing is not an answer either,
+# and ConvertFrom-Json turns an empty string into $null without a word, so it counts as a failure.
+#
+# $Fields is passed to gh as ONE argument. In PowerShell argument mode a space ends a token, so
+# `--json assets, isDraft` written out reaches gh as two arguments and it answers "accepts at most
+# 1 arg(s), received 2" with exit 1 - checked against a real release on gh 2.101.0. Found by the
+# review of PR #5.
+function Read-Release([string] $Fields, [string] $While, [string] $Then = '', [int] $Tries = 3, [int] $PauseSeconds = 5) {
+    $said = ''
+    for ($try = 1; $try -le $Tries; $try++) {
+        $output = @(& gh release view $Tag --repo $repo --json $Fields 2>&1)
+        $code = $LASTEXITCODE
+        $text = (@($output | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }) -join "`n").Trim()
+        if ($code -eq 0 -and $text) {
+            try { return ($text | ConvertFrom-Json) }
+            catch { $said = "gh printed something that is not JSON: $text" }
+        }
+        elseif ($code -eq 0) { $said = 'gh exited 0 and printed no document' }
+        else { $said = "gh exited $code and said: " + (@($output | ForEach-Object { "$_" }) -join ' ').Trim() }
+        if ($try -lt $Tries) { Start-Sleep -Seconds $PauseSeconds }
+    }
+    $message = "sign-release: cannot read the release $Tag $While. $Tries reads in a row failed, the last one with: $said"
+    if ($Then) { $message += "`n$Then" }
+    throw $message
+}
+
+# STEP 8, A FUNCTION OF ITS OWN SINCE 2026-11-03 so that -CheckDraft can run it alone. It reads the
+# release and the files it is given, and nothing else: no card, no upload, no dispatch. $Files is
+# what phase C was asked to attest - the archives and, for a release that gets one, the installer.
+function Confirm-Draft([string[]] $Files) {
+    Write-Host "`n[8/8] confirming the draft is complete"
+    # This step exists because the script would otherwise end at "dispatched, go look". The upload and
+    # the dispatch are two calls, phase C is a third thing, and a half-finished draft looks almost
+    # exactly like a finished one.
+    $again = ('Nothing has been published, and the assets that were uploaded are still on the draft. Once the ' +
+        "release reads again, this step alone is: ./packaging/sign-release.ps1 $Tag -CheckDraft")
+    $deadline = (Get-Date).AddSeconds([Math]::Max(0, $Wait))
+    $signedDigests = @{}
+    foreach ($file in $Files) { $signedDigests[(Split-Path -Leaf $file)] = Get-Sha256 $file }
+    # One bundle per attested file, by NAME. A count would let a bundle nobody expects stand in for the
+    # one an archive is missing, and the step would print PASS over it (review of #111).
+    $expectedBundles = @($Files | ForEach-Object { (Split-Path -Leaf $_) + '.sigstore.json' })
+    $names = @()
+    while ($true) {
+        $view = Read-Release 'assets,isDraft' 'while waiting for phase C' $again
+        # Asked on every read rather than once at the end: on a release somebody already published, a
+        # missing asset would otherwise keep this waiting out -Wait and then say nothing was published.
+        if (-not $view.isDraft) {
+            throw "sign-release: $Tag is NOT a draft any more - it is already public"
+        }
+        $names = @($view.assets | ForEach-Object { $_.name })
+        $missing = @($EXPECTED_ASSETS | Where-Object { $names -notcontains $_ })
+        $missingBundles = @($expectedBundles | Where-Object { $names -notcontains $_ })
+        if (-not $missing -and -not $missingBundles) { break }
+        if ((Get-Date) -gt $deadline) {
+            Write-Host "  waited $Wait s and the draft is still incomplete."
+            if ($missing) { Write-Host "  missing: $($missing -join ', ')" }
+            if ($missingBundles) { Write-Host "  attestation bundles missing: $($missingBundles -join ', ')" }
+            Write-Host "  assets present: $(($names | Sort-Object) -join ', ')"
+            throw ('sign-release: the draft is NOT complete. Nothing was published, so nothing is broken - but do ' +
+                "not press publish until the missing piece is there. Check the run log of $attestWorkflow. " +
+                "Once it is there, this step alone is: ./packaging/sign-release.ps1 $Tag -CheckDraft")
+        }
+        Start-Sleep -Seconds 5
+    }
+
+    # The digests are checked against what the RELEASE carries, not against the local files we made -
+    # those are the same bytes only if the upload really landed. Each one on the line of its OWN file
+    # name, because a digest found on any line would pass for local files whose names and bytes no
+    # longer go together (review of #111). The format is the one step 6 writes: digest, two spaces,
+    # name. --clobber because -CheckDraft may run over a work folder that already holds this file.
+    $confirm = Join-Path $workspace 'confirm'
+    New-Item -ItemType Directory -Path $confirm -Force | Out-Null
+    Invoke-Step @('gh', 'release', 'download', $Tag, '--repo', $repo, '--pattern', 'SHA256SUMS', '--dir', $confirm, '--clobber') | Out-Null
+    $published = Get-Content -Raw -LiteralPath (Join-Path $confirm 'SHA256SUMS')
+    $sums = @{}
+    foreach ($line in ($published -split "`r?`n")) {
+        if ($line -match '^([0-9a-f]{64})  (.+)$') { $sums[$Matches[2].Trim()] = $Matches[1] }
+    }
+    foreach ($name in $signedDigests.Keys) {
+        if (-not $sums.ContainsKey($name) -or $sums[$name] -ne $signedDigests[$name]) {
+            throw ("sign-release: SHA256SUMS on the release does NOT give $name the digest we signed.`n" +
+                "  signed:    $($signedDigests[$name])`n  published: $published")
+        }
+    }
+
+    # AND THE FILES THEMSELVES. SHA256SUMS is one more asset, and it names the right digests even when
+    # an archive beside it was replaced after phase C (review of #111). GitHub gives every release asset
+    # a digest of its own bytes, read here from the same view. An asset without one is downloaded and
+    # hashed instead, so a missing field is never taken as a match.
+    foreach ($name in $signedDigests.Keys) {
+        $asset = @($view.assets | Where-Object { $_.name -eq $name })[0]
+        $digest = if ($asset.PSObject.Properties['digest'] -and $asset.digest) { ([string]$asset.digest) -replace '^sha256:', '' } else { '' }
+        if (-not $digest) {
+            Invoke-Step @('gh', 'release', 'download', $Tag, '--repo', $repo, '--pattern', $name, '--dir', $confirm, '--clobber') | Out-Null
+            $digest = Get-Sha256 (Join-Path $confirm $name)
+        }
+        if ($digest -ne $signedDigests[$name]) {
+            throw ("sign-release: $name on the release is NOT the file we signed.`n" +
+                "  signed:    $($signedDigests[$name])`n  on the release: $digest")
+        }
+    }
+    $state = Read-Release 'isDraft' 'to say whether it is still a draft'
+    if (-not $state.isDraft) {
+        throw "sign-release: $Tag is NOT a draft any more - it is already public"
+    }
+
+    Write-Host ''
+    foreach ($name in ($names | Sort-Object)) { Write-Host "  asset  $name" }
+    Write-Host '  PASS: every expected asset is there, its bytes and the published checksums are the ones we signed, still a draft'
+    Write-Host ''
+    Write-Host 'Done. The release is still a DRAFT.'
+    Write-Host 'Read it, then publish. Publishing runs phase D, which re-checks the published bytes the way a user would.'
+}
+
 # ---------------------------------------------------------------------------------------------
 # -ListCertificates: the only mode that touches nothing
 # ---------------------------------------------------------------------------------------------
@@ -269,6 +397,9 @@ if ($ListCertificates) {
 
 if (-not $Tag) { throw 'sign-release: give the tag, e.g. ./packaging/sign-release.ps1 v0.1.0' }
 if (-not $IsWindows) { throw 'sign-release: the card lives on Windows, run this there' }
+if ($CheckDraft -and $DryRun) {
+    throw 'sign-release: -CheckDraft and -DryRun do not go together - a dry run uploads nothing, so it leaves no draft of its own to check'
+}
 
 # THE CHECKOUT HAS TO BE THE TAGGED COMMIT, and this is not tidiness - it is the difference
 # between a document that describes the archive and one that describes whatever main looks like
@@ -296,24 +427,53 @@ if (git status --porcelain) {
         'over the signed archive are read from it. Commit, stash or clean them first.')
 }
 
-# BEFORE ANYTHING IS DOWNLOADED OR SIGNED: a machine that cannot build the installer would otherwise stop
-# at step 5, with the programs already signed and a draft that can never get its installer from this run.
-# build-msi.ps1 runs as its own process, because a refusal there ends the process it runs in.
 $withInstaller = Test-Installer $Tag
-Write-Host "`n[0/8] whether the installer can be built here"
-if ($withInstaller) {
-    Invoke-Step @('pwsh', '-NoProfile', '-File', $BUILD_MSI, '-Tag', $Tag, '-Check') | ForEach-Object { Write-Host "  $_" }
-    $EXPECTED_ASSETS += @($INSTALLER, "$INSTALLER.spdx.json")
-}
-else {
-    Write-Host "  $Tag is a release candidate, or its tree names no installer, so it gets none"
-}
+if ($withInstaller) { $EXPECTED_ASSETS += @($INSTALLER, "$INSTALLER.spdx.json") }
 
 # THE LOCAL IS NOT CALLED 'work', AND THAT IS NOT STYLE. PowerShell ignores case in variable
 # names, so a local spelled that way and the parameter $Work above would be ONE variable, and
 # assigning to it here would quietly overwrite the parameter. Trap 1 of docs/14, caught by
 # tools/lint.ps1 on its first pass over this file.
 $workspace = Join-Path $Work $Tag
+
+# STEP 8 ALONE, over the work folder a signing run of this tag left behind - for a run that signed,
+# uploaded and dispatched, and then stopped while confirming. The signing of 0.5.0 did, on one failed
+# read with phase C already finished. Signing again for that would put new signatures on the draft
+# and dispatch phase C a second time, and nothing about the draft asks for either. So the folder is
+# read rather than cleared, and nothing here reaches the card, uploads or dispatches. A folder a dry
+# run left holds UNSIGNED bytes, and step 8 refuses it at the checksums, as it should.
+if ($CheckDraft) {
+    if (-not (Test-Path -LiteralPath $workspace)) {
+        throw "sign-release: there is no work folder at $workspace. -CheckDraft reads the one a signing run of $Tag left behind."
+    }
+    $archives = @(Get-ChildItem -LiteralPath $workspace -Filter *.zip -File)
+    if ($archives.Count -ne $OURS.Count) {
+        throw "sign-release: expected $($OURS.Count) archives in $workspace, got $($archives.Name -join ', ')"
+    }
+    # The list step 7 hands to phase C, built the same way from what the folder holds.
+    $attested = @($archives | ForEach-Object { $_.FullName })
+    if ($withInstaller) {
+        $installerPath = Join-Path $workspace $INSTALLER
+        if (-not (Test-Path -LiteralPath $installerPath)) {
+            throw "sign-release: $Tag gets an installer, and $workspace holds no $INSTALLER"
+        }
+        $attested += $installerPath
+    }
+    Confirm-Draft $attested
+    return
+}
+
+# BEFORE ANYTHING IS DOWNLOADED OR SIGNED: a machine that cannot build the installer would otherwise stop
+# at step 5, with the programs already signed and a draft that can never get its installer from this run.
+# build-msi.ps1 runs as its own process, because a refusal there ends the process it runs in.
+Write-Host "`n[0/8] whether the installer can be built here"
+if ($withInstaller) {
+    Invoke-Step @('pwsh', '-NoProfile', '-File', $BUILD_MSI, '-Tag', $Tag, '-Check') | ForEach-Object { Write-Host "  $_" }
+}
+else {
+    Write-Host "  $Tag is a release candidate, or its tree names no installer, so it gets none"
+}
+
 if (Test-Path -LiteralPath $workspace) { Remove-Item -LiteralPath $workspace -Recurse -Force }
 New-Item -ItemType Directory -Path $workspace -Force | Out-Null
 Write-Host "working in $workspace"
@@ -536,12 +696,15 @@ Write-Host "`n[7/8] handing it back to the workflow"
 $attested = @($archives | ForEach-Object { $_.FullName })
 if ($withInstaller) { $attested += $installerPath }
 $stale = @($attested | ForEach-Object { (Split-Path -Leaf $_) + '.sigstore.json' })
-# One field, so no comma to be split - but the exit code is read for the same reason as in the
-# wait loop below: a read that failed and a draft with no assets look identical from here, and
-# the difference decides whether a stale bundle is left behind.
-$draft = gh release view $Tag --repo $repo --json assets 2>$null | ConvertFrom-Json
-if ($LASTEXITCODE -ne 0 -or -not $draft) {
-    throw "sign-release: cannot read the draft release $Tag. Phase A opens it - check that it ran for this tag."
+# Through Read-Release, whose exit code check matters here most: a read that failed and a draft
+# with no assets look identical from here, and the difference decides whether a stale bundle is
+# left behind.
+$draft = Read-Release 'assets,isDraft' 'to see what the draft already carries' 'Phase A opens the draft - check that it ran for this tag. Nothing has been uploaded.'
+# BEFORE ANYTHING ON THE RELEASE IS DELETED OR REPLACED. A second run on a release somebody already
+# published would otherwise take its attestation bundles off and overwrite its files with --clobber,
+# and the draft check in step 8 would only say so afterwards (review of #111).
+if (-not $draft.isDraft) {
+    throw "sign-release: $Tag is NOT a draft any more - it is already public, and nothing on it has been changed"
 }
 $onDraft = @($draft.assets | ForEach-Object { $_.name })
 foreach ($bundle in ($stale | Where-Object { $onDraft -contains $_ })) {
@@ -554,65 +717,4 @@ $digests = $attested | ForEach-Object { "$(Split-Path -Leaf $_)=$(Get-Sha256 $_)
 Invoke-Step @('gh', 'workflow', 'run', $attestWorkflow, '--repo', $repo,
     '-f', "tag=$Tag", '-f', "digests=$($digests -join ',')") | Out-Null
 
-Write-Host "`n[8/8] confirming the draft is complete"
-# This step exists because the script would otherwise end at "dispatched, go look". The upload and
-# the dispatch are two calls, phase C is a third thing, and a half-finished draft looks almost
-# exactly like a finished one.
-$deadline = (Get-Date).AddSeconds([Math]::Max(0, $Wait))
-$signedDigests = @{}
-foreach ($file in $attested) { $signedDigests[(Split-Path -Leaf $file)] = Get-Sha256 $file }
-$names = @()
-while ($true) {
-    # QUOTED, AND MEASURED RATHER THAN STYLED. In PowerShell argument mode a space ends a token,
-    # so `--json assets, isDraft` reaches gh as TWO arguments and it answers "accepts at most 1
-    # arg(s), received 2" with exit 1 - checked against a real release on gh 2.101.0. With
-    # 2>$null and no exit check, that failure was SILENT: $view came back empty, the loop below
-    # saw no assets, and this script would have sat here until the timeout and then blamed
-    # phase C. Rule 8 of CLAUDE.md, in a comma. Found by the review of PR #5.
-    $view = gh release view $Tag --repo $repo --json 'assets,isDraft' 2>$null | ConvertFrom-Json
-    if ($LASTEXITCODE -ne 0 -or -not $view) {
-        throw ("sign-release: cannot read the release $Tag while waiting for phase C. Nothing has " +
-            'been published, and the assets that were uploaded are still on the draft.')
-    }
-    $names = @($view.assets | ForEach-Object { $_.name })
-    $missing = @($EXPECTED_ASSETS | Where-Object { $names -notcontains $_ })
-    $bundles = @($names | Where-Object { $_.EndsWith('.sigstore.json') })
-    if (-not $missing -and $bundles.Count -ge $attested.Count) { break }
-    if ((Get-Date) -gt $deadline) {
-        Write-Host "  waited $Wait s and the draft is still incomplete."
-        if ($missing) { Write-Host "  missing: $($missing -join ', ')" }
-        if ($bundles.Count -lt $attested.Count) { Write-Host "  attestation bundles present: $($bundles.Count) of $($attested.Count)" }
-        Write-Host "  assets present: $(($names | Sort-Object) -join ', ')"
-        throw ('sign-release: the draft is NOT complete. Nothing was published, so nothing is broken - but do ' +
-            "not press publish until the missing piece is there. Check the run log of $attestWorkflow. " +
-            'Re-running this script is safe, the upload uses --clobber.')
-    }
-    Start-Sleep -Seconds 5
-}
-
-# The digests are checked against what the RELEASE carries, not against the local files we made -
-# those are the same bytes only if the upload really landed.
-$confirm = Join-Path $workspace 'confirm'
-New-Item -ItemType Directory -Path $confirm -Force | Out-Null
-Invoke-Step @('gh', 'release', 'download', $Tag, '--repo', $repo, '--pattern', 'SHA256SUMS', '--dir', $confirm) | Out-Null
-$published = Get-Content -Raw -LiteralPath (Join-Path $confirm 'SHA256SUMS')
-foreach ($name in $signedDigests.Keys) {
-    if ($published -notmatch [regex]::Escape($signedDigests[$name])) {
-        throw ("sign-release: SHA256SUMS on the release does NOT name the digest we signed for $name.`n" +
-            "  signed:    $($signedDigests[$name])`n  published: $published")
-    }
-}
-$state = gh release view $Tag --repo $repo --json isDraft | ConvertFrom-Json
-if ($LASTEXITCODE -ne 0 -or -not $state) {
-    throw "sign-release: cannot read whether $Tag is still a draft, so this cannot say that it is."
-}
-if (-not $state.isDraft) {
-    throw "sign-release: $Tag is NOT a draft any more - it is already public"
-}
-
-Write-Host ''
-foreach ($name in ($names | Sort-Object)) { Write-Host "  asset  $name" }
-Write-Host '  PASS: every expected asset is there, the published checksums name the digests we signed, still a draft'
-Write-Host ''
-Write-Host 'Done. The release is still a DRAFT.'
-Write-Host 'Read it, then publish. Publishing runs phase D, which re-checks the published bytes the way a user would.'
+Confirm-Draft $attested
