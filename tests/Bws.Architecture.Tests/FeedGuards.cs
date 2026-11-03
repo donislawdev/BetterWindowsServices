@@ -1,8 +1,5 @@
-using System.Buffers.Binary;
-using System.IO.Compression;
 using System.Reflection;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -256,10 +253,10 @@ public sealed class FeedGuards
 
             var source = change == "foreign:" + half ? SignedBySomebodyElse.Value : change == "as-text:" + half ? null : typeof(FeedGuards).Assembly.Location;
             var licence = (program[..program.IndexOf('/', StringComparison.Ordinal)] + "/LICENSE", (string?)null);
-            WriteArchive(path, change == "without:" + half ? [licence] : [(program, source), licence]);
+            ReleaseArchive.Write(path, change == "without:" + half ? [licence] : [(program, source), licence]);
             if (Declared.TryGetValue(change, out var declared) && change.EndsWith(":" + half, StringComparison.Ordinal))
             {
-                Declare(path, program, declared);
+                ReleaseArchive.Declare(path, program, declared);
             }
         }
 
@@ -283,58 +280,6 @@ public sealed class FeedGuards
             case "twice": File.AppendAllText(sums, File.ReadAllLines(sums)[0] + "\n"); break;
             case "remove-folder": Directory.Delete(release, recursive: true); break;
         }
-    }
-
-    /// <summary>An archive of the named entries, each a copy of its source file, or a line of text when it has none.</summary>
-    private static void WriteArchive(string path, (string Name, string? Source)[] entries)
-    {
-        using var stream = File.Create(path);
-        using var archive = new ZipArchive(stream, ZipArchiveMode.Create);
-        foreach (var (name, source) in entries)
-        {
-            Pack(archive, name, source);
-        }
-    }
-
-    /// <summary>
-    /// Sets the size the local and the central header of an archive declare for one entry, and leaves its
-    /// bytes as they are - an archive that lies about what it holds, which only a hand makes.
-    /// </summary>
-    private static void Declare(string path, string name, uint size)
-    {
-        var bytes = File.ReadAllBytes(path);
-        var named = Encoding.UTF8.GetBytes(name);
-        var patched = 0;
-
-        // Each header as its signature, where it keeps the uncompressed size, the name's length and the name.
-        foreach (var (signature, sizeAt, lengthAt, nameAt) in new[] { (0x04034b50u, 22, 26, 30), (0x02014b50u, 24, 28, 46) })
-        {
-            for (var at = 0; at + nameAt + named.Length <= bytes.Length; at++)
-            {
-                var header = bytes.AsSpan(at);
-                if (BinaryPrimitives.ReadUInt32LittleEndian(header) == signature && BinaryPrimitives.ReadUInt16LittleEndian(header[lengthAt..]) == named.Length
-                    && header.Slice(nameAt, named.Length).SequenceEqual(named))
-                {
-                    BinaryPrimitives.WriteUInt32LittleEndian(header[sizeAt..], size);
-                    patched++;
-                }
-            }
-        }
-
-        Assert.True(patched == 2, $"Found {patched} headers naming {name} in {Path.GetFileName(path)}, and an archive holding it once has two.");
-        File.WriteAllBytes(path, bytes);
-    }
-
-    private static void Pack(ZipArchive archive, string name, string? source)
-    {
-        if (source is not null)
-        {
-            archive.CreateEntryFromFile(source, name, CompressionLevel.NoCompression);
-            return;
-        }
-
-        using var writer = new StreamWriter(archive.CreateEntry(name).Open());
-        writer.Write("stand-in for " + name);
     }
 
     /// <summary>Each half of the release as its key in the register, its archive and its program in it.</summary>
