@@ -13059,6 +13059,34 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Test = 'InstallerGuards.Every_phase_asks_the_same_question_of_a_candidate_and_of_an_older_tree'
     }
     @{
+        Name = 'signing: a failed read of the release is asked again'
+        File = 'packaging\sign-release.ps1'
+        From = 'for ($try = 1; $try -le $Tries; $try++) {'
+        To = 'for ($try = 1; $try -le 1; $try++) {'
+        Test = 'SigningRitualGuards.A_read_of_the_release_that_fails_twice_is_asked_again_and_answers'
+    }
+    @{
+        Name = 'signing: a read that keeps failing says what gh said'
+        File = 'packaging\sign-release.ps1'
+        From = "else { `$said = `"gh exited `$code and said: `" + (@(`$output | ForEach-Object { `"`$_`" }) -join ' ').Trim() }"
+        To = "else { `$said = `"gh exited `$code`" }"
+        Test = 'SigningRitualGuards.A_read_that_keeps_failing_stops_with_what_gh_said'
+    }
+    @{
+        Name = 'signing: a read that prints nothing is not an answer'
+        File = 'packaging\sign-release.ps1'
+        From = 'if ($code -eq 0 -and $text) {'
+        To = 'if ($code -eq 0) {'
+        Test = 'SigningRitualGuards.A_read_that_prints_nothing_is_not_an_answer'
+    }
+    @{
+        Name = 'signing: the draft check alone is decided before anything is cleared or signed'
+        File = 'packaging\sign-release.ps1'
+        From = 'if ($CheckDraft) {'
+        To = 'if ($false) {'
+        Test = 'SigningRitualGuards.The_draft_check_alone_comes_before_the_work_folder_is_cleared_and_the_card_is_reached'
+    }
+    @{
         Name = 'installer phase D: the published page is asked for the installer'
         File = '.github\workflows\verify-release.yml'
         From = '$expected += @($installer, "$installer.spdx.json", "$installer.sigstore.json")'
