@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Text.Json;
 using System.Xml.Linq;
 
@@ -231,34 +230,6 @@ public sealed class InstallerGuards
     }
 
     /// <summary>build-msi.ps1 as its own process, the way the signing calls it, with what it said on both channels.</summary>
-    private static (int Code, string Said) BuildMsi(params string[] arguments)
-    {
-        var start = new ProcessStartInfo("pwsh") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
-        foreach (var argument in new[] { "-NoProfile", "-File", Path.Combine(SourceTree.Root(), "packaging", "build-msi.ps1") }.Concat(arguments))
-        {
-            start.ArgumentList.Add(argument);
-        }
-
-        // Both channels are read as they arrive, so the limit below is the one that holds: a read to the
-        // end would wait for pwsh to close its output, and a pwsh that hangs never would - the test run
-        // would hang with it (review of #68). Each channel has its own builder, and the events of one
-        // channel come one after another.
-        var output = new System.Text.StringBuilder();
-        var error = new System.Text.StringBuilder();
-        using var process = new Process { StartInfo = start };
-        process.OutputDataReceived += (_, line) => output.AppendLine(line.Data);
-        process.ErrorDataReceived += (_, line) => error.AppendLine(line.Data);
-        process.Start();
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-        if (!process.WaitForExit(TimeSpan.FromSeconds(60)))
-        {
-            process.Kill(entireProcessTree: true);
-            Assert.Fail($"build-msi.ps1 did not finish in 60 s and was ended. It had said:{Environment.NewLine}{output}{error}");
-        }
-
-        // Without a limit once it has exited: this is what waits for the last line of both channels.
-        process.WaitForExit();
-        return (process.ExitCode, output.ToString() + error);
-    }
+    private static (int Code, string Said) BuildMsi(params string[] arguments) =>
+        PwshScript.Run("packaging/build-msi.ps1", TimeSpan.FromSeconds(60), arguments);
 }

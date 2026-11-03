@@ -1,0 +1,33 @@
+# Rendered by packaging/build-feeds.ps1 - do not edit the generated copy.
+#
+# The package runs the Windows installer of the release - the same signed file,
+# checksum and all, that the release page publishes and that WinGet installs
+# first. Everything this package puts on the machine comes from that installer:
+# the Start menu entry for every account, its folder on the machine PATH with
+# both programs in it, and the entry in Installed apps. So the two feeds install
+# one thing in one shape, the one packaging/test-installer.ps1 installs on a
+# clean runner, rather than one a script of ours makes and has to take away
+# again. The package carries no binaries, so it owes the moderators no
+# VERIFICATION.txt, and makes no shims.
+#
+# Windows PowerShell 5.1 is what Chocolatey runs package scripts with, so this
+# file is ASCII and uses no PowerShell 7 syntax.
+$ErrorActionPreference = 'Stop'
+
+$packageArgs = @{
+    packageName    = $env:ChocolateyPackageName
+    fileType       = 'msi'
+    url64bit       = '{{MSI_URL}}'
+    checksum64     = '{{MSI_SHA256}}'
+    checksumType64 = 'sha256'
+    softwareName   = '{{TITLE}}'
+    silentArgs     = "/qn /norestart /l*v `"$env:TEMP\$env:ChocolateyPackageName.$env:ChocolateyPackageVersion.install.log`""
+    # An upgrade answers 0 even with a bws still running: the installer closes
+    # nothing, moves the file in use aside and puts the new one in place
+    # (measured 2026-10-14 on Windows Server 2025, packaging/test-installer.ps1).
+    # The copy left running can stop with an error, which is why the description
+    # asks to close the window and every bws first. 3010 and 1641 are the
+    # successes that ask for a restart or start one.
+    validExitCodes = @(0, 3010, 1641)
+}
+Install-ChocolateyPackage @packageArgs
