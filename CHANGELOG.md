@@ -11,6 +11,8 @@ is not part of this repository.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-03
+
 ### Added
 
 - A *Tools* tab in the window and `bws tool` on the command line - ready-made answers to common
