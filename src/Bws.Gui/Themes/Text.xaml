@@ -244,7 +244,10 @@
         subdued unless somebody asked for them) and by position, which is what the note above says
         was doing the work all along.
     -->
-    <Style x:Key="PlanNoticeText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}" />
+    <Style x:Key="PlanNoticeText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
 
     <!--
         ONE STEP OF A PLAN, AND UNTIL 2026-08-19 IT HAD NO STYLE OF ITS OWN. It was built on

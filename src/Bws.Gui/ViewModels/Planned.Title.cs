@@ -118,8 +118,8 @@ public sealed partial class Planned
         ActionKind.Start => Texts.Of("gui.plan.carryOut.start.one", Named(plan)),
         ActionKind.Restart => Texts.Of("gui.plan.carryOut.restart.one", Named(plan)),
         ActionKind.SetStartType => plan.Action.AlsoStop
-            ? Texts.Of("gui.plan.carryOut.setStartTypeAndStop.one", Named(plan), SetTo(plan))
-            : Texts.Of("gui.plan.carryOut.setStartType.one", Named(plan), SetTo(plan)),
+            ? Texts.Of("gui.plan.carryOut.setStartTypeAndStop.one", Named(plan), PlanWords.SetTo(plan))
+            : Texts.Of("gui.plan.carryOut.setStartType.one", Named(plan), PlanWords.SetTo(plan)),
         ActionKind.ForceStop => Texts.Of("gui.plan.carryOut.forceStop.one", Named(plan)),
         ActionKind.ForceRestart => Texts.Of("gui.plan.carryOut.forceRestart.one", Named(plan)),
         _ => throw new ArgumentOutOfRangeException(nameof(plan), plan.Action.Kind, EquivalentCommand.Unhandled)
@@ -132,8 +132,8 @@ public sealed partial class Planned
         ActionKind.Start => Texts.Of("gui.plan.carryOut.start.many", Asked(plan)),
         ActionKind.Restart => Texts.Of("gui.plan.carryOut.restart.many", Asked(plan)),
         ActionKind.SetStartType => plan.Action.AlsoStop
-            ? Texts.Of("gui.plan.carryOut.setStartTypeAndStop.many", Asked(plan), SetTo(plan))
-            : Texts.Of("gui.plan.carryOut.setStartType.many", Asked(plan), SetTo(plan)),
+            ? Texts.Of("gui.plan.carryOut.setStartTypeAndStop.many", Asked(plan), PlanWords.SetTo(plan))
+            : Texts.Of("gui.plan.carryOut.setStartType.many", Asked(plan), PlanWords.SetTo(plan)),
         ActionKind.ForceStop => Texts.Of("gui.plan.carryOut.forceStop.many", Asked(plan)),
         ActionKind.ForceRestart => Texts.Of("gui.plan.carryOut.forceRestart.many", Asked(plan)),
         _ => throw new ArgumentOutOfRangeException(nameof(plan), plan.Action.Kind, EquivalentCommand.Unhandled)
@@ -151,18 +151,6 @@ public sealed partial class Planned
         .ToList() is [var ending]
         ? ending
         : null;
-
-    /// <summary>
-    /// The start type a plan sets, as the cell for it would read it - the same word the step line
-    /// uses, so the button and the step cannot disagree about what is being written.
-    ///
-    /// <b>Refuses a start type plan that names no type rather than printing a blank</b>, because
-    /// the core builds every such plan with one and a button reading "Set Spooler to " would be a
-    /// silent hole exactly where the important word goes.
-    /// </summary>
-    private static string SetTo(BulkPlan plan) => plan.Action.To is { } to
-        ? CellFaces.SettingLabel(to)
-        : throw new InvalidOperationException("A start type plan carries the type it sets, and this one does not.");
 
     private static int Asked(BulkPlan plan) =>
         plan.Action.ServiceNames.Distinct(StringComparer.OrdinalIgnoreCase).Count();

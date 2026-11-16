@@ -61,6 +61,63 @@ public static partial class Catalogue
     }
 
     /// <summary>
+    /// The same stop of Spooler after it ended - every step arrived, and the one step refused.
+    ///
+    /// <b>Since 2026-11-16, when the finished sheet got a result block and a button of its own</b>
+    /// (Planned.Result.cs): a state only a run reaches, so without these the result block and the
+    /// button that closes a finished sheet were on no sheet anybody could look at. The run is a
+    /// record made by hand from the plan on screen, the way the tests make one - no runner, no writer.
+    /// </summary>
+    private static async Task<(MainViewModel Arrived, MainViewModel FellShort)> PrepareFinishedAsync()
+    {
+        var models = new List<MainViewModel>();
+
+        foreach (var refused in new[] { false, true })
+        {
+            var model = new MainViewModel(new Frozen(Specimens()), new SystemClock());
+
+            await model.LoadAsync().ConfigureAwait(false);
+            await ShowPlanAsync(model, ActionKind.Stop, "Spooler").ConfigureAwait(false);
+
+            var plan = model.Planned.Plan!;
+
+            model.Planned.Finished(new BulkRun
+            {
+                Plan = plan,
+                Runs =
+                [
+                    .. plan.Plans.Select(one => new PlanRun
+                    {
+                        Plan = one,
+                        Results = [.. one.Steps.Select(step => Ended(step, refused))],
+                        Cancelled = false,
+                        Ceiling = StepCeiling.Default
+                    })
+                ]
+            });
+
+            models.Add(model);
+        }
+
+        return (models[0], models[1]);
+
+        // A local function rather than a member, because this type stands at the edge of the shape
+        // guard's crowd of methods. One step as a runner would report it: stopped, or refused with
+        // the manager's own words.
+        static StepResult Ended(PlanStep step, bool refused) => new()
+        {
+            Step = step,
+            Outcome = refused ? StepOutcome.Failed : StepOutcome.Succeeded,
+            SkippedBecause = null,
+            Status = refused ? EntryStatus.Running : EntryStatus.Stopped,
+            ProcessId = refused ? Reading<int>.Present(4812) : Reading<int>.Absent(),
+            ErrorCode = refused ? 5 : 0,
+            Error = refused ? "Access is denied." : null,
+            Milliseconds = 120
+        };
+    }
+
+    /// <summary>
     /// A clock that waits by moving on - the one way to show a state a sheet reaches only after
     /// three seconds, without the sheet taking three seconds to build.
     /// </summary>

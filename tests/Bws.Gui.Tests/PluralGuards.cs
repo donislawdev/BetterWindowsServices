@@ -173,7 +173,7 @@ public sealed class PluralGuards
         panel.Show(Selection("Spooler"));
         panel.Finished(Arrived(panel));
 
-        Assert.Equal(Bws.Gui.Texts.Of("gui.plan.notice.done.one"), panel.Notice);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.plan.notice.done.stopped.one", "Spooler"), panel.Notice);
     }
 
     [Fact]
@@ -184,7 +184,7 @@ public sealed class PluralGuards
         panel.Show(Selection("Spooler", "W32Time"));
         panel.Finished(Arrived(panel));
 
-        Assert.Equal(Bws.Gui.Texts.Of("gui.plan.notice.done.many", 2), panel.Notice);
+        Assert.Equal(Bws.Gui.Texts.Of("gui.plan.notice.done.stopped.many", 2), panel.Notice);
     }
 
     /// <summary>

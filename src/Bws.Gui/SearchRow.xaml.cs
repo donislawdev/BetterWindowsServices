@@ -60,4 +60,13 @@ public partial class SearchRow : UserControl
     /// either the keys or the language.
     /// </summary>
     internal ListBox List => SuggestionList;
+
+    /// <summary>
+    /// Whether a press landed in the field - the box, its mark and its sentence - or in the list
+    /// under it. Those are the two places a press keeps the list open, and MainWindow.Suggesting
+    /// says why every other place closes it.
+    /// </summary>
+    internal bool Holds(object? pressed) =>
+        pressed is System.Windows.DependencyObject node
+        && (Trees.Within(node, SearchField) || Trees.Within(node, SuggestionPopup.Child));
 }

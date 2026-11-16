@@ -37,4 +37,47 @@ public sealed class SuggestingWindowTests
 
         WpfHost.On(window.Close);
     }
+
+    /// <summary>
+    /// A press beside the box closes the list, and a press in the box or in the list does not - the
+    /// owner's report of 2026-11-16 that only Escape closed it.
+    ///
+    /// <b>Raised in the tunnel, the way a real press starts</b>: the window's handler sits on the
+    /// preview event, and a press raised by hand on an element routes from the window down to it.
+    /// The grid stands for "anywhere else" because it takes no keyboard on a press here, so the lock
+    /// on the box losing the keyboard cannot be what closes the list.
+    /// </summary>
+    [Fact]
+    public void A_press_beside_the_box_closes_the_list_and_a_press_in_the_box_or_the_list_does_not()
+    {
+        var window = WpfHost.Window();
+        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
+
+        Typed(window, string.Empty, 0);
+        Keyed(window, "sta");
+        Assert.True(model.Suggesting.IsOpen);
+
+        // The list lives in a popup, whose content may route a press somewhere other than this
+        // window - so which places hold the list is asked directly as well as through a press.
+        Assert.True(WpfHost.On(() => window.Search.Holds(window.Search.List)));
+        Assert.False(WpfHost.On(() => window.Search.Holds(window.Entries)));
+
+        Pressed(window.Search.Box);
+        Assert.True(model.Suggesting.IsOpen);
+
+        Pressed(window.Search.List);
+        Assert.True(model.Suggesting.IsOpen);
+
+        Pressed(window.Entries);
+        Assert.False(model.Suggesting.IsOpen);
+
+        WpfHost.On(window.Close);
+    }
+
+    private static void Pressed(System.Windows.UIElement element) =>
+        WpfHost.On(() => element.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(
+            System.Windows.Input.Mouse.PrimaryDevice, 0, System.Windows.Input.MouseButton.Left)
+        {
+            RoutedEvent = System.Windows.Input.Mouse.PreviewMouseDownEvent
+        }));
 }

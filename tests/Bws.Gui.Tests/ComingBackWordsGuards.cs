@@ -88,7 +88,7 @@ public sealed class ComingBackWordsGuards
         Assert.Equal(
             Texts.Of(
                 "gui.plan.notice.andAfter",
-                Texts.Of("gui.plan.notice.done.one"),
+                Texts.Of("gui.plan.notice.done.stopped.one", "Spooler"),
                 Texts.Of(
                     "gui.plan.notice.comesBack.one",
                     "Spooler",

@@ -497,6 +497,13 @@ A tool that quietly fails to cover something is worse than one that says what it
   profiler, a trace or dump switch, or a diagnostic port set in the environment cannot be switched
   off from inside a .NET program, so with administrator rights both halves list any they find.
   Startup hooks are switched off outright.
+- **An elevated window saves its column layout into your profile, like any other window.** The
+  account itself decides where that folder is, so a program already running in your account
+  without administrator rights could point the save somewhere else. The save writes only the
+  layout, so the worst such a program can do is make the window write that layout over another
+  file - it cannot make the window run anything. Keeping such a program out of the account is the
+  real protection, which is also why Windows does not treat User Account Control as a security
+  boundary.
 
 **Things Windows does that this tool reports as they are:**
 

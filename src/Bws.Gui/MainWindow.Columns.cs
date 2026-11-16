@@ -294,10 +294,8 @@ public partial class MainWindow
     /// <summary>
     /// The column heading a right click landed on, or nothing.
     ///
-    /// <b>It walks whichever tree the node is actually in</b>, and that is not defensive: the
-    /// thing under a pointer can be a content element rather than a visual one, and
-    /// <c>VisualTreeHelper.GetParent</c> throws on those. MainWindow.Menu.cs carries the same note
-    /// beside the row lookup, which solves the same problem with ContainerFromElement - there is
+    /// <b>It walks whichever tree the node is actually in</b> - <see cref="Trees"/> says why.
+    /// MainWindow.Menu.cs solves the same problem for a row with ContainerFromElement - there is
     /// no such helper for a heading.
     /// </summary>
     private static System.Windows.Controls.Primitives.DataGridColumnHeader? HeadingUnder(object source)
@@ -306,9 +304,7 @@ public partial class MainWindow
 
         while (node is not null and not System.Windows.Controls.Primitives.DataGridColumnHeader)
         {
-            node = node is System.Windows.Media.Visual or System.Windows.Media.Media3D.Visual3D
-                ? System.Windows.Media.VisualTreeHelper.GetParent(node)
-                : LogicalTreeHelper.GetParent(node);
+            node = Trees.Parent(node);
         }
 
         return node as System.Windows.Controls.Primitives.DataGridColumnHeader;

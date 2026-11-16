@@ -1,6 +1,4 @@
 using System.Security.Principal;
-using Windows.Win32;
-using Windows.Win32.Security;
 
 namespace Bws.Core;
 
@@ -33,61 +31,6 @@ public static class Session
         using var identity = WindowsIdentity.GetCurrent();
 
         return new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
-    }
-
-    /// <summary>
-    /// Whether this session has administrator rights AND a twin of the same account running without
-    /// them - an administrator under User Account Control. Security report S-7, 2026-10-06.
-    ///
-    /// <para>
-    /// <b>Why the twin is the fact that matters.</b> Microsoft's page on how UAC works: an
-    /// administrator signs in with two tokens, and the desktop and everything started from it run with
-    /// the filtered one. So a process of this account WITHOUT elevation exists exactly when this token
-    /// has a linked one - and that process can rewrite where the profile lives (HKCU User Shell
-    /// Folders, which the account holds with full control) and what is in it. The built-in
-    /// Administrator, by default, and a machine with UAC turned off get only the full token, so nobody
-    /// with fewer rights shares their profile.
-    /// </para>
-    /// <para>
-    /// <b>BOTH facts, because the type alone lies about the second one - measured 2026-10-06.</b> This
-    /// session answered TokenElevationTypeFull, explorer.exe TokenElevationTypeLimited, and a process
-    /// under <c>runas /trustlevel:0x20000</c> ALSO answered Full while the role said no: a token
-    /// restricted by SAFER keeps the type of the token it was cut from. Such a process has fewer rights
-    /// than anybody who could shape its profile, so it is not what this question is about.
-    /// </para>
-    /// <para>
-    /// <b>A type nobody could read counts as a twin</b> - the safe side. The caller's answer to "twin"
-    /// is to write less, and writing less where it was allowed costs a layout, while writing where it
-    /// was not is the thing S-7 is about.
-    /// </para>
-    /// </summary>
-    public static bool IsElevatedWithTwin() => ElevatedWithTwin(IsElevated(), ElevationType());
-
-    /// <summary>The rule on its own, which is what a test can hand every combination to.</summary>
-    internal static bool ElevatedWithTwin(bool elevated, TOKEN_ELEVATION_TYPE? type) =>
-        elevated && type != TOKEN_ELEVATION_TYPE.TokenElevationTypeDefault;
-
-    /// <summary>
-    /// The elevation type of this process's token, or nothing when Windows would not say.
-    /// </summary>
-    internal static unsafe TOKEN_ELEVATION_TYPE? ElevationType()
-    {
-        using var identity = WindowsIdentity.GetCurrent();
-
-        // Windows writes the answer straight into a local of the type it answers with. CsWin32
-        // 0.3.355 generated a span overload for this call, 0.3.360 generates only the pointer and
-        // the length, and a local on the stack does not move, so nothing needs pinning.
-        TOKEN_ELEVATION_TYPE answer;
-
-        if (!PInvoke.GetTokenInformation(
-                identity.AccessToken, TOKEN_INFORMATION_CLASS.TokenElevationType,
-                &answer, (uint)sizeof(TOKEN_ELEVATION_TYPE), out var written)
-            || written != sizeof(TOKEN_ELEVATION_TYPE))
-        {
-            return null;
-        }
-
-        return answer;
     }
 
     /// <summary>

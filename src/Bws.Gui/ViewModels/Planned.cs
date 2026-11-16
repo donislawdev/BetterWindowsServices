@@ -364,40 +364,7 @@ public sealed partial class Planned : Checked
             ? _because.Length == 0
                 ? Texts.Of("gui.plan.notice.notYet")
                 : Texts.Of("gui.plan.notice.because", _because, Texts.Of("gui.plan.notice.notYet"))
-            : PlanWords.ThenComingBack(Reported(run), run);
-
-    /// <summary>
-    /// How a finished run reads, in the singular and in the plural.
-    ///
-    /// <b>THE SINGULAR ARRIVED 2026-08-19, AND THE PLURAL-ONLY VERSION SHIPPED FOR A DAY SAYING
-    /// "All 1 entries are where you asked" TO ANYBODY WHO PICKED ONE ROW.</b> That is the commonest
-    /// selection there is, so the sentence was wrong far more often than it was right - and it is
-    /// the last sentence somebody reads after changing a machine, which is the worst place in this
-    /// product to look careless.
-    ///
-    /// <b>The count that decides is the number of entries, never the number that arrived.</b> A run
-    /// of one that did not arrive reports zero arrived out of one, so keying on the first number
-    /// would put "0 of 1 entries" back on the screen by a different route.
-    ///
-    /// <b>A run of nothing says so, since 2026-09-29</b> - G-2 of the external stability report. The
-    /// one refusal the window records as a run carries no runs at all, and 0 arrived of 0 read as
-    /// "Done. All 0 entries are where you asked."
-    ///
-    /// <b>A run that was stopped says so, since 2026-09-30</b> - it used to read like any run that
-    /// fell short, and "What did not is below" pointed at a list that never holds a step nobody tried.
-    /// The command line has said "This run was interrupted" for as long as it could be. Which of the
-    /// two asks it met is read off the steps - <see cref="Underway.Afterwards"/>.
-    /// </summary>
-    private static string Reported(BulkRun run) =>
-        run.Runs.Count == 0 ? Texts.Of("gui.plan.notice.nothingRun")
-        : Underway.Afterwards(run, Arrived(run)) is { Length: > 0 } stopped ? stopped
-        : Arrived(run) == run.Runs.Count
-        ? run.Runs.Count == 1
-            ? Texts.Of("gui.plan.notice.done.one")
-            : Texts.Of("gui.plan.notice.done.many", run.Runs.Count)
-        : run.Runs.Count == 1
-            ? Texts.Of("gui.plan.notice.partly.one")
-            : Texts.Of("gui.plan.notice.partly.many", Arrived(run), run.Runs.Count);
+            : PlanWords.ThenComingBack(FinishedRun.Read(run, Named(run.Plan)).Sentence, run);
 
     /// <summary>
     /// What somebody would type to put the machine back where this run found it. `ADR-11`'s
@@ -528,16 +495,6 @@ public sealed partial class Planned : Checked
 
         return true;
     }
-
-    /// <summary>
-    /// How many of the entries somebody asked about ended where they asked.
-    ///
-    /// <b>Counted over runs rather than over steps, because that is the unit a person picked.</b>
-    /// Somebody selected five rows, so "three of five" is the sentence they can act on - "twenty
-    /// nine of thirty two steps" is arithmetic about our internals, and most of those steps are
-    /// cascade members nobody chose.
-    /// </summary>
-    private static int Arrived(BulkRun run) => run.Runs.Count(one => one.Completed);
 
     /// <summary>
     /// A step worth putting in front of somebody.

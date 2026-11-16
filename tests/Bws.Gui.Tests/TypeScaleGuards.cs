@@ -113,12 +113,18 @@ public sealed class TypeScaleGuards
     /// <b>Deliberately not a rule about which of them should be heavier.</b> That is a judgement
     /// this file has no business holding. What it holds is that they are distinguishable at all,
     /// which is checkable without taste.
+    ///
+    /// <b>ONLY WHAT DRESSES THE TEXT IS COMPARED, SINCE 2026-11-16.</b> The notice gained
+    /// TextWrapping and VerticalAlignment that day, which change where the words go and not how they
+    /// look - and the whole list of setters read them as a difference, so a notice dressed exactly
+    /// like the label passed. The registry entry for this guard went MISSED on the first run after,
+    /// which is how it was found.
     /// </summary>
     [Fact]
     public void A_state_sentence_is_not_dressed_as_a_section_label()
     {
-        var notice = Setters("PlanNoticeText");
-        var heading = Setters("SectionHeadingText");
+        var notice = Dress(Setters("PlanNoticeText"));
+        var heading = Dress(Setters("SectionHeadingText"));
 
         Assert.True(notice.Count > 0, "PlanNoticeText was not found in the theme, so this guard checks nothing.");
         Assert.True(heading.Count > 0, "SectionHeadingText was not found in the theme, so this guard checks nothing.");
@@ -178,6 +184,12 @@ public sealed class TypeScaleGuards
     }
 
     /// <summary>Every setter of one named style, as text, in the order the theme declares them.</summary>
+    /// <summary>The setters that say how text looks - face, size, weight, slant and colour.</summary>
+    private static List<string> Dress(List<string> setters) =>
+        [.. setters.Where(setter => Dressing.Any(property => setter.StartsWith(property + "=", StringComparison.Ordinal)))];
+
+    private static readonly string[] Dressing = ["FontFamily", "FontSize", "FontWeight", "FontStyle", "Foreground"];
+
     private static List<string> Setters(string key)
     {
         // RESOLVED THROUGH BasedOn SINCE 2026-09-16, the day six styles that spelled out "Segoe,

@@ -131,6 +131,7 @@
                 -->
                 <ResourceDictionary Source="Themes/PlanOffers.xaml" />
                 <ResourceDictionary Source="Themes/Plan.xaml" />
+                <ResourceDictionary Source="Themes/PlanRun.xaml" />
                 <ResourceDictionary Source="Themes/List.xaml" />
                 <ResourceDictionary Source="Themes/Marks.xaml" />
                 <ResourceDictionary Source="Themes/Cells.xaml" />

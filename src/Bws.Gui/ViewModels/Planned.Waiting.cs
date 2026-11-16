@@ -140,22 +140,32 @@ public sealed partial class Planned
     public bool HasWaitingProblem => WaitingProblem.Length > 0;
 
     /// <summary>
-    /// Whether this plan has anything to wait for, which decides whether the box above is offered.
+    /// Whether the box of seconds can be typed into now - offered, and no run under way.
     ///
-    /// <b>A start type change has nothing</b>: it writes a setting and moves no service, so there
-    /// is no state to arrive at and no reason to watch for one. The terminal says exactly this in
-    /// its help - "neither --dependents nor --timeout applies here" - and a box offering to change
-    /// a number that does nothing is the silence the belonging table exists to end, said the other
-    /// way round.
+    /// <b>NOT WHILE A RUN IS UNDER WAY, which the first build of this got wrong and a screenshot
+    /// caught.</b> The ceiling is read at the press - see MainWindow.CarryOut - so a box still
+    /// editable during the run is a control that accepts a number and does nothing with it. The box
+    /// stays on the sheet, greyed, holding the number the run is using: its row is above the
+    /// buttons, and a row that left when the run began would move Interrupt under the hand reaching
+    /// for it.
     /// </summary>
-    /// <b>AND NOT WHILE A RUN IS UNDER WAY, which the first build of this got wrong and a
-    /// screenshot caught.</b> The ceiling is read at the press - see MainWindow.CarryOut - so a box
-    /// still editable during the run is a control that accepts a number and does nothing with it.
-    /// The strip it stands in says what the run is doing instead, which is the more useful sentence
-    /// at that moment and the reason the two share a line.
-    public bool Waits =>
+    public bool Waits => OffersWaiting && !Busy;
+
+    /// <summary>
+    /// Whether the box of seconds is on the sheet at all - a plan with something to wait for, and no
+    /// result yet.
+    ///
+    /// <b>A start type change has nothing to wait for</b>: it writes a setting and moves no service,
+    /// so there is no state to arrive at and no reason to watch for one. The terminal says exactly
+    /// this in its help - "neither --dependents nor --timeout applies here" - and a box offering to
+    /// change a number that does nothing is the silence the belonging table exists to end, said the
+    /// other way round.
+    ///
+    /// <b>And it goes once there is a result</b>, because the sheet is a report by then and the
+    /// button under it closes the sheet rather than running anything.
+    /// </summary>
+    public bool OffersWaiting =>
         Showing
-        && !Busy
         && _run is null
         && _plan is { } plan
         && plan.Plans.Any(one => one.Steps.Any(step => step.Operation != StepOperation.SetStartType));

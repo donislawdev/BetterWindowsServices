@@ -251,14 +251,13 @@ $mutations = @(
         # Found by a screenshot rather than by a test, and this is that fault written down: the
         # ceiling is read at the press, so a box still editable during the run takes a number and
         # throws it away. Twelve assertions passed while it was wrong.
-        Name = 'waiting: a run takes the box off the screen'
+        Name = 'waiting: a run takes the box out of reach'
+        # RE-ANCHORED 2026-11-16: the box stays on the sheet during a run, greyed, so the buttons
+        # under it do not move - what the run takes away is typing into it.
         File = 'src\Bws.Gui\ViewModels\Planned.Waiting.cs'
-        From = 'Showing
-        && !Busy
-        && _run is null'
-        To = 'Showing
-        && _run is null'
-        Test = 'WaitingGuards.A_run_takes_the_box_off_the_screen'
+        From = '    public bool Waits => OffersWaiting && !Busy;'
+        To = '    public bool Waits => OffersWaiting;'
+        Test = 'WaitingGuards.A_run_takes_the_box_out_of_reach'
     },
     @{
         # docs/11 section 7 asks for progress above ten seconds. Without the elapsed half the line
@@ -2210,8 +2209,8 @@ $mutations = @(
         # Since 2026-09-16 both styles are aliases of the two body styles, so the mutation is the
         # alias pointing at the other body - and the guard resolves BasedOn since the same day, or
         # two aliases with nothing of their own would have read as two empty and equal lists.
-        From = '<Style x:Key="PlanNoticeText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}" />'
-        To = '<Style x:Key="PlanNoticeText" TargetType="TextBlock" BasedOn="{StaticResource BodySubduedText}" />'
+        From = '<Style x:Key="PlanNoticeText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">'
+        To = '<Style x:Key="PlanNoticeText" TargetType="TextBlock" BasedOn="{StaticResource BodySubduedText}">'
         Test = 'TypeScaleGuards.A_state_sentence_is_not_dressed_as_a_section_label'
     },
     @{
@@ -5129,9 +5128,10 @@ $mutations = @(
         # key and the singular becomes text no screen ever shows, which is the state this panel was
         # in from the day it learned to report a run until the day somebody read the language file.
         Name = 'plan panel: a run over one entry says so in the singular'
-        File = 'src\Bws.Gui\ViewModels\Planned.cs'
-        From = '? run.Runs.Count == 1'
-        To = '? run.Runs.Count == 0'
+        # RE-ANCHORED 2026-11-16: the sentence moved to FinishedRun when the result got a block.
+        File = 'src\Bws.Gui\ViewModels\FinishedRun.cs'
+        From = 'run.Runs.Count == 1 ? OneArrived(run.Plan, named)'
+        To = 'run.Runs.Count == 0 ? OneArrived(run.Plan, named)'
         Test = 'PluralGuards.A_run_over_one_entry_says_so_in_the_singular'
     },
     @{
@@ -5176,7 +5176,8 @@ $mutations = @(
         # declared and perfectly referenced right up until the day the other count arrives.
         Name = 'plan panel: a singular sentence with no plural beside it is refused'
         File = 'src\Bws.Gui\Resources\gui.en.json'
-        From = '"gui.plan.notice.done.many":'
+        # RE-ANCHORED 2026-11-16: "done" became four pairs naming the state an entry ended in.
+        From = '"gui.plan.notice.done.stopped.many":'
         To = '"gui.plan.notice.doneWithNothingBesideIt.many":'
         Test = 'PluralGuards.Every_singular_sentence_has_a_plural_beside_it'
     },
@@ -6784,8 +6785,9 @@ $mutations = @(
         # Mutated to the button, which is the one arrangement that turns a keystroke into a kill.
         Name = 'forcing: the keyboard is never handed to the button that ends a process'
         File = 'src\Bws.Gui\PlanView.xaml.cs'
-        From = 'ConfirmShown ? Footer.Confirm : PlanCloseButton;'
-        To = 'ConfirmShown ? Footer.CarryOut : PlanCloseButton;'
+        # RE-ANCHORED 2026-11-16: a finished sheet sends the keyboard to the button that closes it.
+        From = '        : ConfirmShown ? Footer.Confirm'
+        To = '        : ConfirmShown ? Footer.CarryOut'
         Test = 'ForcedStopViewGuards.The_keyboard_is_never_handed_to_the_button_that_ends_a_process'
     }
 
@@ -7454,7 +7456,7 @@ $mutations = @(
         Name = 'carry out: a start type plan over several entries still names the type'
         File = 'src\Bws.Gui\ViewModels\Planned.Title.cs'
         # RE-ANCHORED 2026-09-24: the arm split in two when a setting learned to carry a stop.
-        From = '            : Texts.Of("gui.plan.carryOut.setStartType.many", Asked(plan), SetTo(plan)),'
+        From = '            : Texts.Of("gui.plan.carryOut.setStartType.many", Asked(plan), PlanWords.SetTo(plan)),'
         To = '            : Texts.Of("gui.plan.carryOut.stop.many", Asked(plan)),'
         Test = 'Bws.Gui.Tests.CarryOutLabelGuards.Several_entries_set_to_a_type_are_counted_and_the_type_is_still_named'
     }
@@ -7462,8 +7464,9 @@ $mutations = @(
         # A NAME IS UNBOUNDED AND THE ROW IS NOT. Without the cap a 116 character display name
         # pushes the waiting box off the footer's row, and the heading already carries the name.
         Name = 'carry out: the button stops growing at the width the theme allows it'
-        File = 'src\Bws.Gui\PlanFooter.xaml'
-        From = '                        MaxWidth="{StaticResource WidthCarryOutMost}"'
+        # RE-ANCHORED 2026-11-16: the cap went into the button's style, PlanCarryOut.
+        File = 'src\Bws.Gui\Themes\PlanRun.xaml'
+        From = '        <Setter Property="MaxWidth" Value="{StaticResource WidthCarryOutMost}" />'
         To = ''
         Test = 'Bws.Gui.Tests.CarryOutLabelGuards.The_longest_display_name_on_this_machine_is_trimmed_inside_the_buttons_ceiling'
     }
@@ -7471,8 +7474,9 @@ $mutations = @(
         # CUT MID-LETTER OR TRIMMED WITH AN ELLIPSIS - `docs/11` 3.5. A capped button with a plain
         # string clips its word at the edge, and the template is the only thing that makes it trim.
         Name = 'carry out: a name too long for the button is trimmed rather than cut'
-        File = 'src\Bws.Gui\PlanFooter.xaml'
-        From = '                        ContentTemplate="{StaticResource TrimmedButtonLabel}"'
+        # RE-ANCHORED 2026-11-16: the template went into the button's style, PlanCarryOut.
+        File = 'src\Bws.Gui\Themes\PlanRun.xaml'
+        From = '        <Setter Property="ContentTemplate" Value="{StaticResource TrimmedButtonLabel}" />'
         To = ''
         Test = 'Bws.Gui.Tests.CarryOutLabelGuards.The_longest_display_name_on_this_machine_is_trimmed_inside_the_buttons_ceiling'
     }
@@ -8421,8 +8425,9 @@ $mutations = @(
         # buttons (backlog 497), so two things now keep it off the box - its row and its leaving when
         # empty. Either one alone would leave this mutant alive, so it puts back the whole old shape.
         File = 'src\Bws.Gui\PlanFooter.xaml'
-        From = '                <TextBlock Grid.Column="0"
-                           Grid.ColumnSpan="4"
+        # RE-ANCHORED 2026-11-16: the box of seconds has a row of its own above the buttons, and the
+        # sentence the line under it. The mutant puts the sentence back in the box's row, always there.
+        From = '                <TextBlock Grid.ColumnSpan="4"
                            Grid.Row="1"
                            x:Name="PlanProgress"
                            AutomationProperties.AutomationId="planProgress"
@@ -8430,7 +8435,7 @@ $mutations = @(
                            TextWrapping="Wrap"
                            Visibility="{Binding Underway.HasProgress, Converter={StaticResource WhenTrue}}"
                            Style="{StaticResource SubduedText}" />'
-        To = '                <TextBlock Grid.Column="0"
+        To = '                <TextBlock Grid.ColumnSpan="4"
                            Grid.Row="0"
                            x:Name="PlanProgress"
                            AutomationProperties.AutomationId="planProgress"
@@ -10292,9 +10297,10 @@ $mutations = @(
     },
     @{
         Name = 'run holds the sheet: a run of nothing does not say done'
-        File = 'src\Bws.Gui\ViewModels\Planned.cs'
-        From = 'run.Runs.Count == 0 ? Texts.Of("gui.plan.notice.nothingRun")'
-        To = 'run.Runs.Count == -1 ? Texts.Of("gui.plan.notice.nothingRun")'
+        # RE-ANCHORED 2026-11-16: the sentence moved to FinishedRun when the result got a block.
+        File = 'src\Bws.Gui\ViewModels\FinishedRun.cs'
+        From = '        if (run.Runs.Count == 0)'
+        To = '        if (run.Runs.Count == -1)'
         Test = 'RunHoldsTheSheetGuards.A_run_that_carried_nothing_out_does_not_say_done'
     },
     @{
@@ -10690,8 +10696,10 @@ $mutations = @(
         Name = 'abandon: the second button stands left of Interrupt'
         File = 'src\Bws.Gui\PlanFooter.xaml'
         From = '                <Button Grid.Column="1"
+                        Grid.Row="2"
                         x:Name="AbandonButton"'
         To = '                <Button Grid.Column="3"
+                        Grid.Row="2"
                         x:Name="AbandonButton"'
         Test = 'AbandonGuards.The_second_level_appears_to_the_left_and_reaches_the_run'
     },
@@ -10722,9 +10730,10 @@ $mutations = @(
     },
     @{
         Name = 'report: a run held back says it was interrupted'
-        File = 'src\Bws.Gui\ViewModels\Planned.cs'
-        From = '        : Underway.Afterwards(run, Arrived(run)) is { Length: > 0 } stopped ? stopped'
-        To = '        : Underway.Afterwards(run, Arrived(run)) is { Length: > 100000 } stopped ? stopped'
+        # RE-ANCHORED 2026-11-16: the sentence moved to FinishedRun when the result got a block.
+        File = 'src\Bws.Gui\ViewModels\FinishedRun.cs'
+        From = '        if (Underway.Afterwards(run, arrived) is { Length: > 0 } stopped)'
+        To = '        if (Underway.Afterwards(run, arrived) is { Length: > 100000 } stopped)'
         Test = 'UnderwayTests.A_finished_run_that_was_held_back_says_so_on_the_sheet'
     },
     @{
@@ -11036,8 +11045,8 @@ $mutations = @(
     @{
         Name = 'coming back: the sheet asks for the second sentence'
         File = 'src\Bws.Gui\ViewModels\Planned.cs'
-        From = '            : PlanWords.ThenComingBack(Reported(run), run);'
-        To = '            : Reported(run);'
+        From = '            : PlanWords.ThenComingBack(FinishedRun.Read(run, Named(run.Plan)).Sentence, run);'
+        To = '            : FinishedRun.Read(run, Named(run.Plan)).Sentence;'
         Test = 'ComingBackWordsGuards.The_notice_after_a_run_that_ended_the_process_says_who_comes_back'
     },
     @{
@@ -12171,73 +12180,8 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Test = 'Bws.Cli.Tests.DiffOutputTests.The_caveat_of_schema_six_is_said_and_written_last'
     },
 
-    # PACKAGE SD OF THE SECURITY REPORT, 2026-10-06 - S-7 and S-9, owner's decisions that day.
-    # docs/PROJEKT-PACZKA-SD-20261006.md carries the measurements each one stands on.
-    @{
-        # A process under runas /trustlevel:0x20000 answers TokenElevationTypeFull with the role
-        # saying no. The mutant lets the type alone make a twin.
-        Name = 'session: a twin needs the administrator role as well as the type'
-        File = 'src\Bws.Core\Session.cs'
-        From = '        elevated && type != TOKEN_ELEVATION_TYPE.TokenElevationTypeDefault;'
-        To = '        (elevated || type is not null) && type != TOKEN_ELEVATION_TYPE.TokenElevationTypeDefault;'
-        Test = 'ElevationTwinTests.A_twin_needs_the_role_and_a_type_that_is_not_the_one_without_a_linked_token'
-    },
-    @{
-        # The safe side: a type nobody could read counts as a twin, so the window writes less.
-        Name = 'session: a type nobody could read counts as a twin'
-        File = 'src\Bws.Core\Session.cs'
-        From = '        elevated && type != TOKEN_ELEVATION_TYPE.TokenElevationTypeDefault;'
-        To = '        elevated && type == TOKEN_ELEVATION_TYPE.TokenElevationTypeFull;'
-        Test = 'ElevationTwinTests.A_twin_needs_the_role_and_a_type_that_is_not_the_one_without_a_linked_token'
-    },
-    @{
-        # S-7: an administrator window under UAC creates no folder and writes no file in the profile.
-        # A filter that is never true rather than `false`, which the compiler folds and refuses.
-        Name = 'layout: an administrator window under UAC writes nothing into the profile'
-        File = 'src\Bws.Gui\PreferencesFile.cs'
-        From = @'
-        if (LeavesTheProfileAlone)
-        {
-            return Texts.Of("gui.layout.notKeptAsAdministrator");
-'@
-        To = @'
-        if (LeavesTheProfileAlone && _directory.Length < 0)
-        {
-            return Texts.Of("gui.layout.notKeptAsAdministrator");
-'@
-        Test = 'ProfileLeftAloneGuards.An_administrator_window_creates_no_folder_and_writes_nothing'
-    },
-    @{
-        # S-7: and moves nothing aside - a move is a write too, of a name somebody else may have put there.
-        Name = 'layout: an administrator window under UAC moves nothing aside'
-        File = 'src\Bws.Gui\PreferencesFile.cs'
-        From = @'
-        if (LeavesTheProfileAlone)
-        {
-            return null;
-'@
-        To = @'
-        if (LeavesTheProfileAlone && _directory.Length < 0)
-        {
-            return null;
-'@
-        Test = 'ProfileLeftAloneGuards.An_administrator_window_leaves_a_damaged_layout_where_it_is_and_says_so'
-    },
-    @{
-        Name = 'layout: the window asks the session whether to leave the profile alone'
-        File = 'src\Bws.Gui\PreferencesFile.cs'
-        From = '        : this(InTheProfile(), Session.IsElevatedWithTwin())'
-        To = '        : this(InTheProfile(), !Session.IsElevatedWithTwin())'
-        Test = 'ProfileLeftAloneGuards.The_window_asks_the_session_whether_to_leave_the_profile_alone'
-    },
-    @{
-        # The sentence for a move that failed says "could not be moved" - untrue when none was tried.
-        Name = 'layout: a file left alone by rule is not said to have failed a move'
-        File = 'src\Bws.Gui\KeptColumns.cs'
-        From = '        : _file.LeavesTheProfileAlone ? Texts.Of("gui.layout.unreadableLeftAsAdministrator", why)'
-        To = '        : _file.LeavesTheProfileAlone && why.Length < 0 ? Texts.Of("gui.layout.unreadableLeftAsAdministrator", why)'
-        Test = 'ProfileLeftAloneGuards.An_administrator_window_leaves_a_damaged_layout_where_it_is_and_says_so'
-    },
+    # PACKAGE SD OF THE SECURITY REPORT, 2026-10-06 - S-9, owner's decision that day.
+    # docs/PROJEKT-PACZKA-SD-20261006.md carries the measurements it stands on.
     @{
         # S-9: a session with administrator rights reads no language file beside the program.
         Name = 'language: an administrator session does not read the file beside the program'

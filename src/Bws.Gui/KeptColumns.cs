@@ -325,16 +325,11 @@ internal sealed class KeptColumns
     }
 
     /// <summary>
-    /// The sentence about a file that is not a layout, in the three ways it can have ended.
-    ///
-    /// <b>The third since 2026-10-06 - security report S-7.</b> An administrator window under User
-    /// Account Control does not TRY to move the file (<see cref="PreferencesFile.LeavesTheProfileAlone"/>),
-    /// and the sentence for a move that failed says "could not be moved" and "this will happen again" -
-    /// a claim about an attempt nobody made.
+    /// The sentence about a file that is not a layout, in the two ways it can have ended: moved
+    /// aside, or left where it was because the move failed.
     /// </summary>
     private string Unreadable(string why) =>
         _reading.MovedAside is { } aside ? Texts.Of("gui.layout.unreadable", why, aside)
-        : _file.LeavesTheProfileAlone ? Texts.Of("gui.layout.unreadableLeftAsAdministrator", why)
         : Texts.Of("gui.layout.unreadableStays", why);
 
     /// <summary>

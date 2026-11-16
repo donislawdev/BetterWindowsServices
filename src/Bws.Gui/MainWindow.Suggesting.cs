@@ -21,13 +21,13 @@ namespace Bws.Gui;
 /// MainWindow.Keyboard.cs, and the list's presses are three more of them. Splitting the keys of
 /// one list across two files would put one decision in two places.
 ///
-/// <b>The closing is the window's, and there are six locks.</b> The popup says StaysOpen, because
+/// <b>The closing is the window's, and there are seven locks.</b> The popup says StaysOpen, because
 /// a popup that closes itself on an outside click takes that click with it - and the click made
 /// most often while the list is open is on the box it hangs off. So the list closes when the box
-/// loses the keyboard, on Escape, on a row being taken, when nothing is left to offer, when the
-/// window loses activation, and when the window moves: a popup does not travel with its window,
-/// which is the thing the library's own AutoSuggestBox hooks the window procedure for. Closing is
-/// cheaper and more honest than chasing.
+/// loses the keyboard, on a press anywhere else in the window, on Escape, on a row being taken, when
+/// nothing is left to offer, when the window loses activation, and when the window moves: a popup
+/// does not travel with its window, which is the thing the library's own AutoSuggestBox hooks the
+/// window procedure for. Closing is cheaper and more honest than chasing.
 /// </summary>
 public partial class MainWindow
 {
@@ -121,6 +121,21 @@ public partial class MainWindow
         // The one lock that covers a chip, a tab, the plan sheet, the box's own context menu and
         // the closing of the window: all of them take the keyboard.
         box.LostKeyboardFocus += (_, _) => list.Left();
+
+        // AND A PRESS ANYWHERE ELSE IN THE WINDOW, since 2026-11-16 - the owner's report that the
+        // list stayed over the window until Escape, while people close a list like this by clicking
+        // beside it. The lock above covers a press on something that takes the keyboard, and a press
+        // on a row of the list, on the details panel or on empty space takes nothing. In the tunnel,
+        // and never handled: the press still does what it does, so a click on a row closes the list
+        // and selects the row in one go. A press in the field or in the list is the field's own -
+        // a click in the box asks for the list again - so SearchRow.Holds leaves those alone.
+        PreviewMouseDown += (_, e) =>
+        {
+            if (list.IsOpen && !Search.Holds(e.OriginalSource))
+            {
+                list.Close();
+            }
+        };
 
         // THE BOX'S TEXT, NOT THE MODEL'S. The binding to QueryText waits 400 ms so that the list
         // of entries does not narrow under every keystroke, and a list of completions that waited

@@ -83,6 +83,10 @@ public partial class PlanView : UserControl
         Footer.InterruptRequest += (_, _) => InterruptRequest?.Invoke(this, EventArgs.Empty);
         Footer.AbandonRequest += (_, _) => AbandonRequest?.Invoke(this, EventArgs.Empty);
 
+        // The button that closes a finished sheet does what the close mark does, through the same
+        // door - so a sheet with a run still going refuses it the way it refuses the mark.
+        Footer.DoneRequest += (_, _) => Dismiss();
+
         // CAUGHT ON THE LISTS RATHER THAN NAMED IN THE MARKUP, which is the other way this sheet
         // catches a press from a template - the failures name theirs in PlanView.xaml. This file's
         // markup stands at the size ceiling, so the handler is wired here and the markup carries
@@ -344,8 +348,15 @@ public partial class PlanView : UserControl
     /// one - it has the mark in the corner and Escape, which do exactly what a Cancel would. Adding
     /// a third button to say a third time what two things already say would have been a new control
     /// in the one row the design was trying to keep from growing.
+    ///
+    /// <b>A finished sheet sends it to the button that closes it, since 2026-11-16.</b> That button
+    /// takes the place of the one that ran the plan, so there is still no new control in the row -
+    /// and with the keyboard on it Enter closes the report the way Escape does.
     /// </summary>
-    internal System.Windows.Controls.Control WayIn => ConfirmShown ? Footer.Confirm : PlanCloseButton;
+    internal System.Windows.Controls.Control WayIn =>
+        (DataContext as Planned)?.HasResult == true ? Footer.Done
+        : ConfirmShown ? Footer.Confirm
+        : PlanCloseButton;
 
     /// <summary>
     /// Sends the keyboard to <see cref="WayIn"/>, and says whether anything took it.
@@ -469,6 +480,12 @@ public partial class PlanView : UserControl
     /// binding that resolves to nothing produces in silence.
     /// </summary>
     internal Button CarryOut => Footer.CarryOut;
+
+    /// <summary>The button that closes a finished sheet, in the place of <see cref="CarryOut"/>.</summary>
+    internal Button Done => Footer.Done;
+
+    /// <summary>The box of seconds and its words, as the footer lays them out.</summary>
+    internal FrameworkElement Waiting => Footer.Waiting;
 
     /// <summary>The way to stop a run, which only exists while there is one.</summary>
     internal Button Interrupt => Footer.Interrupt;

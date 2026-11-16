@@ -64,6 +64,14 @@
     <SolidColorBrush x:Key="MeaningRunning">#6CCB5F</SolidColorBrush>
 
     <!--
+        A RUN THAT GOT EVERY ENTRY WHERE IT WAS ASKED TO GO, 2026-11-16 - the rule and the mark of the
+        result at the top of the plan sheet. The same green as running today, and its own name for
+        the reason MeaningRejected gives below: a brush borrowed for a second meaning changes colour
+        the day somebody adjusts the first.
+    -->
+    <SolidColorBrush x:Key="MeaningArrived">#6CCB5F</SolidColorBrush>
+
+    <!--
         WHAT CANNOT BE DONE, WHICH IS WIDER THAN IT WAS. It meant a query with a mistake in it. Since
         2026-09-02 it also carries the sentence saying this session has no administrator rights, on
         the owner's words that without them this window is for looking at - a boundary around
