@@ -101,7 +101,13 @@ internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns, KeptSort?
     /// and a new version of it. A version 5 file IS a version 6 file that says nothing about it, and
     /// saying nothing means no searches yet, which is what an older file honestly means.
     /// </summary>
-    internal const int CurrentSchemaVersion = 6;
+    /// <summary>
+    /// SEVEN SINCE 2026-11-17, AND TWO MORE SIBLINGS - the language somebody chose for the window and the
+    /// switch over recent searches, from the settings page (KeptChoices). A version 6 file IS a version 7
+    /// file that says nothing about them, and saying nothing means "same as Windows" and "remember",
+    /// which is what the window did before the page existed.
+    /// </summary>
+    internal const int CurrentSchemaVersion = 7;
 
     /// <summary>The oldest schema this build reads and carries forward. See <see cref="ColumnLayouts.Read"/>.</summary>
     internal const int OldestSchemaVersionRead = 1;
@@ -263,6 +269,29 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
     /// </summary>
     internal IReadOnlyList<string> RecentQueries { get; init; } = [];
 
+    /// <summary>
+    /// The language chosen on the settings page as a code, or nothing for "same as Windows" - schema 7.
+    /// Whether this session can open in it is a question for Texts, which knows what was found.
+    /// </summary>
+    internal string? Language { get; init; }
+
+    /// <summary>Whether recent searches are remembered - schema 7, true for every file this build did not write.</summary>
+    internal bool RememberRecent { get; init; } = true;
+
+    /// <summary>The two choices of the settings page, as one value - what KeptColumns compares and merges (E3).</summary>
+    internal KeptChoices Choices => new(Language, RememberRecent);
+
+    /// <summary>The same layouts with both choices of the settings page taken from somewhere else.</summary>
+    internal ColumnLayouts WithChoices(KeptChoices choices) => this with
+    {
+        Language = choices.Language,
+        RememberRecent = choices.RememberRecent,
+
+        // OFF MEANS NONE KEPT, decision E4 - a window that learns from the file that another one turned the
+        // switch off must not write its own searches back under it.
+        RecentQueries = choices.RememberRecent ? RecentQueries : []
+    };
+
     /// <summary>The layout for one scope.</summary>
     internal ColumnLayout For(EntryScope scope) => scope switch
     {
@@ -320,6 +349,9 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
             tree["filtersFolded"] = true;
         }
 
+        // Schema 7, written only when chosen - l after f and before o.
+        KeptChoices.RenderLanguage(tree, Language);
+
         // WRITTEN ONLY WHEN IT IS TRUE, which is the rule every optional key in this file follows:
         // what is not there is what the program does on its own. Ordinal order holds - o beats s,
         // and everythingSort is already past.
@@ -330,6 +362,9 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
 
         // r after o and before s, so the ordinal order holds.
         ViewModels.RecentQueries.Render(tree, RecentQueries);
+
+        // Schema 7, written only as false - rem after rec and before s.
+        KeptChoices.RenderRemember(tree, RememberRecent);
 
         tree["schemaVersion"] = ColumnLayout.CurrentSchemaVersion;
 
@@ -418,9 +453,12 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
         // Schema 6 - anything in that key that is not a search is passed over, never the file.
         var recent = ViewModels.RecentQueries.From(root["recentQueries"]);
 
+        // Schema 7 goes through the reader the early read uses (KeptChoices.From) - a value of the wrong
+        // shape is the key missing, never the file refused.
         return new LayoutReading
         {
-            Layouts = new ColumnLayouts(services, drivers, everything) { OverviewSeen = overviewSeen, FiltersFolded = filtersFolded, RecentQueries = recent },
+            Layouts = new ColumnLayouts(services, drivers, everything) { OverviewSeen = overviewSeen, FiltersFolded = filtersFolded, RecentQueries = recent }
+                .WithChoices(KeptChoices.From(root)),
             CarriedForwardFrom = version < ColumnLayout.CurrentSchemaVersion ? version : null
         };
     }

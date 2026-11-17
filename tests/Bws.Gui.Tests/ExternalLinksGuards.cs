@@ -237,11 +237,11 @@ public sealed class ExternalLinksGuards
     }
 
     [Fact]
-    public void Help_ends_the_top_row_in_line_with_Columns_and_Donate_stands_beside_it()
+    public void Help_ends_the_top_row_in_line_with_Columns_with_Settings_and_Donate_beside_it()
     {
         var window = WpfHost.Window();
 
-        var (id, name, hint, heart, donateRight, helpLeft, helpRight, columnsRight) = WpfHost.On(() =>
+        var (id, name, hint, heart, donateRight, settingsLeft, settingsRight, helpLeft, helpRight, columnsRight) = WpfHost.On(() =>
         {
             window.WindowStyle = WindowStyle.None;
             window.ShowInTaskbar = false;
@@ -250,6 +250,7 @@ public sealed class ExternalLinksGuards
             window.UpdateLayout();
 
             var donate = window.Scope.Donate;
+            var settings = window.Scope.Settings;
             var help = window.Scope.Help;
             var mark = FirstPath(donate);
 
@@ -259,6 +260,8 @@ public sealed class ExternalLinksGuards
                 donate.ToolTip as string,
                 mark?.ActualWidth ?? 0,
                 donate.TransformToAncestor(window).Transform(new Point(donate.ActualWidth, 0)).X,
+                settings.TransformToAncestor(window).Transform(new Point(0, 0)).X,
+                settings.TransformToAncestor(window).Transform(new Point(settings.ActualWidth, 0)).X,
                 help.TransformToAncestor(window).Transform(new Point(0, 0)).X,
                 help.TransformToAncestor(window).Transform(new Point(help.ActualWidth, 0)).X,
                 window.ColumnsButton.TransformToAncestor(window).Transform(new Point(window.ColumnsButton.ActualWidth, 0)).X);
@@ -275,12 +278,14 @@ public sealed class ExternalLinksGuards
 
         // GUI rule 19: the last control of the row aligned with the last control of the filters row
         // rather than placed by eye. HELP SINCE 2026-09-24 (UX-GUI-014) - the corner is where people
-        // look for help - and Donate stands just left of it, one gap between them.
+        // look for help. SETTINGS STANDS JUST LEFT OF IT SINCE 2026-11-17 (decision E2 of
+        // docs/PROJEKT-USTAWIENIA-20261117.md) - the two about this program together in the corner - and
+        // Donate just left of Settings, one gap between each.
+        var gap = ((System.Windows.Thickness)WpfHost.Resources["MarginBetweenControls"]).Right;
+
         Assert.Equal(columnsRight, helpRight, precision: 1);
-        Assert.Equal(
-            ((System.Windows.Thickness)WpfHost.Resources["MarginBetweenControls"]).Right,
-            helpLeft - donateRight,
-            precision: 1);
+        Assert.Equal(gap, helpLeft - settingsRight, precision: 1);
+        Assert.Equal(gap, settingsLeft - donateRight, precision: 1);
     }
 
     private static System.Windows.Shapes.Path? FirstPath(DependencyObject root)

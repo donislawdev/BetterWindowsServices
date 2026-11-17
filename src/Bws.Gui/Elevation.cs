@@ -109,6 +109,41 @@ internal static class Elevation
         }
     }
 
+    /// <summary>
+    /// Starts this program again with the rights this session already has, or says why it did not - the
+    /// settings page's "Restart now", decision D2 of `docs/PROJEKT-USTAWIENIA-20261117.md`: a language is
+    /// read once, when the window starts.
+    ///
+    /// <b>Without the shell and without a verb, so the new session takes this token as it is</b> - an
+    /// administrator's window starts an administrator's window with no prompt, and any other starts one
+    /// like itself. It carries what this window was showing the way <see cref="Restart"/> does, and its
+    /// environment as well, so a session already moved to the administrators' folder by S-1 starts there
+    /// again. Null means it started, and the caller closes this one.
+    /// </summary>
+    internal static string? Reopen(string handOver)
+    {
+        if (Environment.ProcessPath is not { } program)
+        {
+            return Texts.Of("gui.elevate.noPath");
+        }
+
+        try
+        {
+            var start = new ProcessStartInfo(program) { UseShellExecute = false };
+
+            start.ArgumentList.Add(HandOver.Argument);
+            start.ArgumentList.Add(handOver);
+
+            using var started = Process.Start(start);
+
+            return started is null ? Texts.Of("gui.settings.language.restart.failed", string.Empty) : null;
+        }
+        catch (Win32Exception failed)
+        {
+            return Texts.Of("gui.settings.language.restart.failed", failed.Message);
+        }
+    }
+
     /// <summary>What the process ends with when it refused to start. Nothing reads it but a script.</summary>
     private const int Refused = 1;
 

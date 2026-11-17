@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Runtime.InteropServices;
 using Bws.Core;
 using Windows.Win32;
@@ -88,7 +89,14 @@ internal static class ExternalLinks
         Repository,
 
         /// <summary>The query language page, from the help menu.</summary>
-        QueryLanguage
+        QueryLanguage,
+
+        /// <summary>
+        /// The folder holding the preferences file, from the settings page - since 2026-11-17. A folder
+        /// rather than a page, and still a name rather than a path: the path is worked out in this file
+        /// (<see cref="OpenTheSettingsFolder"/>), so nothing outside it hands the shell a string.
+        /// </summary>
+        SettingsFolder
     }
 
     /// <summary>
@@ -114,8 +122,45 @@ internal static class ExternalLinks
         Destination.Support => Supporting.Ask(),
         Destination.Repository => Repository.Ask(),
         Destination.QueryLanguage => QueryLanguage.Ask(),
+        Destination.SettingsFolder => SettingsFolder.Ask(),
         _ => throw new ArgumentOutOfRangeException(nameof(destination), destination, "no such page")
     };
+
+    /// <summary>
+    /// The settings folder's hand-over - the same two ways as every page, so an administrator's window
+    /// opens File Explorer through the desktop, with the desktop's rights, rather than an elevated one.
+    /// </summary>
+    private static readonly ShellHandover SettingsFolder = new(
+        () => OpenTheSettingsFolder(PreferencesFile.FolderInTheProfile, Directory.Exists, Session.IsElevated(), Start, HandToDesktop),
+        ShellHandover.Patience,
+        Texts.Of("gui.settings.file.open.slow"));
+
+    /// <summary>
+    /// Opens the folder that holds the preferences file, or says why it did not.
+    ///
+    /// <b>A FOLDER THAT IS THERE, OR NOTHING IS HANDED OVER.</b> The shell runs a file it is given, so
+    /// what goes to it here is a directory this program names itself (the profile folder of
+    /// PreferencesFile) and has just found to be one - an empty name or a missing folder is a sentence.
+    /// A function of its inputs for the reason <see cref="Open"/> is one.
+    /// </summary>
+    internal static string? OpenTheSettingsFolder(
+        string folder,
+        Func<string, bool> isAFolder,
+        bool elevated,
+        Func<string, string?> start,
+        Func<string, string?> handToDesktop)
+    {
+        ArgumentNullException.ThrowIfNull(isAFolder);
+
+        if (folder.Length == 0 || !isAFolder(folder))
+        {
+            return Texts.Of("gui.settings.file.open.missing");
+        }
+
+        var reason = elevated ? handToDesktop(folder) : start(folder);
+
+        return reason is null ? null : Texts.Of("gui.settings.file.open.failed", reason, folder);
+    }
 
     /// <summary>
     /// The page describing the query language, from the help menu. The same address the README

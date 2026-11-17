@@ -21,8 +21,10 @@ namespace Bws.Gui;
 /// </summary>
 internal static class Texts
 {
-    private const string Prefix = "Bws.Gui.Resources.gui.";
-    private const string Suffix = ".json";
+    /// <summary>How a built-in language is named in the assembly - and by Languages, which finds them.</summary>
+    internal const string Prefix = "Bws.Gui.Resources.gui.";
+
+    internal const string Suffix = ".json";
 
     /// <summary>
     /// What to fall back to, and the only language code this file may name.
@@ -30,9 +32,34 @@ internal static class Texts
     /// It is not a choice among languages - it is the one the product is written in, so a
     /// missing translation shows English rather than a key.
     /// </summary>
-    private const string Fallback = "en";
+    internal const string Fallback = "en";
+
+    /// <summary>
+    /// Which language this session opens in and why - decided once by <see cref="Languages.Pick"/>, before
+    /// <see cref="Strings"/>, which is why it stands above it: static fields are initialised in the order
+    /// they are written. A host that pinned a language (<see cref="Languages.Pinned"/>) leaves the
+    /// preferences file unread.
+    /// </summary>
+    private static readonly Languages.LanguagePick Picked = Languages.Pick(
+        AppContext.GetData(Languages.Pinned) as string,
+        AppContext.GetData(Languages.Pinned) is null ? new PreferencesFile().PeekChoices()?.Language : null,
+        CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
+        Languages.Found());
 
     private static readonly Dictionary<string, string> Strings = Load();
+
+    /// <summary>The language this window shows, as a code - English when nothing better was found.</summary>
+    internal static string Showing => Picked.Showing;
+
+    /// <summary>The language chosen on the settings page, when this session could open in it.</summary>
+    internal static string? Chosen => Picked.Chosen;
+
+    /// <summary>
+    /// A language chosen on the settings page that this session could NOT open in, or nothing - a file
+    /// beside the program an administrator's window does not read (S-9), or one that is gone. The window
+    /// says so rather than quietly opening in another language (rule 8).
+    /// </summary>
+    internal static string? ChosenButMissing => Picked.Missing;
 
     /// <summary>
     /// The text for a key. An unknown key comes back as itself rather than throwing: a
@@ -105,7 +132,7 @@ internal static class Texts
     }
 
     private static Dictionary<string, string> Load() =>
-        Assemble(CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, Embedded, BesideFor(Session.IsElevated()));
+        Assemble(Picked.Showing, Embedded, BesideFor(Session.IsElevated()));
 
     /// <summary>
     /// Where a session looks for a language beside the program - nowhere, when it has administrator

@@ -1,0 +1,154 @@
+<UserControl x:Class="Bws.Gui.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False"
+             IsTabStop="False">
+
+    <!--
+        THE SETTINGS PAGE - `docs/PROJEKT-USTAWIENIA-20261117.md`, owner's decisions D1-D4 of 2026-11-17.
+
+        A PAGE OF ITS OWN, THE WAY THE TOOLS PAGE IS ONE: the window takes the search, the filters and the
+        actions away while it is up (MainWindow.ArrangeTheChrome), the bar of tabs stays, and a tab is the way
+        back - so is Escape. Not a sheet over a dimmed window: `docs/11` 3.12 keeps the sheet for a question
+        that has to be answered, and nothing here is one - every change takes effect when it is made, so the
+        page has no Save and no Cancel.
+
+        Read from the top like the Tools page, left aligned under the same width, a section heading and a
+        card per setting. Every style is in Themes/Settings.xaml. Bound to a SettingsPage, which the window
+        hands over (SettingsDoor) - Focusable and IsTabStop are off for the reason `docs/10` trap 8 gives.
+    -->
+    <UserControl.Resources>
+        <!-- The framework's own converter, declared per view the way PlanView and PlanFooter declare it. -->
+        <BooleanToVisibilityConverter x:Key="WhenTrue" />
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel MaxWidth="{StaticResource WidthOverview}"
+                    HorizontalAlignment="Left"
+                    Margin="{StaticResource PadPanel}">
+
+            <TextBlock AutomationProperties.AutomationId="settingsTitle"
+                       Text="{DynamicResource gui.settings.title}"
+                       Style="{StaticResource HeadingText}" />
+
+            <TextBlock Text="{DynamicResource gui.settings.what}"
+                       TextWrapping="Wrap"
+                       Margin="{StaticResource MarginAboveStatus}"
+                       Style="{StaticResource BodyText}" />
+
+            <!--
+                ONE CARD PER SETTING AND NO SECTION HEADINGS OVER THEM - the first picture of 2026-11-17 had both,
+                and each heading said what the card's own title said a line lower. Every card is built the same
+                way: its title, one sentence about it, then what can be done. A heading comes back the day a
+                section holds more than one card.
+            -->
+
+            <!-- LANGUAGE - D1 and D2. -->
+            <Border Style="{StaticResource SettingsCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource gui.settings.language.title}" Style="{StaticResource SettingTitleText}" />
+
+                    <TextBlock Text="{DynamicResource gui.settings.language.what}" Style="{StaticResource SettingWhatText}" />
+
+                    <!--
+                        THE LANGUAGES COME FROM A LIST, NOT FROM MARKUP - `ADR-21` and GUI rule 8. "Same as Windows"
+                        first, then every language the window found, by its own name. One GroupName, because each
+                        button stands in a presenter of its own and WPF would otherwise make each one a group of one.
+                    -->
+                    <ItemsControl x:Name="LanguageList"
+                                  AutomationProperties.AutomationId="settingsLanguages"
+                                  AutomationProperties.Name="{DynamicResource gui.settings.language.title}"
+                                  Focusable="False"
+                                  Margin="{StaticResource MarginAboveStatus}"
+                                  ItemsSource="{Binding Languages}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <RadioButton Style="{StaticResource LanguageOption}"
+                                             GroupName="SettingsLanguage"
+                                             Content="{Binding Label}"
+                                             IsChecked="{Binding IsOn, Mode=TwoWay}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="{Binding WindowsMissing}"
+                               Visibility="{Binding SaysWindowsMissing, Converter={StaticResource WhenTrue}}"
+                               Style="{StaticResource SettingWhatText}" />
+
+                    <!-- A kept language this window cannot open in - rule 8, the window says why it is in another one. -->
+                    <TextBlock AutomationProperties.AutomationId="settingsChoiceMissing"
+                               Text="{Binding ChoiceMissing}"
+                               Visibility="{Binding SaysChoiceMissing, Converter={StaticResource WhenTrue}}"
+                               Style="{StaticResource SettingNoteText}" />
+
+                    <!-- What the change does and when - D2, the next start, and the way to make it now. -->
+                    <StackPanel Visibility="{Binding SaysPending, Converter={StaticResource WhenTrue}}">
+                        <TextBlock AutomationProperties.AutomationId="settingsPending"
+                                   Text="{Binding Pending}"
+                                   Style="{StaticResource SettingNoteText}" />
+
+                        <Button x:Name="RestartButton"
+                                AutomationProperties.AutomationId="settingsRestart"
+                                Style="{StaticResource SettingButton}"
+                                Content="{DynamicResource gui.settings.language.restart}"
+                                IsEnabled="{Binding CanRestart}"
+                                ToolTip="{Binding RestartHint}"
+                                ToolTipService.ShowOnDisabled="True" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- RECENT SEARCHES - D4. -->
+            <Border Style="{StaticResource SettingsCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource gui.settings.search.title}" Style="{StaticResource SettingTitleText}" />
+
+                    <TextBlock Text="{DynamicResource gui.settings.search.what}" Style="{StaticResource SettingWhatText}" />
+
+                    <CheckBox AutomationProperties.AutomationId="settingsRemember"
+                              Style="{StaticResource SettingCheck}"
+                              Content="{DynamicResource gui.settings.search.remember}"
+                              IsChecked="{Binding RememberRecent, Mode=TwoWay}" />
+
+                    <Button x:Name="ForgetButton"
+                            AutomationProperties.AutomationId="settingsForget"
+                            Style="{StaticResource SettingButton}"
+                            Content="{DynamicResource gui.settings.search.forget}"
+                            IsEnabled="{Binding CanForget}"
+                            ToolTip="{Binding ForgetHint}"
+                            ToolTipService.ShowOnDisabled="True" />
+                </StackPanel>
+            </Border>
+
+            <!-- WHERE IT IS KEPT - D4. -->
+            <Border Style="{StaticResource SettingsCard}">
+                <StackPanel>
+                    <TextBlock Text="{DynamicResource gui.settings.file.title}" Style="{StaticResource SettingTitleText}" />
+
+                    <TextBlock Text="{DynamicResource gui.settings.file.what}" Style="{StaticResource SettingWhatText}" />
+
+                    <TextBlock AutomationProperties.AutomationId="settingsFile"
+                               Text="{Binding FileWhere}"
+                               Visibility="{Binding HasAPlace, Converter={StaticResource WhenTrue}}"
+                               Style="{StaticResource SettingPathText}" />
+
+                    <TextBlock Text="{DynamicResource gui.settings.file.noPlace}"
+                               Visibility="{Binding SaysNoPlace, Converter={StaticResource WhenTrue}}"
+                               Style="{StaticResource SettingNoteText}" />
+
+                    <TextBlock Text="{DynamicResource gui.settings.file.notYet}"
+                               Visibility="{Binding SaysFileNotYet, Converter={StaticResource WhenTrue}}"
+                               Style="{StaticResource SettingWhatText}" />
+
+                    <Button x:Name="OpenFolderButton"
+                            AutomationProperties.AutomationId="settingsOpenFolder"
+                            Style="{StaticResource SettingButton}"
+                            Content="{DynamicResource gui.settings.file.open}"
+                            IsEnabled="{Binding CanOpenFolder}"
+                            ToolTip="{Binding OpenFolderHint}"
+                            ToolTipService.ShowOnDisabled="True" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

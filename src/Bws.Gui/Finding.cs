@@ -37,7 +37,7 @@ internal static class Finding
     /// </remarks>
     internal static void Begin(MainViewModel model, SearchRow list, ShowRow history, ShowRow comparison)
     {
-        var leftTheTools = model.Tabs.LeaveTheTools();
+        var leftTheTools = model.Tabs.LeaveThePage();
 
         if (model.MiddleChoices is { Offered: true })
         {

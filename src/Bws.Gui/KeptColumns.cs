@@ -56,6 +56,17 @@ internal sealed class KeptColumns
     /// <summary>Whether <see cref="Leave"/> has been called - nothing more is written.</summary>
     private bool _left;
 
+    /// <summary>
+    /// Whether THIS window holds a choice of the settings page that is not on disk yet - the language, or the
+    /// switch over recent searches. Raised when the page changes the value, lowered by the write that puts it
+    /// there. From then on the file is the newer word: every write takes both choices from it first, so a
+    /// choice made later in another window is not undone when this one writes again or closes - decision E3,
+    /// KeptChoices says why. A write the file refused leaves the mark up, and the next write tries again.
+    /// </summary>
+    private bool _languageChosen;
+
+    private bool _rememberChosen;
+
     internal KeptColumns(PreferencesFile file)
     {
         _file = file;
@@ -121,10 +132,45 @@ internal sealed class KeptColumns
     /// rather than closed. Nothing is written when the list did not change, so the same search made
     /// twice costs one write. RecentQueries holds what counts as the same and how many are kept.
     /// </summary>
-    internal void Remember(string query, Says says) => KeepTheRecent(ViewModels.RecentQueries.With(RecentQueries, query), says);
+    internal void Remember(string query, Says says)
+    {
+        // NOTHING IS ADDED WHILE THE SWITCH IS OFF - the settings page, schema 7.
+        if (_layouts.RememberRecent)
+        {
+            KeepTheRecent(ViewModels.RecentQueries.With(RecentQueries, query), says);
+        }
+    }
 
     /// <summary>Takes a search off the list and writes it - Delete on its row.</summary>
     internal void Forget(string query, Says says) => KeepTheRecent(ViewModels.RecentQueries.Without(RecentQueries, query), says);
+
+    /// <summary>Takes every search off the list and writes it - "Forget recent searches" on the settings page.</summary>
+    internal void ForgetAll(Says says) => KeepTheRecent([], says);
+
+    /// <summary>The two choices of the settings page as this window holds them.</summary>
+    internal KeptChoices Choices => _layouts.Choices;
+
+    /// <summary>
+    /// Keeps the language chosen on the settings page - a code, or nothing for "same as Windows". It takes
+    /// effect at the next start (decision D2): the words of this window were read when it opened.
+    /// </summary>
+    internal void ChooseLanguage(string? language, Says says)
+    {
+        var code = KeptChoices.Shaped(language);
+
+        _languageChosen |= !string.Equals(code, _layouts.Language, StringComparison.Ordinal);
+        KeepTheProfile(_layouts with { Language = code }, says);
+    }
+
+    /// <summary>
+    /// Turns remembering recent searches on or off. Off forgets the ones kept so far in the same write -
+    /// decision E4: somebody who turns it off does not want them left on the disk.
+    /// </summary>
+    internal void RememberRecentIs(bool remember, Says says)
+    {
+        _rememberChosen |= remember != _layouts.RememberRecent;
+        KeepTheProfile(_layouts.WithChoices(_layouts.Choices with { RememberRecent = remember }), says);
+    }
 
     private void KeepTheRecent(IReadOnlyList<string> recent, Says says)
     {
@@ -164,24 +210,42 @@ internal sealed class KeptColumns
     /// <b>The layout in memory still follows the grid</b>, because moving between the three lists
     /// reads from it - only the file stops being written, which is what the sentence promises.
     /// </summary>
-    private void Write(Says says)
+    /// <returns>False only when the file refused the write - the window has said so by then.</returns>
+    private bool Write(Says says)
     {
         if (_reading.LeftAlone || _left)
         {
-            return;
+            return true;
+        }
+
+        // A CHOICE OF THE SETTINGS PAGE THIS WINDOW HAS NOT PUT ON DISK YET IS THE ONLY ONE IT WRITES, decision
+        // E3 - every other comes from the file, because another window may have changed it since this one last
+        // wrote, and this write must not undo that in silence. A file that cannot be read now changes nothing.
+        if ((!_languageChosen || !_rememberChosen) && _file.PeekChoices() is { } onDisk)
+        {
+            _layouts = _layouts.WithChoices(new KeptChoices(
+                _languageChosen ? _layouts.Language : onDisk.Language,
+                _rememberChosen ? _layouts.RememberRecent : onDisk.RememberRecent));
         }
 
         if (_file.Write(_layouts) is { } trouble)
         {
             says.AboutTheLayout(Texts.Of("gui.layout.notKept", trouble));
+            return false;
         }
+
+        // On disk now, so the file holds this window's word on both choices until the page changes one again.
+        _languageChosen = _rememberChosen = false;
+
+        return true;
     }
 
     /// <summary>
     /// Writes down what the grid looks like now, outside every event - for the moment just before
     /// this window starts its replacement. G-7 of the external stability report of 2026-09-29.
     /// </summary>
-    internal void KeepNow(DataGrid grid, Says says) => Keep(grid, says);
+    /// <returns>False when the file refused the write, which the window has already said.</returns>
+    internal bool KeepNow(DataGrid grid, Says says) => Keep(grid, says);
 
     /// <summary>
     /// This window has started its replacement, so nothing it does from here on is written.
@@ -394,11 +458,11 @@ internal sealed class KeptColumns
     /// changed would need a second copy of the state to compare against, and a file of eighteen
     /// short lines costs less to write than that copy costs to keep correct.
     /// </summary>
-    private void Keep(DataGrid grid, Says says)
+    private bool Keep(DataGrid grid, Says says)
     {
         if (_switching)
         {
-            return;
+            return true;
         }
 
         // THE SCOPE ON SCREEN, AND THE OTHER TWO EXACTLY AS THEY WERE. Writing only what the grid
@@ -407,7 +471,7 @@ internal sealed class KeptColumns
         // services.
         _layouts = _layouts.With(_scope, Harvested(grid));
 
-        Write(says);
+        return Write(says);
     }
 
     /// <summary>

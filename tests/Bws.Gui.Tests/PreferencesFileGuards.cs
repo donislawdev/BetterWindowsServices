@@ -292,12 +292,12 @@ public sealed class PreferencesFileGuards : IDisposable
     {
         var file = Fresh();
 
-        File.WriteAllText(file.Where, """{ "columns": [], "schemaVersion": 7 }""");
+        File.WriteAllText(file.Where, """{ "columns": [], "schemaVersion": 8 }""");
 
         var said = new KeptColumns(file).Trouble([]);
 
         Assert.NotNull(said);
-        Assert.Contains("7", said, StringComparison.Ordinal);
+        Assert.Contains("8", said, StringComparison.Ordinal);
     }
 
     /// <summary>

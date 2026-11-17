@@ -55,7 +55,8 @@ public partial class MainWindow
         // rather than by a copy of them - one place owns the cell the pages compete for.
         _model.Tabs.PropertyChanged += (_, changed) =>
         {
-            if (changed.PropertyName == nameof(Tabs.ShowingTools))
+            // And the settings page the same way since 2026-11-17 - `docs/PROJEKT-USTAWIENIA-20261117.md`.
+            if (changed.PropertyName is nameof(Tabs.ShowingTools) or nameof(Tabs.ShowingSettings))
             {
                 arrange();
             }
@@ -131,6 +132,7 @@ public partial class MainWindow
         var elsewhere = !_model.ListOnScreen;
 
         Toolbox.Visibility = _model.Tabs.ShowingTools ? Visibility.Visible : Visibility.Collapsed;
+        Preferences.Visibility = _model.Tabs.ShowingSettings ? Visibility.Visible : Visibility.Collapsed;
         Overview.Visibility = overview ? Visibility.Visible : Visibility.Collapsed;
         Comparison.Visibility = comparing ? Visibility.Visible : Visibility.Collapsed;
         TakeForm.Visibility = preparing ? Visibility.Visible : Visibility.Collapsed;

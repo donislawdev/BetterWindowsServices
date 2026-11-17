@@ -37,6 +37,19 @@
   </ItemGroup>
 
   <!--
+    THE WINDOW'S LANGUAGE PINNED TO ENGLISH FOR EVERY TEST, through the runtime's configuration of this
+    test executable, so it is in place before the first line of any test - docs/PROJEKT-USTAWIENIA-20261117.md,
+    collision 1. Texts decides its language once, from the settings file of whoever runs the tests and from
+    their Windows - Polish on the machine this was written on (measured 2026-11-17) - and these tests
+    assert English sentences. Without it a Polish translation built in, or Polish chosen on the settings
+    page, would turn them red locally while CI on an English runner stayed green.
+    LanguagePinGuards checks that the pin reached the process.
+  -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="Bws.Gui.Texts.Language" Value="en" />
+  </ItemGroup>
+
+  <!--
     Finding the source tree, shared by linking rather than by a shared assembly - the reference
     edges between these projects are themselves under guard. See tests/SourceTree.cs for why
     there is one copy of this and not four.

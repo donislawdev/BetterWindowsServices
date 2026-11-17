@@ -107,7 +107,7 @@ public sealed class RecentQueriesTests
         var written = (ColumnLayouts.Default with { RecentQueries = ["status:running", "name:\"Print Spooler\""] }).Render();
 
         Assert.Contains("\"recentQueries\"", written, StringComparison.Ordinal);
-        Assert.Contains("\"schemaVersion\": 6", written, StringComparison.Ordinal);
+        Assert.Contains("\"schemaVersion\": 7", written, StringComparison.Ordinal);
 
         var read = ColumnLayouts.Read(written);
 

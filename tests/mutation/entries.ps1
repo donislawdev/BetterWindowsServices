@@ -2039,10 +2039,14 @@ $mutations = @(
     @{
         # The same shape on the other file this product reads, and this one is read while the
         # window is being constructed - so the failure is a program that will not start.
-        Name = 'layout: a file too big to be one is refused before it is read'
-        File = 'src\Bws.Gui\PreferencesFile.cs'
-        From = '            if (new FileInfo(Where).Length > Biggest)'
-        To = '            if (new FileInfo(Where).Length > long.MaxValue)'
+        # RE-ANCHORED 2026-11-17 (review of #124): both readers of this file go through
+        # KeptChoices.ReadText, which counts the bytes as they arrive instead of asking the size
+        # first - a file replaced after that question could get round it. The test still goes
+        # through PreferencesFile.Read.
+        Name = 'layout: a file too big to be one is never read past its ceiling'
+        File = 'src\Bws.Gui\ViewModels\KeptChoices.cs'
+        From = '            if (held.Length > Biggest)'
+        To = '            if (held.Length > long.MaxValue)'
         Test = 'PreferencesFileGuards.A_file_too_big_to_be_a_layout_is_refused_rather_than_read_into_memory'
     },
     @{
@@ -5463,7 +5467,7 @@ $mutations = @(
         File = 'src\Bws.Gui\ScopeBar.xaml'
         From = 'HorizontalAlignment="Right"'
         To = 'HorizontalAlignment="Left"'
-        Test = 'ExternalLinksGuards.Help_ends_the_top_row_in_line_with_Columns_and_Donate_stands_beside_it'
+        Test = 'ExternalLinksGuards.Help_ends_the_top_row_in_line_with_Columns_with_Settings_and_Donate_beside_it'
     },
     @{
         # The heart declared and never drawn - the word alone still reads, so nothing else would
@@ -5472,7 +5476,7 @@ $mutations = @(
         File = 'src\Bws.Gui\ScopeBar.xaml'
         From = '<Path Style="{StaticResource SupportMark}" />'
         To = ''
-        Test = 'ExternalLinksGuards.Help_ends_the_top_row_in_line_with_Columns_and_Donate_stands_beside_it'
+        Test = 'ExternalLinksGuards.Help_ends_the_top_row_in_line_with_Columns_with_Settings_and_Donate_beside_it'
     },
     @{
         # 2026-10-14, the GitHub button. A plaintext address to the repository - the insecure step
@@ -6189,10 +6193,12 @@ $mutations = @(
     @{
         # The decoder that substitutes rather than the one that refuses - the choice this file made
         # by accident until 2026-08-26, while its neighbour had measured the cost of it.
+        # RE-ANCHORED 2026-11-17 (review of #124): the decoder moved with the read into
+        # KeptChoices.ReadText, the one reader of this file's bytes for both roads.
         Name = 'layout: bytes that are not text are refused rather than guessed at'
-        File = 'src\Bws.Gui\PreferencesFile.cs'
-        From = 'new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true),'
-        To = 'new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false),'
+        File = 'src\Bws.Gui\ViewModels\KeptChoices.cs'
+        From = 'StrictText = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);'
+        To = 'StrictText = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);'
         Test = 'PreferencesFileGuards.Bytes_that_are_not_text_this_build_reads_are_refused_rather_than_guessed_at'
     },
     @{
@@ -12575,8 +12581,8 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Name = 'window snapshot: a comparison hides the list'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
         # Re-anchored 2026-10-20: the Tools tab joined the end of the line.
-        From = '    public bool ListOnScreen => !_showingOverview && !Snapshotting.InTheMiddle && !History.InTheMiddle && !Tabs.ShowingTools;'
-        To = '    public bool ListOnScreen => !_showingOverview && !History.InTheMiddle && !Tabs.ShowingTools;'
+        From = '    public bool ListOnScreen => !_showingOverview && !Snapshotting.InTheMiddle && !History.InTheMiddle && !Tabs.ShowingTools && !Tabs.ShowingSettings;'
+        To = '    public bool ListOnScreen => !_showingOverview && !History.InTheMiddle && !Tabs.ShowingTools && !Tabs.ShowingSettings;'
         Test = 'SnapshottingTests.Putting_the_comparison_away_answers_once_and_gives_the_list_back'
     }
     @{
@@ -12584,8 +12590,8 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
         # Re-anchored 2026-10-20: the search over the view's table goes first now (AS-a).
         # And 2026-10-20: the chain moved to its own line when the Tools tab joined it.
-        From = '        MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();'
-        To = '        MiddleSearchEmptied() || History.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();'
+        From = '        MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveThePage() || Chosen.Hide();'
+        To = '        MiddleSearchEmptied() || History.PutAway() || Tabs.LeaveThePage() || Chosen.Hide();'
         Test = 'SnapshotWindowGuards.Escape_puts_the_comparison_away_before_it_touches_the_query'
     }
     @{
@@ -13950,16 +13956,16 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Name = 'window history: the list is not on screen while the history is'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
         # Re-anchored 2026-10-20: the Tools tab joined the end of the line.
-        From = ' && !History.InTheMiddle && !Tabs.ShowingTools;'
-        To = ' && !Tabs.ShowingTools;'
+        From = ' && !History.InTheMiddle && !Tabs.ShowingTools && !Tabs.ShowingSettings;'
+        To = ' && !Tabs.ShowingTools && !Tabs.ShowingSettings;'
         Test = 'HistoryTests.Opening_the_view_reads_the_log_and_puts_it_where_the_list_was'
     }
     @{
         Name = 'window history: Escape puts the history away'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
         # Re-anchored 2026-10-20: the Tools tab joined the chain after the history.
-        From = 'Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();'
-        To = 'Snapshotting.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();'
+        From = 'Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveThePage() || Chosen.Hide();'
+        To = 'Snapshotting.PutAway() || Tabs.LeaveThePage() || Chosen.Hide();'
         Test = 'HistoryWindowGuards.Escape_puts_the_history_away_before_it_touches_the_query'
     }
     @{
@@ -14143,8 +14149,8 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         Name = 'window escape: the search over a view goes before the view'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
         # Re-anchored 2026-10-20: the chain moved to its own line when the Tools tab joined it.
-        From = '        MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();'
-        To = '        Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();'
+        From = '        MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveThePage() || Chosen.Hide();'
+        To = '        Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveThePage() || Chosen.Hide();'
         Test = 'HistoryWindowGuards.Escape_empties_the_search_first_and_puts_the_history_away_on_the_next_press'
     }
     @{
@@ -14267,7 +14273,7 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # T-a: no list tab is the page while the Tools page is.
         Name = 'window tools: no list tab is marked on the Tools page'
         File = 'src\Bws.Gui\ViewModels\Tabs.cs'
-        From = '        Positions = Scopes.Positions(() => _showingTools ? null : current(), ShowTheList, count);'
+        From = '        Positions = Scopes.Positions(() => _page != Page.List ? null : current(), ShowTheList, count);'
         To = '        Positions = Scopes.Positions(() => current(), ShowTheList, count);'
         Test = 'ToolsTabGuards.The_tab_takes_the_page_and_leaves_the_query_and_the_scope_waiting'
     }
@@ -14281,7 +14287,7 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'window tools: Escape leaves the Tools page'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Snapshots.cs'
-        From = '        MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();'
+        From = '        MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveThePage() || Chosen.Hide();'
         To = '        MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Chosen.Hide();'
         Test = 'ToolsTabGuards.Escape_goes_back_to_the_list_as_it_was_left'
     }
@@ -14313,16 +14319,16 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # T-e: the marked list tab over the overview is the way back to the list.
         Name = 'window tools: a list tab leaves the overview'
         File = 'src\Bws.Gui\ViewModels\Tabs.cs'
-        From = '        Positions = Scopes.Positions(() => _showingTools ? null : current(), ShowTheList, count);'
-        To = '        Positions = Scopes.Positions(() => _showingTools ? null : current(), _scope, count);'
+        From = '        Positions = Scopes.Positions(() => _page != Page.List ? null : current(), ShowTheList, count);'
+        To = '        Positions = Scopes.Positions(() => _page != Page.List ? null : current(), _scope, count);'
         Test = 'ToolsTabGuards.The_bar_stays_over_the_overview_and_its_marked_tab_is_the_way_back_to_the_list'
     }
     @{
         # A review of #83: the flag down while the middle is cleared shows the list for a moment.
         Name = 'window tools: the page is up before the middle is cleared'
         File = 'src\Bws.Gui\ViewModels\Tabs.cs'
-        From = '                _clearTheMiddle();'
-        To = '                _showingTools = false; _clearTheMiddle(); _showingTools = true;'
+        From = '            _clearTheMiddle();'
+        To = '            _page = Page.List; _clearTheMiddle(); _page = page;'
         Test = 'ToolsTabGuards.On_the_way_from_the_overview_to_the_tools_page_the_list_is_never_on_screen'
     }
     @{

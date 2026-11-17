@@ -25,7 +25,19 @@ public sealed class Tabs : Observable
     private readonly Action _clearTheMiddle;
     private readonly Action<EntryScope> _scope;
     private readonly Action _moved;
-    private bool _showingTools;
+
+    /// <summary>
+    /// Which page is up. ONE VALUE RATHER THAN A FLAG PER PAGE since the settings page arrived on
+    /// 2026-11-17 - two flags could both be true, and nothing would say which page the window shows.
+    /// </summary>
+    private Page _page;
+
+    private enum Page
+    {
+        List,
+        Tools,
+        Settings
+    }
 
     /// <param name="tools">What the Tools page holds.</param>
     /// <param name="current">The scope the list is on.</param>
@@ -55,7 +67,7 @@ public sealed class Tabs : Observable
 
         // No position is the page while the Tools page is - which is what the null says. A press on a
         // position goes through ShowTheList, so a marked tab over the overview is a way back to the list.
-        Positions = Scopes.Positions(() => _showingTools ? null : current(), ShowTheList, count);
+        Positions = Scopes.Positions(() => _page != Page.List ? null : current(), ShowTheList, count);
     }
 
     /// <summary>The list tabs, in the order they are shown.</summary>
@@ -70,38 +82,56 @@ public sealed class Tabs : Observable
     /// </summary>
     public bool ShowingTools
     {
-        get => _showingTools;
+        get => _page == Page.Tools;
 
-        set
+        set => Show(value ? Page.Tools : _page == Page.Tools ? Page.List : _page);
+    }
+
+    /// <summary>
+    /// Whether the settings page is up - `docs/PROJEKT-USTAWIENIA-20261117.md`. A page of its own the way the
+    /// Tools page is one: no list tab is marked, and a list tab or Escape is the way back.
+    /// </summary>
+    public bool ShowingSettings
+    {
+        get => _page == Page.Settings;
+
+        set => Show(value ? Page.Settings : _page == Page.Settings ? Page.List : _page);
+    }
+
+    private void Show(Page page)
+    {
+        if (_page == page)
         {
-            if (_showingTools == value)
-            {
-                return;
-            }
-
-            // THE FLAG FIRST, THEN THE MIDDLE CLEARED - a review of #83. Putting the overview or a view of
-            // the audit away raises notifications, and the window arranges itself and the line under it
-            // speaks on each of them. With the flag still down at that moment the list was "on screen"
-            // for the length of the clearing - its controls drawn and its sentence said on the way to a
-            // page that has neither.
-            _showingTools = value;
-
-            if (value)
-            {
-                _clearTheMiddle();
-                Tools.Rethink();
-            }
-
-            // The list tabs read this to know they are not the page any more.
-            foreach (var position in Positions)
-            {
-                position.Rethink();
-            }
-
-            Raise(nameof(ShowingTools));
-            Raise(nameof(ToolsTabOn));
-            _moved();
+            return;
         }
+
+        // THE PAGE FIRST, THEN THE MIDDLE CLEARED - a review of #83. Putting the overview or a view of
+        // the audit away raises notifications, and the window arranges itself and the line under it
+        // speaks on each of them. With the page still the list at that moment the list was "on screen"
+        // for the length of the clearing - its controls drawn and its sentence said on the way to a
+        // page that has neither.
+        _page = page;
+
+        if (page != Page.List)
+        {
+            _clearTheMiddle();
+        }
+
+        if (page == Page.Tools)
+        {
+            Tools.Rethink();
+        }
+
+        // The list tabs read this to know they are not the page any more.
+        foreach (var position in Positions)
+        {
+            position.Rethink();
+        }
+
+        Raise(nameof(ShowingTools));
+        Raise(nameof(ToolsTabOn));
+        Raise(nameof(ShowingSettings));
+        _moved();
     }
 
     /// <summary>
@@ -114,7 +144,7 @@ public sealed class Tabs : Observable
     /// </summary>
     public bool ToolsTabOn
     {
-        get => _showingTools;
+        get => _page == Page.Tools;
 
         set
         {
@@ -131,14 +161,14 @@ public sealed class Tabs : Observable
     /// Escape's step on the Tools page, and Ctrl+F's first move there: back to the list - true when the page
     /// was up. MainViewModel.PutAwayAView holds it among the other steps that put a page away.
     /// </summary>
-    internal bool LeaveTheTools()
+    internal bool LeaveThePage()
     {
-        if (!_showingTools)
+        if (_page == Page.List)
         {
             return false;
         }
 
-        ShowingTools = false;
+        Show(Page.List);
 
         return true;
     }
@@ -149,7 +179,7 @@ public sealed class Tabs : Observable
     /// </summary>
     internal void Rethink()
     {
-        if (_showingTools)
+        if (_page == Page.Tools)
         {
             Tools.Rethink();
         }
@@ -162,7 +192,7 @@ public sealed class Tabs : Observable
     /// </summary>
     private void ShowTheList(EntryScope scope)
     {
-        ShowingTools = false;
+        Show(Page.List);
         _clearTheMiddle();
         _scope(scope);
     }
