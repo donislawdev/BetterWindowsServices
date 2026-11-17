@@ -44,6 +44,10 @@ internal static class FinishedRun
     /// <b>A run that was stopped says so, since 2026-09-30</b>, read off the steps by
     /// <see cref="Underway.Afterwards"/> - "What did not is below" pointed at a list that never holds
     /// a step nobody tried.
+    ///
+    /// <b>Counted over the entries somebody asked about, refused ones included, since 2026-11-17</b>
+    /// - see <see cref="Asked"/>. A selection of two with one refused before the run used to end in
+    /// a green tick naming the other one, while the refusal stood in the list under it.
     /// </summary>
     /// <param name="run">The run, with the plan it was made from.</param>
     /// <param name="named">What a person calls the one entry, for a run of one.</param>
@@ -55,25 +59,38 @@ internal static class FinishedRun
         }
 
         var arrived = Arrived(run);
+        var asked = Asked(run);
 
-        if (Underway.Afterwards(run, arrived) is { Length: > 0 } stopped)
+        if (Underway.Afterwards(run, arrived, asked) is { Length: > 0 } stopped)
         {
             return (stopped, PlanOutcome.FellShort);
         }
 
-        if (arrived == run.Runs.Count)
+        if (arrived == asked)
         {
             return (
-                run.Runs.Count == 1 ? OneArrived(run.Plan, named) : AllArrived(run.Plan, run.Runs.Count),
+                asked == 1 ? OneArrived(run.Plan, named) : AllArrived(run.Plan, asked),
                 PlanOutcome.Arrived);
         }
 
         return (
-            run.Runs.Count == 1
+            asked == 1
                 ? Texts.Of("gui.plan.notice.partly.one")
-                : Texts.Of("gui.plan.notice.partly.many", arrived, run.Runs.Count),
+                : Texts.Of("gui.plan.notice.partly.many", arrived, asked),
             PlanOutcome.FellShort);
     }
+
+    /// <summary>
+    /// How many entries somebody asked about: every one that got a plan, and every one refused
+    /// before the run (<see cref="BulkPlan.Problems"/>, which has no plan and so no run).
+    ///
+    /// <b>The refused ones count because the selection is what a person remembers.</b> Somebody who
+    /// picked four rows and reads "All 3 entries are stopped" beside a green tick has been told the
+    /// fourth is stopped too. Counted by name, so an entry refused for two reasons is one entry.
+    /// </summary>
+    internal static int Asked(BulkRun run) =>
+        run.Runs.Count
+        + run.Plan.Problems.Select(problem => problem.ServiceName).Distinct(StringComparer.OrdinalIgnoreCase).Count();
 
     /// <summary>
     /// How many of the entries somebody asked about ended where they asked.

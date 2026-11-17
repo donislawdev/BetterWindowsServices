@@ -196,6 +196,15 @@ public sealed class FeedGuards
             Change(release, change);
             var (code, said) = BuildFeeds(Tag(), release, Path.Combine(dir, "out"));
             Assert.True(code == 1 && said.Contains(says, StringComparison.Ordinal), $"{change}: exited {code} and said:{Environment.NewLine}{said}{Environment.NewLine}want exit 1 and \"{says}\"");
+
+            // A refusal ending in a dash promises its cause after it. The cause differs by runtime
+            // (the script's own count on .NET 10, the reader's InvalidDataException on .NET 11), so
+            // only that one is there is held - a sentence that dropped it would still match above.
+            if (says.EndsWith(" - ", StringComparison.Ordinal))
+            {
+                Assert.Matches(Regex.Escape(says) + @"\S", said);
+            }
+
             Assert.DoesNotContain(Left(dir), name => name != "release");
         }
         finally

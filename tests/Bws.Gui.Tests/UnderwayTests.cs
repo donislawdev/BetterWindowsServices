@@ -159,7 +159,7 @@ public sealed class UnderwayTests
     {
         var run = Run((StepReason.Requested, null), (held, SkipReason.Cancelled));
 
-        Assert.Equal(Texts.Of(key), Underway.Afterwards(run, arrived: 0));
+        Assert.Equal(Texts.Of(key), Underway.Afterwards(run, arrived: 0, asked: 1));
     }
 
     /// <summary>And the sheet itself says it, where the sentence about a finished run stands.</summary>
@@ -182,7 +182,7 @@ public sealed class UnderwayTests
     {
         var run = Run((StepReason.Requested, null), (StepReason.Restore, null));
 
-        Assert.Equal(string.Empty, Underway.Afterwards(run, arrived: 1));
+        Assert.Equal(string.Empty, Underway.Afterwards(run, arrived: 1, asked: 1));
     }
 
     private static BulkRun Run(params (StepReason Reason, SkipReason? Skipped)[] steps)

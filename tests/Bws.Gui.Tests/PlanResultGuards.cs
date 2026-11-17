@@ -66,6 +66,29 @@ public sealed class PlanResultGuards
     }
 
     /// <summary>
+    /// An entry refused while the plan was built is still one somebody asked about. It has no run,
+    /// so every run that exists can arrive, and the sheet must still say the selection fell short,
+    /// counted over all of it - one runnable entry beside one refused is "1 of 2", never the one
+    /// entry's name beside a green tick.
+    /// </summary>
+    [Fact]
+    public void An_entry_refused_before_the_run_keeps_the_result_from_reading_as_done()
+    {
+        var panel = new Planned { Elevated = true };
+        PlanProblem[] refused = [new PlanProblem(PlanProblemKind.NotOperable, "disk", [])];
+
+        Assert.True(panel.Show(Of(ActionKind.Start, false, "Spooler", "W32Time") with { Problems = refused }));
+        panel.Finished(Ran(panel));
+        Assert.Equal(Texts.Of("gui.plan.notice.partly.many", 2, 3), panel.Notice);
+        Assert.Equal(PlanOutcome.FellShort, panel.Outcome);
+
+        Assert.True(panel.Show(Of(ActionKind.Start, false, "Spooler") with { Problems = refused }));
+        panel.Finished(Ran(panel));
+        Assert.Equal(Texts.Of("gui.plan.notice.partly.many", 1, 2), panel.Notice);
+        Assert.Equal(PlanOutcome.FellShort, panel.Outcome);
+    }
+
+    /// <summary>
     /// The box of seconds stays on the sheet during a run, greyed, so the buttons under it do not
     /// move when Interrupt appears - and goes once there is a result.
     /// </summary>

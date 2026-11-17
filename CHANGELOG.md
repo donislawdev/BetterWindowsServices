@@ -30,6 +30,10 @@ is not part of this repository.
 - The list of suggestions under the search box now closes when you click anywhere else in the
   window, not only on Escape. The click still does what it does, so clicking a row closes the list
   and selects the row.
+- A plan over several entries, some of which could not be planned at all, no longer ends by saying
+  every entry is done. The entries listed under the plan as not going to happen now count, so
+  picking four rows with one refused reads "3 of 4 entries ended where you asked", and an interrupted
+  run counts them the same way.
 
 ## [0.5.0] - 2026-11-03
 

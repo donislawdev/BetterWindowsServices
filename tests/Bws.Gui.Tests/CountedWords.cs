@@ -130,9 +130,18 @@ internal static class CountedWords
         "rights"
     ];
 
+    /// <summary>
+    /// A one, up to two words that are not numbers, then a named noun.
+    ///
+    /// <b>The words between may not be numbers, since 2026-11-17</b>, because a noun is counted by
+    /// the number nearest before it. "1 of 2 entries" counts two entries - the narrowed count line
+    /// says "1 of 810 entries" and PluralGuards holds that as right - and it read as "1 entries" the
+    /// first time a finished run reported one entry of two. "1 of 1 entries" is still found, by the
+    /// second one.
+    /// </summary>
     internal static readonly Regex Plural =
         new(
-            @"\b1\s+(?:\w+\s+){0,2}(?:" + string.Join('|', Nouns) + @")\b",
+            @"\b1\s+(?:(?!\d)\w+\s+){0,2}(?:" + string.Join('|', Nouns) + @")\b",
             RegexOptions.None,
             TimeSpan.FromSeconds(5));
 }
@@ -145,6 +154,20 @@ internal static class CountedWords
 /// </summary>
 public sealed class CountedWordGuards
 {
+    /// <summary>
+    /// The pattern itself, on sentences whose answer is known - so narrowing it cannot quietly stop
+    /// it finding the fault it exists for. The noun belongs to the number nearest before it.
+    /// </summary>
+    [Theory]
+    [InlineData("Done. All 1 entries are stopped.", true)]
+    [InlineData("Also stops 1 other entries.", true)]
+    [InlineData("1 of 1 entries ended where you asked.", true)]
+    [InlineData("1 of 2 entries ended where you asked.", false)]
+    [InlineData("0 of 1 entry", false)]
+    [InlineData("Done. Print Spooler is stopped.", false)]
+    public void The_pattern_counts_a_noun_by_the_number_nearest_before_it(string sentence, bool plural) =>
+        Assert.Equal(plural, CountedWords.Plural.IsMatch(sentence));
+
     /// <summary>
     /// Every word that can follow a count in the language files is either a plural noun this
     /// guard knows or a word somebody has decided is not one.

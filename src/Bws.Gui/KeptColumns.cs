@@ -21,6 +21,15 @@ namespace Bws.Gui;
 /// happens while there is still a window to say it in. The cost of that choice is stated rather
 /// than hidden: a width dragged and then a process killed is a width that was never written, and
 /// only a tick or an orderly close puts it on disk.
+///
+/// <b>TWO WINDOWS OPEN AT ONCE: THE ONE THAT WRITES LAST WINS, FOR ALL THREE LISTS.</b> The file
+/// is read once, at startup, and every write puts this window's whole layout back - so a list
+/// arranged in one window and left untouched in another comes back as the second window had it,
+/// if the second closes later. Accepted, not overlooked: the hand-over to an elevated window is
+/// not this case, because the window that starts its replacement stops writing first
+/// (<see cref="Leave"/>), and an administrator window writes like any other since 2026-11-16.
+/// Merging would mean reading the file again before each write and keeping, list by list, only
+/// what this window changed - backlog 640 holds that design until somebody asks for it.
 /// </summary>
 internal sealed class KeptColumns
 {

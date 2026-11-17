@@ -5130,8 +5130,8 @@ $mutations = @(
         Name = 'plan panel: a run over one entry says so in the singular'
         # RE-ANCHORED 2026-11-16: the sentence moved to FinishedRun when the result got a block.
         File = 'src\Bws.Gui\ViewModels\FinishedRun.cs'
-        From = 'run.Runs.Count == 1 ? OneArrived(run.Plan, named)'
-        To = 'run.Runs.Count == 0 ? OneArrived(run.Plan, named)'
+        From = 'asked == 1 ? OneArrived(run.Plan, named)'
+        To = 'asked == 0 ? OneArrived(run.Plan, named)'
         Test = 'PluralGuards.A_run_over_one_entry_says_so_in_the_singular'
     },
     @{
@@ -10732,8 +10732,8 @@ $mutations = @(
         Name = 'report: a run held back says it was interrupted'
         # RE-ANCHORED 2026-11-16: the sentence moved to FinishedRun when the result got a block.
         File = 'src\Bws.Gui\ViewModels\FinishedRun.cs'
-        From = '        if (Underway.Afterwards(run, arrived) is { Length: > 0 } stopped)'
-        To = '        if (Underway.Afterwards(run, arrived) is { Length: > 100000 } stopped)'
+        From = '        if (Underway.Afterwards(run, arrived, asked) is { Length: > 0 } stopped)'
+        To = '        if (Underway.Afterwards(run, arrived, asked) is { Length: > 100000 } stopped)'
         Test = 'UnderwayTests.A_finished_run_that_was_held_back_says_so_on_the_sheet'
     },
     @{
