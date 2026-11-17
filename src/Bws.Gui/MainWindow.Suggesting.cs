@@ -159,6 +159,17 @@ public partial class MainWindow
 
         Search.List.PreviewMouseLeftButtonUp += (_, e) => TakeUnderThePointer(e);
 
+        // A FIELD PRESSED IN THE GUIDE goes at the end of the query, after a space when the query
+        // does not end in one, and is written the way every row is - so its values open at once and
+        // Ctrl+Z takes it back. Since 2026-11-17, SearchGuide.xaml.
+        Search.GuideCard.FieldPicked += (_, picked) =>
+        {
+            var at = box.Text.Length;
+            var gap = at == 0 || char.IsWhiteSpace(box.Text[^1]) ? string.Empty : " ";
+
+            Write(picked.Field with { Replaces = at..at, Written = gap + picked.Field.Written });
+        };
+
         Deactivated += (_, _) => list.Close();
         LocationChanged += (_, _) => list.Close();
     }

@@ -67,7 +67,7 @@ public sealed class QueryExampleScopeTests
     }
 
     [Fact]
-    public async Task The_tooltip_and_the_list_under_the_box_offer_the_same_questions_as_the_scope()
+    public async Task The_list_under_the_box_offers_the_questions_of_the_scope_and_the_tooltip_none()
     {
         var model = await Loaded();
 
@@ -80,12 +80,11 @@ public sealed class QueryExampleScopeTests
 
             Assert.Equal(expected.Select(example => example.Label), model.Examples.Select(example => example.Label));
 
-            // The tooltip carries every shown question and none of the hidden ones. Labels rather
-            // than queries, because two queries could be substrings of each other.
-            foreach (var example in QueryExamples.All)
-            {
-                Assert.Equal(expected.Contains(example), model.SearchTip.Contains(example.Label, StringComparison.Ordinal));
-            }
+            // THE TOOLTIP NAMES NO QUESTION AT ALL since 2026-11-17, owner's decision D3: it sends
+            // somebody to the guide, which is the one place the language is explained. A question
+            // coming back into it would be a second copy of the list, cut by scope or not.
+            Assert.All(QueryExamples.All, example => Assert.DoesNotContain(example.Label, model.SearchTip, StringComparison.Ordinal));
+            Assert.Equal(Texts.Of("gui.search.tip"), model.SearchTip);
 
             // The list under the box reads the same cut at the moment it opens, not at
             // construction - which is what lets it follow the scope switch.
@@ -100,7 +99,7 @@ public sealed class QueryExampleScopeTests
     }
 
     [Fact]
-    public async Task Moving_the_scope_tells_the_box_that_its_questions_and_its_tooltip_changed()
+    public async Task Moving_the_scope_tells_the_box_that_its_questions_changed()
     {
         var model = await Loaded();
         var announced = new List<string>();
@@ -110,11 +109,10 @@ public sealed class QueryExampleScopeTests
 
         model.Scope = EntryScope.Drivers;
 
-        // Both, because they are two bindings: the tooltip is one string bound on the box, the
-        // examples are a list. A tooltip left behind would show the account example on Drivers
-        // for as long as the window stayed open - the shape backlog 358 found.
+        // A list of questions left behind would offer the account example on Drivers for as long
+        // as the window stayed open - the shape backlog 358 found. The tooltip no longer carries
+        // them (2026-11-17), so it no longer has to be told.
         Assert.Contains(nameof(MainViewModel.Examples), announced);
-        Assert.Contains(nameof(MainViewModel.SearchTip), announced);
     }
 
     [Fact]

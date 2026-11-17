@@ -107,6 +107,9 @@
                 -->
                 <ResourceDictionary Source="Themes/Actions.xaml" />
 
+                <!-- The help the search box gives, 2026-11-17: BEFORE the list, whose rows name its clock and its group heading. -->
+                <ResourceDictionary Source="Themes/QueryHelp.xaml" />
+
                 <!--
                     THE LIST UNDER THE SEARCH BOX, beside the other floating surface. It names
                     FixedText and SubduedText from Text.xaml through StaticResource, so anywhere

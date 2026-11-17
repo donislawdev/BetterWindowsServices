@@ -68,7 +68,6 @@ public sealed partial class MainViewModel
             Raise(nameof(Scope));
             Raise(nameof(SearchHint));
             Raise(nameof(Examples));
-            Raise(nameof(SearchTip));
         }
     }
 
@@ -78,13 +77,17 @@ public sealed partial class MainViewModel
     ///
     /// <b>Cut by scope since 2026-09-16, backlog 358.</b> Three of the six selected nothing on
     /// Drivers, and an example that selects nothing teaches the language wrong and blames the
-    /// person for it. The tooltip below and the list under the box both read this, so the two
-    /// cannot disagree.
+    /// person for it. The list under the box reads this when it opens.
     /// </summary>
     public IReadOnlyList<QueryExample> Examples => QueryExamples.For(Scope);
 
-    /// <summary>What the search box says to somebody pointing at it - <see cref="QueryExamples.Tip"/>.</summary>
-    public string SearchTip => QueryExamples.Tip(Examples);
+    /// <summary>
+    /// What the search box says to somebody pointing at it: one sentence that sends them to the
+    /// guide. It carried the whole syntax and the questions of the list on screen from 2026-08-13 -
+    /// owner's decision D3 of 2026-11-17 cut it to this, once the guide under the ? said the same
+    /// thing and could be clicked. The syntax is explained in one place, and that place is the guide.
+    /// </summary>
+    public string SearchTip => Texts.Of("gui.search.tip");
 
     /// <summary>
     /// What the readings call when the machine has been asked again.

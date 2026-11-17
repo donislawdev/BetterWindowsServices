@@ -229,6 +229,9 @@ public sealed partial class MainViewModel : Checked
                 Says.Moved();
 
                 Apply();
+
+                // Where the mistakes stand moves with the text and with nothing else.
+                Raise(nameof(Mistakes));
             }
         }
     }

@@ -549,8 +549,8 @@ describes the whole machine.
 - Administrator rights to change anything. Reading, searching, snapshots and diffs work without,
   with fewer entries visible and the tool saying so.
 
-The window keeps one file of its own, the layout you left the list in, under
-`%APPDATA%\BetterWindowsServices`. A window started as administrator keeps its layout there too -
+The window keeps one file of its own, the layout you left the list in and your last five searches,
+under `%APPDATA%\BetterWindowsServices`. A window started as administrator keeps its layout there too -
 *Honest limits* above says what that accepts. A snapshot goes where you tell `bws snapshot create`
 to put it, and into the current directory when you do not.
 
@@ -681,13 +681,18 @@ support page in your browser - and in a window running as administrator they ask
 open it, so the browser does not get those rights.
 
 The search box takes the query language and suggests as you type - Tab or Enter writes the
-highlighted word - and the filter buttons write into the box. *Columns* chooses what the list
-shows, a right-click on a column heading narrows the list to that value or puts the column away,
-and the layout you leave is the layout it opens in - unless the file holding it is one the window
-cannot use, from a newer version or held by another program, which it then says, leaves alone and
-saves nothing over. A row's menu previews every operation before offering it, and copies the name
-or everything about the entry, display name and description included. Ctrl+C over the list copies
-everything about the chosen entry, and Escape backs out of the innermost thing first.
+highlighted word - and the filter buttons write into the box. Clicked while empty, it offers your
+last five searches over the questions to start from, and Delete forgets the chosen one. The *?* at
+its end, or F1 in it, opens *How to search*: one example of each way to write a value, which a click
+or Enter adds to your query, and every field, which a click writes with its colon. A part of the
+query that cannot be read gets a wavy red line under it, beside the sentence saying why. *Columns*
+chooses what the list shows, a right-click on a column heading narrows the list to that value or
+puts the column away, and the layout you leave is the layout it opens in - unless the file holding
+it is one the window cannot use, from a newer version or held by another program, which it then
+says, leaves alone and saves nothing over. A row's menu previews every operation before offering
+it, and copies the name or everything about the entry, display name and description included.
+Ctrl+C over the list copies everything about the chosen entry, and Escape backs out of the
+innermost thing first.
 
 *Export...* writes the rows on screen, in the columns you have on and the order you sorted them
 into, to a CSV file separated the way your Windows region settings separate lists, so a double

@@ -122,21 +122,16 @@ public static class QueryParser
             return new QueryParseResult(new Query([]), problems);
         }
 
-        if (!QueryScanner.TryScan(query, out var members, out var unclosedQuoteAt))
+        if (!QueryScanner.TryScan(query, out var members, out var spans, out var unclosedQuoteAt))
         {
-            problems.Add(new QueryProblem
-            {
-                Kind = QueryProblemKind.UnclosedQuote,
-                Text = query[unclosedQuoteAt..]
-            });
-
-            return new QueryParseResult(null, problems);
+            return Unclosed(query, unclosedQuoteAt);
         }
 
         var terms = new List<QueryTerm>();
 
-        foreach (var member in members)
+        for (var index = 0; index < members.Count; index++)
         {
+            var member = members[index];
             // THE CHOKE POINT, and it went in and came straight back out on 2026-08-03 before
             // it could work. Reporting every member that produced nothing broke four tests at
             // once, all of them holding the same deliberate decision about half-typed text - so
@@ -150,9 +145,9 @@ public static class QueryParser
 
             if (term is not null)
             {
+                // A term can still bring a problem with it - status:running,st reads, and the st
+                // is said - so this path is stamped below like the other two.
                 terms.Add(term);
-
-                continue;
             }
 
             // THE START OF A VALUE, IN THE MEMBER SOMEBODY IS TYPING - UX-GUI-011 of the audit of
@@ -161,17 +156,15 @@ public static class QueryParser
             // the screen while the list under the box offered `running` as the next word. So the
             // same passing over reaches one step further, and only as far as it can be sure
             // somebody is still typing - see StillBeingTyped for the five conditions.
-            if (input is QueryInput.BeingTyped
-                && StillBeingTyped(query, member, ReferenceEquals(member, members[^1]), problems, before))
+            else if (input is QueryInput.BeingTyped
+                && StillBeingTyped(query, member, index == members.Count - 1, problems, before))
             {
                 problems.RemoveRange(before, problems.Count - before);
-
-                continue;
             }
 
             // Nothing came of it, and nothing has been said about why. In a window that is
             // somebody mid-word. In a terminal there is no mid-word.
-            if (input is QueryInput.Finished && problems.Count == before)
+            else if (input is QueryInput.Finished && problems.Count == before)
             {
                 problems.Add(new QueryProblem
                 {
@@ -179,11 +172,29 @@ public static class QueryParser
                     Text = member.Text.Length == 0 ? "\"\"" : member.Text
                 });
             }
+
+            Place(problems, before, spans[index]);
         }
 
         return problems.Count > 0
             ? new QueryParseResult(null, problems)
             : new QueryParseResult(new Query(Fold(terms)), problems);
+    }
+
+    /// <summary>A quote that never closes, which is the one problem that stands where no member does: from the quote to the end.</summary>
+    private static QueryParseResult Unclosed(string query, int quoteAt) =>
+        new(null, [new QueryProblem { Kind = QueryProblemKind.UnclosedQuote, Text = query[quoteAt..], At = quoteAt..query.Length }]);
+
+    /// <summary>
+    /// Where each problem a member raised stands, said once here rather than by every reader that
+    /// raised one - the readers get slices, and a slice has no place in the query (QueryProblem.At).
+    /// </summary>
+    private static void Place(List<QueryProblem> problems, int from, Range member)
+    {
+        for (var raised = from; raised < problems.Count; raised++)
+        {
+            problems[raised] = problems[raised] with { At = member };
+        }
     }
 
     /// <summary>

@@ -1,0 +1,45 @@
+<UserControl x:Class="Bws.Gui.SearchGuide"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Bws.Gui.ViewModels"
+             Focusable="False"
+             IsTabStop="False">
+
+    <!--
+        THE FIELDS OF THE LANGUAGE, UNDER THE EXAMPLES IN THE GUIDE - the owner's second choice of
+        2026-11-16: a button at the end of the box opens a card with the fields and the examples, and
+        a click writes them into the box. The examples are the list's own rows over this
+        (QueryGuide.Rows), so they keep its keys, its highlight and its click. This is what stands
+        under them: every field as a pill that writes itself and its colon.
+
+        A FILE OF ITS OWN because SearchRow.xaml stood five lines under the crowd line of the markup
+        ratchet, and the guide is a subject of its own: what the language is, rather than what the
+        box holds.
+
+        NOTHING HERE TAKES THE KEYBOARD - the list closes the moment the box loses it, and every part
+        says so in its own style or here (`docs/10` trap 8). Shown only while the list is the guide
+        (GuideBlock). The two lists are data in ViewModels/QueryGuide.cs, never markup (GUI rule 8).
+    -->
+    <Border Style="{StaticResource GuideBlock}">
+        <StackPanel>
+            <TextBlock Text="{DynamicResource gui.guide.fields}" Style="{StaticResource GuideFieldsLabel}" />
+
+            <!-- Under a width the popup sets, so the pills wrap - a WrapPanel measured with infinite width never does (`docs/10` trap 18). -->
+            <ItemsControl x:Name="Fields" Focusable="False" IsTabStop="False" ItemsSource="{x:Static vm:QueryGuide.Fields}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <!-- The word as a TextBlock of its own: a face set on the button does not reach a string's text past the implicit TextBlock style (`docs/10` trap 16). -->
+                    <DataTemplate>
+                        <Button ToolTip="{Binding Meaning}" AutomationProperties.Name="{Binding Word}" Style="{StaticResource GuideField}" Click="FieldClicked">
+                            <TextBlock Text="{Binding Word}" Style="{StaticResource FixedText}" />
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </Border>
+</UserControl>

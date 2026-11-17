@@ -313,6 +313,8 @@ public static partial class Catalogue
     /// The two views that take the whole middle of the window rather than a band of it - the overview and,
     /// since 2026-10-20, the Tools tab. Out of <see cref="Views"/> that day, when it stood on the size
     /// ratchet's band for length - the seam is a subject: these are pages, everything left there is a part.
+    /// The guide to the language joined them on 2026-11-17 for room rather than subject: Views stood
+    /// on its band again, and this file three lines under its ceiling.
     /// </summary>
     private static Built[] PageViews(Prepared ready) =>
     [
@@ -324,7 +326,11 @@ public static partial class Catalogue
         // Empty is a machine with nothing, wrong one that could not be read, loading every card waiting,
         // and the extreme cell a session without rights, where each card says carrying it out needs them.
         View(() => new ToolsView(),
-            data: ready.Data, empty: ready.Empty, wrong: ready.Wrong, loading: ready.Loading, extreme: ready.Unelevated)
+            data: ready.Data, empty: ready.Empty, wrong: ready.Wrong, loading: ready.Loading, extreme: ready.Unelevated),
+
+        // The fields under the guide to the language, over a model of its own - Catalogue.Guide.cs says why.
+        // The extreme cell is the narrow column, where twenty one pills wrap the most.
+        View(() => new SearchGuide(), data: Guiding(), extreme: Guiding())
     ];
 
     private static async Task ShowPlanAsync(MainViewModel model, ActionKind kind, params string[] names)

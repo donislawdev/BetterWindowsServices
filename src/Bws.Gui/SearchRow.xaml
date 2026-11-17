@@ -1,6 +1,7 @@
 <UserControl x:Class="Bws.Gui.SearchRow"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Bws.Gui"
              Focusable="False"
              IsTabStop="False">
 
@@ -72,6 +73,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <Path Grid.Column="0" Style="{StaticResource SearchMark}" />
@@ -128,6 +130,11 @@
                         </TextBlock.Style>
                     </TextBlock>
 
+                    <!-- WHERE THE MISTAKE IS, under its characters, since 2026-11-17 - the sentence says what. MistakeMarks.cs says why this is laid over the box rather than drawn by it. -->
+                    <local:MistakeMarks Grid.Column="1" x:Name="Marks" Box="{Binding ElementName=QueryBox}" Mistakes="{Binding Mistakes}"
+                                        Stroke="{StaticResource MeaningRejected}" StrokeThickness="{StaticResource ShapeOutline}"
+                                        Wave="{StaticResource SizeMistakeWave}" WaveHeight="{StaticResource SizeMistakeWaveHeight}" />
+
                     <!--
                         WHAT THE ANSWER TO THIS QUESTION HAS TO SAY ABOUT ITSELF - UX-GUI-002 and 009
                         of the audit of 2026-09-23: a mistake in the query, in red, with the sentence
@@ -147,6 +154,10 @@
                                Text="{Binding Says.AnswerLine}"
                                ToolTip="{Binding Says.AnswerLine}"
                                Style="{StaticResource SearchMessageText}" />
+
+                    <!-- HOW TO SEARCH, at the end of the field since 2026-11-17 - the owner's second choice. QueryHelp.xaml says why it never takes the keyboard. -->
+                    <Button Grid.Column="3" x:Name="GuideButton" Style="{StaticResource SearchGuideButton}" Click="GuideRequested"
+                            AutomationProperties.Name="{DynamicResource gui.search.guide.name}" ToolTip="{DynamicResource gui.search.guide.hint}" />
                 </Grid>
             </Border>
 
@@ -217,6 +228,8 @@
                             <TextBlock Text="{Binding Suggesting.Keys}"
                                        Style="{StaticResource SubduedText}" />
                         </Border>
+                        <!-- The fields of the language under the examples, while the list is the guide - SearchGuide.xaml. -->
+                        <local:SearchGuide x:Name="GuideCard" DockPanel.Dock="Bottom" />
                         <ListBox x:Name="SuggestionList"
                                  AutomationProperties.AutomationId="Suggestions"
                                  Style="{StaticResource SuggestionList}"

@@ -139,4 +139,16 @@ public sealed record QueryProblem
 
     /// <summary>Why the engine rejected a pattern. Set for <see cref="QueryProblemKind.BadPattern"/>.</summary>
     public string? Detail { get; init; }
+
+    /// <summary>
+    /// Where in the parsed text this stands: the member it came from as written, its quotes and a
+    /// leading ! included - or, for a quote that never closes, from that quote to the end. Null
+    /// only for a problem built outside <see cref="QueryParser.Parse"/>.
+    ///
+    /// <b>The member rather than the word inside it, since 2026-11-17</b>, when the window began
+    /// marking the place under the search box. The scanner knows where each member sat and nothing
+    /// finer survives its slicing (<c>QueryScanner.TryScan</c> says why), and a mark under
+    /// <c>status:rx</c> answers "where" as well as one under <c>rx</c> alone would.
+    /// </summary>
+    public Range? At { get; init; }
 }

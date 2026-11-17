@@ -14,7 +14,11 @@ namespace Bws.Gui.ViewModels;
 /// <param name="Meaning">What that means, in the reader's language. Empty when nothing has a sentence for it.</param>
 /// <param name="Replaces">The range of the box's text it stands in for.</param>
 /// <param name="Written">What goes into that range.</param>
-public sealed record Suggestion(string Word, string Meaning, Range Replaces, string Written, bool IsQuestion = false)
+/// <param name="IsQuestion">One of the questions to start from: it leads with its sentence.</param>
+/// <param name="IsRecent">A search made lately (RecentQueries): it leads with the query, a mark beside it says so, and Delete forgets it.</param>
+/// <param name="Heading">The name of the group this row opens, drawn over it - only on the first row of a group that does not open the list.</param>
+public sealed record Suggestion(
+    string Word, string Meaning, Range Replaces, string Written, bool IsQuestion = false, bool IsRecent = false, string? Heading = null)
 {
     /// <summary>
     /// What the row leads with: the sentence for a question, the word for a completion. A person
@@ -58,6 +62,7 @@ public sealed class Suggesting : Observable
     private Suggestion? _chosen;
     private bool _keyboardHere;
     private bool _questions;
+    private bool _guiding;
     private bool _composing;
 
     // What the box held, and where its caret stood, the last time the list was told - so that a
@@ -69,8 +74,12 @@ public sealed class Suggesting : Observable
     // shapes a key is used in and a literal inside a conditional is not one of them.
     private const string QuestionsCaption = "gui.suggest.caption.questions";
     private const string WordsCaption = "gui.suggest.caption.words";
+    private const string RecentCaption = "gui.suggest.caption.recent";
+    private const string GuideCaption = "gui.suggest.caption.guide";
     private const string QuestionsKeys = "gui.suggest.keys";
     private const string WordsKeys = "gui.suggest.keys.words";
+    private const string RecentKeys = "gui.suggest.keys.recent";
+    private const string GuideKeys = "gui.suggest.keys.guide";
 
     /// <summary>
     /// The chips are read rather than copied, because their labels are read in whatever language
@@ -85,6 +94,13 @@ public sealed class Suggesting : Observable
         _chips = chips;
         _examples = examples;
     }
+
+    /// <summary>
+    /// The searches made lately, newest first, as the window keeps them in the layout file - asked
+    /// each time the list opens on an empty box. Handed in by the window, which holds the file
+    /// (RecentSearches.Watch). Nothing until it does.
+    /// </summary>
+    public Func<IReadOnlyList<string>>? RecentQueries { get; set; }
 
     /// <summary>What the list holds. Replaced whole, never changed in place.</summary>
     public IReadOnlyList<Suggestion> Offered
@@ -104,7 +120,18 @@ public sealed class Suggesting : Observable
     public Suggestion? Chosen
     {
         get => _chosen;
-        set => Set(ref _chosen, value);
+        set
+        {
+            var wasRecent = _chosen is { IsRecent: true };
+
+            // THE KEYS FOLLOW THE ROW ONLY AS FAR AS DELETE: a search made lately can be forgotten and
+            // nothing else can. A list changing kind is said by Offer, so each of the two raises says
+            // one thing - with this one raising on every row, Offer's went unchecked by any test.
+            if (Set(ref _chosen, value) && wasRecent != value is { IsRecent: true })
+            {
+                Raise(nameof(Keys));
+            }
+        }
     }
 
     /// <summary>Whether there is a list to show. Nothing offered means nothing open.</summary>
@@ -118,7 +145,18 @@ public sealed class Suggesting : Observable
     /// <b>Two sentences since 2026-09-25, because Tab means two things</b> - it writes a word and
     /// it walks past the questions. `docs/PROJEKT-PODPOWIEDZI-UX-20260925.md`, P3.
     /// </summary>
-    public string Keys => Texts.Of(_questions ? QuestionsKeys : WordsKeys);
+    public string Keys => Texts.Of(
+        _guiding ? GuideKeys
+        : !_questions ? WordsKeys
+        : _chosen is { IsRecent: true } ? RecentKeys
+        : QuestionsKeys);
+
+    /// <summary>
+    /// Whether the list is the guide to the language - the ways to write a value and the fields over
+    /// the questions - opened by the button at the end of the box or F1 in it. The owner's second
+    /// choice of 2026-11-16: until then the syntax was in the box's tooltip alone.
+    /// </summary>
+    public bool Guiding => _guiding && IsOpen;
 
     /// <summary>
     /// Whether Tab writes the chosen row - the owner's reflex from PowerShell and every editor,
@@ -159,7 +197,11 @@ public sealed class Suggesting : Observable
     /// </summary>
     public string Caption => !IsOpen
         ? string.Empty
-        : Texts.Of(_questions ? QuestionsCaption : WordsCaption);
+        : Texts.Of(
+            _guiding ? GuideCaption
+            : !_questions ? WordsCaption
+            : _offered[0].IsRecent ? RecentCaption
+            : QuestionsCaption);
 
     /// <summary>
     /// What a screen reader is told about the chosen row - its word, its sentence when it has
@@ -320,6 +362,43 @@ public sealed class Suggesting : Observable
         return IsOpen;
     }
 
+    /// <summary>
+    /// The guide to the language: the ways to write a value as rows, one example each with what it
+    /// does, and the fields under them - SearchGuide.xaml draws those from <see cref="QueryGuide"/>.
+    /// Asked for by the button at the end of the box or by F1 in it, so the window puts the keyboard
+    /// in the box first. An example chosen here goes at the END of whatever the box holds, so the
+    /// guide helps somebody halfway through a query as well as somebody starting one - and it is
+    /// written through the selection like every row, so Ctrl+Z takes it back.
+    ///
+    /// <b>The questions to start from are not repeated here</b>, since the second look at the first
+    /// build (2026-11-17): with them the list stood about 690 pixels tall on a window whose least
+    /// height is 640, and they are one click away on the empty box anyway.
+    /// </summary>
+    public void Guide(string? text)
+    {
+        _keyboardHere = true;
+        _questions = true;
+        Offer(QueryGuide.Rows(text ?? string.Empty), guiding: true);
+    }
+
+    /// <summary>
+    /// A search made lately was forgotten, so the list is offered again without it - the row that
+    /// took its place is chosen, so Delete pressed again goes on down the list as it would in any
+    /// list somebody is clearing.
+    /// </summary>
+    public void Forgot(string? text)
+    {
+        var at = _chosen is null ? 0 : Math.Max(0, IndexOf(_chosen));
+
+        _questions = true;
+        Offer(Examples(text ?? string.Empty));
+
+        if (IsOpen)
+        {
+            Chosen = _offered[Math.Min(at, _offered.Count - 1)];
+        }
+    }
+
     /// <summary>The next row, wrapping at the end. False when there is no list.</summary>
     public bool Next() => Step(+1);
 
@@ -353,9 +432,11 @@ public sealed class Suggesting : Observable
         }
 
 
+        _guiding = false;
         Offered = [];
         Chosen = null;
         Raise(nameof(IsOpen));
+        Raise(nameof(Guiding));
         Raise(nameof(Caption));
         Raise(nameof(Keys));
 
@@ -386,7 +467,7 @@ public sealed class Suggesting : Observable
     /// the list arrived. A list that is the same as the one showing is left alone, so that a
     /// second click into an empty box does not rebuild six rows under the pointer.
     /// </summary>
-    private void Offer(IReadOnlyList<Suggestion> rows)
+    private void Offer(IReadOnlyList<Suggestion> rows, bool guiding = false)
     {
         if (rows.Count == 0)
         {
@@ -395,7 +476,7 @@ public sealed class Suggesting : Observable
             return;
         }
 
-        if (rows.SequenceEqual(_offered))
+        if (rows.SequenceEqual(_offered) && guiding == _guiding)
         {
             return;
         }
@@ -403,7 +484,9 @@ public sealed class Suggesting : Observable
         var wasOpen = IsOpen;
         var kept = _chosen?.Word;
 
+        _guiding = guiding;
         Offered = rows;
+        Raise(nameof(Guiding));
         Raise(nameof(Caption));
         Raise(nameof(Keys));
         Chosen = rows.FirstOrDefault(row => string.Equals(row.Word, kept, StringComparison.Ordinal)) ?? rows[0];
@@ -427,87 +510,31 @@ public sealed class Suggesting : Observable
         return -1;
     }
 
-    /// <summary>The questions that fit the list on screen, each replacing the whole of an empty box.</summary>
-    private IReadOnlyList<Suggestion> Examples(string text) =>
-        [.. _examples().Select(example => new Suggestion(example.Query, example.Label, 0..text.Length, example.Query, IsQuestion: true))];
+    /// <summary>
+    /// What an empty box offers: the searches made lately, then the questions that fit the list on
+    /// screen, each replacing the whole of the box. A search is left out when it is one of those
+    /// questions - the row is there already - or when it no longer reads, which is how a search
+    /// written in a field a later build took away would otherwise come back as a row that fails.
+    /// </summary>
+    private IReadOnlyList<Suggestion> Examples(string text)
+    {
+        var questions = _examples();
+        var recent = (RecentQueries?.Invoke() ?? [])
+            .Where(query => !questions.Any(question => string.Equals(question.Query, query, StringComparison.Ordinal))
+                && QueryParser.Parse(query).IsValid)
+            .Select(query => new Suggestion(query, Texts.Of("gui.suggest.recent"), 0..text.Length, query, IsRecent: true))
+            .ToList();
+
+        return [.. recent, .. Questions(text, heading: recent.Count > 0)];
+    }
+
+    /// <summary>The questions that fit the list on screen - the first carrying the name of its group when another group stands over it.</summary>
+    private IEnumerable<Suggestion> Questions(string text, bool heading) =>
+        _examples().Select((example, at) => new Suggestion(
+            example.Query, example.Label, 0..text.Length, example.Query, IsQuestion: true,
+            Heading: heading && at == 0 ? Texts.Of(QuestionsCaption) : null));
 
     private IReadOnlyList<Suggestion> Rows(IReadOnlyList<QueryCompletion> completions) =>
         [.. completions.Select(completion => new Suggestion(
             completion.Word, Meanings.Of(completion, _chips()), completion.Replaces, completion.Written))];
-}
-
-/// <summary>A word of the language and the key of the sentence that stands beside it in the list.</summary>
-internal sealed record Meaning(string Word, string Key);
-
-/// <summary>
-/// The sentence beside each word the list can offer.
-///
-/// <b>Three sources, and which one is the decision rather than the mechanism.</b> A field gets a
-/// sentence of its own, because a field name is what a stranger cannot guess and the four that
-/// cost a second reading have to say so before somebody writes them - decision 11 of the design.
-/// A reserved word gets one of three. A value gets the label of the chip that stands for it,
-/// where a chip exists, and nothing where none does: the values are the words <c>sc.exe</c>
-/// prints, and a sentence for each of forty-five would be forty-five more keys to keep true
-/// (decision 3).
-///
-/// <b>THE KEY IS WRITTEN BESIDE THE WORD RATHER THAN ASSEMBLED FROM IT</b>, and the reason is
-/// <c>TextKeyGuards</c>: a key put together at run time is a key nothing can find by reading, so
-/// a sentence missing from the language file would reach the screen as the key itself -
-/// <c>Texts.Of</c> answers a missing key with the key. Written here, the guard reads every one of
-/// them, and <c>SuggestionGuards</c> holds that every field of the language has a row in this
-/// table and every row names a field that exists.
-/// </summary>
-internal static class Meanings
-{
-    internal static readonly IReadOnlyList<Meaning> Fields =
-    [
-        new Meaning("name", "gui.suggest.field.name"),
-        new Meaning("display", "gui.suggest.field.display"),
-        new Meaning("description", "gui.suggest.field.description"),
-        new Meaning("type", "gui.suggest.field.type"),
-        new Meaning("peruser", "gui.suggest.field.peruser"),
-        new Meaning("status", "gui.suggest.field.status"),
-        new Meaning("start", "gui.suggest.field.start"),
-        new Meaning("account", "gui.suggest.field.account"),
-        new Meaning("pid", "gui.suggest.field.pid"),
-        new Meaning("trigger", "gui.suggest.field.trigger"),
-        new Meaning("path", "gui.suggest.field.path"),
-        new Meaning("file", "gui.suggest.field.file"),
-        new Meaning("signed", "gui.suggest.field.signed"),
-        new Meaning("publisher", "gui.suggest.field.publisher"),
-        new Meaning("privilege", "gui.suggest.field.privilege"),
-        new Meaning("dependson", "gui.suggest.field.dependson"),
-        new Meaning("requiredby", "gui.suggest.field.requiredby"),
-        new Meaning("sidtype", "gui.suggest.field.sidtype"),
-        new Meaning("sddl", "gui.suggest.field.sddl"),
-        new Meaning("memory", "gui.suggest.field.memory"),
-        new Meaning("mismatch", "gui.suggest.field.mismatch")
-    ];
-
-    internal static readonly IReadOnlyList<Meaning> Words =
-    [
-        new Meaning(QueryFields.Any, "gui.suggest.word.any"),
-        new Meaning(QueryFields.None, "gui.suggest.word.none"),
-        new Meaning(QueryFields.Unreadable, "gui.suggest.word.unreadable")
-    ];
-
-    /// <summary>The sentence for one completion, or nothing where nothing has one.</summary>
-    internal static string Of(QueryCompletion completion, IReadOnlyList<FilterChip> chips) =>
-        completion.Kind switch
-        {
-            QueryCompletionKind.Field => Sentence(Fields, completion.Word),
-            QueryCompletionKind.Word => Sentence(Words, completion.Word),
-            _ => chips
-                .FirstOrDefault(chip => !chip.Negated
-                    && string.Equals(chip.Field, completion.Field, StringComparison.Ordinal)
-                    && string.Equals(chip.Value, completion.Word, StringComparison.Ordinal))
-                ?.Label ?? string.Empty
-        };
-
-    private static string Sentence(IReadOnlyList<Meaning> table, string word)
-    {
-        var meaning = table.FirstOrDefault(entry => string.Equals(entry.Word, word, StringComparison.Ordinal));
-
-        return meaning is null ? string.Empty : Texts.Of(meaning.Key);
-    }
 }
