@@ -2039,10 +2039,14 @@ $mutations = @(
     @{
         # The same shape on the other file this product reads, and this one is read while the
         # window is being constructed - so the failure is a program that will not start.
-        Name = 'layout: a file too big to be one is refused before it is read'
-        File = 'src\Bws.Gui\PreferencesFile.cs'
-        From = '            if (new FileInfo(Where).Length > Biggest)'
-        To = '            if (new FileInfo(Where).Length > long.MaxValue)'
+        # RE-ANCHORED 2026-11-17 (review of #124): both readers of this file go through
+        # KeptChoices.ReadText, which counts the bytes as they arrive instead of asking the size
+        # first - a file replaced after that question could get round it. The test still goes
+        # through PreferencesFile.Read.
+        Name = 'layout: a file too big to be one is never read past its ceiling'
+        File = 'src\Bws.Gui\ViewModels\KeptChoices.cs'
+        From = '            if (held.Length > Biggest)'
+        To = '            if (held.Length > long.MaxValue)'
         Test = 'PreferencesFileGuards.A_file_too_big_to_be_a_layout_is_refused_rather_than_read_into_memory'
     },
     @{
@@ -6189,10 +6193,12 @@ $mutations = @(
     @{
         # The decoder that substitutes rather than the one that refuses - the choice this file made
         # by accident until 2026-08-26, while its neighbour had measured the cost of it.
+        # RE-ANCHORED 2026-11-17 (review of #124): the decoder moved with the read into
+        # KeptChoices.ReadText, the one reader of this file's bytes for both roads.
         Name = 'layout: bytes that are not text are refused rather than guessed at'
-        File = 'src\Bws.Gui\PreferencesFile.cs'
-        From = 'new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true),'
-        To = 'new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false),'
+        File = 'src\Bws.Gui\ViewModels\KeptChoices.cs'
+        From = 'StrictText = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);'
+        To = 'StrictText = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);'
         Test = 'PreferencesFileGuards.Bytes_that_are_not_text_this_build_reads_are_refused_rather_than_guessed_at'
     },
     @{

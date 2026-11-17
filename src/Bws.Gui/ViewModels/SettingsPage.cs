@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.IO;
 
 namespace Bws.Gui.ViewModels;
 
@@ -21,6 +20,15 @@ public sealed class SettingsPage : Observable
     private readonly Func<bool> _busy;
     private readonly Action<string?> _choose;
     private readonly Action<bool> _remember;
+    private readonly Func<(bool File, bool Folder)> _onDisk;
+
+    /// <summary>
+    /// Whether the file and its folder were there when the page last asked - when it was built, when it came
+    /// on screen, and after a change it handed out. Kept rather than asked from the getters, which a binding
+    /// calls on every render: a profile on a share would be asked across the network each time, and the sheet
+    /// of components would ask a server named only in a specimen.
+    /// </summary>
+    private (bool File, bool Folder) _there;
 
     /// <summary>
     /// The language the window is showing now, as a code. A choice that opens the same language needs no
@@ -42,9 +50,11 @@ public sealed class SettingsPage : Observable
         _busy = hands.Busy;
         _choose = hands.Choose;
         _remember = hands.Remember;
+        _onDisk = hands.OnDisk;
         _showing = facts.Showing;
         _rememberRecent = facts.RememberRecent;
         FileWhere = facts.File;
+        _there = Look();
 
         var (found, windowsAsks, kept) = (facts.Found, facts.WindowsAsks, facts.Kept);
 
@@ -103,6 +113,7 @@ public sealed class SettingsPage : Observable
             {
                 _remember(value);
                 RethinkRecent();
+                RethinkFile();
             }
         }
     }
@@ -123,10 +134,10 @@ public sealed class SettingsPage : Observable
     public bool SaysNoPlace => FileWhere is null;
 
     /// <summary>Whether the file has been written yet.</summary>
-    public bool SaysFileNotYet => FileWhere is not null && !File.Exists(FileWhere);
+    public bool SaysFileNotYet => FileWhere is not null && !_there.File;
 
     /// <summary>Whether the folder can be opened - it has to be there first.</summary>
-    public bool CanOpenFolder => FileWhere is not null && Directory.Exists(Path.GetDirectoryName(FileWhere));
+    public bool CanOpenFolder => FileWhere is not null && _there.Folder;
 
     /// <summary>What the folder button says about itself, including why it cannot be pressed.</summary>
     public string OpenFolderHint => CanOpenFolder ? Texts.Of("gui.settings.file.open.hint") : Texts.Of("gui.settings.file.open.missing");
@@ -135,11 +146,9 @@ public sealed class SettingsPage : Observable
     internal void Rethink()
     {
         RethinkRecent();
+        RethinkFile();
         Raise(nameof(CanRestart));
         Raise(nameof(RestartHint));
-        Raise(nameof(SaysFileNotYet));
-        Raise(nameof(CanOpenFolder));
-        Raise(nameof(OpenFolderHint));
     }
 
     private void RethinkRecent()
@@ -148,9 +157,21 @@ public sealed class SettingsPage : Observable
         Raise(nameof(ForgetHint));
     }
 
+    /// <summary>Asks the disk once and says what follows - the first change written is what creates the file.</summary>
+    private void RethinkFile()
+    {
+        _there = Look();
+        Raise(nameof(SaysFileNotYet));
+        Raise(nameof(CanOpenFolder));
+        Raise(nameof(OpenFolderHint));
+    }
+
+    private (bool File, bool Folder) Look() => FileWhere is null ? default : _onDisk();
+
     private void Chose(LanguageOption option)
     {
         _choose(option.Code);
+        RethinkFile();
 
         // A choice made here answers the sentence about a kept one that could not be used.
         ChoiceMissing = null;
@@ -193,11 +214,12 @@ internal sealed record SettingsFacts(
     IReadOnlyList<string> Found, string WindowsAsks, string Showing, string? Kept, bool RememberRecent, string? File);
 
 /// <summary>
-/// What the settings page asks while it is up - the searches kept now, whether a plan is being carried out -
+/// What the settings page asks while it is up - the searches kept now, whether a plan is being carried out,
+/// whether the file and its folder are there (PreferencesFile.OnDisk, asked only when the page looks again) -
 /// and where its two changes go: a language (a code, or null for "same as Windows") and the switch.
 /// </summary>
 internal sealed record SettingsHands(
-    Func<IReadOnlyList<string>> Recent, Func<bool> Busy, Action<string?> Choose, Action<bool> Remember);
+    Func<IReadOnlyList<string>> Recent, Func<bool> Busy, Action<string?> Choose, Action<bool> Remember, Func<(bool File, bool Folder)> OnDisk);
 
 /// <summary>
 /// One line of the language list: a code (null for "same as Windows"), the code it opens the window in,

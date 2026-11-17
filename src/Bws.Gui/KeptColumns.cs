@@ -57,9 +57,11 @@ internal sealed class KeptColumns
     private bool _left;
 
     /// <summary>
-    /// Whether THIS window changed the language or the switch over recent searches. A choice it did not
-    /// make is taken from the file before every write rather than from what it read at startup -
-    /// decision E3, KeptChoices says why.
+    /// Whether THIS window holds a choice of the settings page that is not on disk yet - the language, or the
+    /// switch over recent searches. Raised when the page changes the value, lowered by the write that puts it
+    /// there. From then on the file is the newer word: every write takes both choices from it first, so a
+    /// choice made later in another window is not undone when this one writes again or closes - decision E3,
+    /// KeptChoices says why. A write the file refused leaves the mark up, and the next write tries again.
     /// </summary>
     private bool _languageChosen;
 
@@ -154,8 +156,10 @@ internal sealed class KeptColumns
     /// </summary>
     internal void ChooseLanguage(string? language, Says says)
     {
-        _languageChosen = true;
-        KeepTheProfile(_layouts with { Language = KeptChoices.Shaped(language) }, says);
+        var code = KeptChoices.Shaped(language);
+
+        _languageChosen |= !string.Equals(code, _layouts.Language, StringComparison.Ordinal);
+        KeepTheProfile(_layouts with { Language = code }, says);
     }
 
     /// <summary>
@@ -164,7 +168,7 @@ internal sealed class KeptColumns
     /// </summary>
     internal void RememberRecentIs(bool remember, Says says)
     {
-        _rememberChosen = true;
+        _rememberChosen |= remember != _layouts.RememberRecent;
         KeepTheProfile(_layouts.WithChoices(_layouts.Choices with { RememberRecent = remember }), says);
     }
 
@@ -206,16 +210,17 @@ internal sealed class KeptColumns
     /// <b>The layout in memory still follows the grid</b>, because moving between the three lists
     /// reads from it - only the file stops being written, which is what the sentence promises.
     /// </summary>
-    private void Write(Says says)
+    /// <returns>False only when the file refused the write - the window has said so by then.</returns>
+    private bool Write(Says says)
     {
         if (_reading.LeftAlone || _left)
         {
-            return;
+            return true;
         }
 
-        // THE CHOICES OF THE SETTINGS PAGE THIS WINDOW DID NOT MAKE COME FROM THE FILE, decision E3 - another
-        // window may have changed them since this one read it, and this write must not undo that in silence.
-        // A file that cannot be read now changes nothing here.
+        // A CHOICE OF THE SETTINGS PAGE THIS WINDOW HAS NOT PUT ON DISK YET IS THE ONLY ONE IT WRITES, decision
+        // E3 - every other comes from the file, because another window may have changed it since this one last
+        // wrote, and this write must not undo that in silence. A file that cannot be read now changes nothing.
         if ((!_languageChosen || !_rememberChosen) && _file.PeekChoices() is { } onDisk)
         {
             _layouts = _layouts.WithChoices(new KeptChoices(
@@ -226,14 +231,21 @@ internal sealed class KeptColumns
         if (_file.Write(_layouts) is { } trouble)
         {
             says.AboutTheLayout(Texts.Of("gui.layout.notKept", trouble));
+            return false;
         }
+
+        // On disk now, so the file holds this window's word on both choices until the page changes one again.
+        _languageChosen = _rememberChosen = false;
+
+        return true;
     }
 
     /// <summary>
     /// Writes down what the grid looks like now, outside every event - for the moment just before
     /// this window starts its replacement. G-7 of the external stability report of 2026-09-29.
     /// </summary>
-    internal void KeepNow(DataGrid grid, Says says) => Keep(grid, says);
+    /// <returns>False when the file refused the write, which the window has already said.</returns>
+    internal bool KeepNow(DataGrid grid, Says says) => Keep(grid, says);
 
     /// <summary>
     /// This window has started its replacement, so nothing it does from here on is written.
@@ -446,11 +458,11 @@ internal sealed class KeptColumns
     /// changed would need a second copy of the state to compare against, and a file of eighteen
     /// short lines costs less to write than that copy costs to keep correct.
     /// </summary>
-    private void Keep(DataGrid grid, Says says)
+    private bool Keep(DataGrid grid, Says says)
     {
         if (_switching)
         {
-            return;
+            return true;
         }
 
         // THE SCOPE ON SCREEN, AND THE OTHER TWO EXACTLY AS THEY WERE. Writing only what the grid
@@ -459,7 +471,7 @@ internal sealed class KeptColumns
         // services.
         _layouts = _layouts.With(_scope, Harvested(grid));
 
-        Write(says);
+        return Write(says);
     }
 
     /// <summary>

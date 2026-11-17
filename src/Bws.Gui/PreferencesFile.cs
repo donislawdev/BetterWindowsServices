@@ -61,7 +61,7 @@ internal sealed class PreferencesFile
     /// this tool is meant to be used. Microsoft does not treat User Account Control as a security
     /// boundary, SECURITY.md says the project does not either, and the README names this one under its
     /// honest limits. The file is read as hostile input either way - the megabyte ceiling and the
-    /// strict decoder below.
+    /// strict decoder of KeptChoices.ReadText.
     /// </para>
     /// </summary>
     internal PreferencesFile()
@@ -84,15 +84,6 @@ internal sealed class PreferencesFile
     internal string Where => Path.Combine(_directory, Name);
 
     /// <summary>
-    /// The largest this file may be before it is treated as not being one.
-    ///
-    /// A megabyte, against a real one of eighteen short lines. The number is not a judgement about
-    /// how many columns anybody may keep - it is the point past which the thing at that path is
-    /// something else.
-    /// </summary>
-    private const long Biggest = 1024 * 1024;
-
-    /// <summary>
     /// Reads the layout back, moving the file aside if it turns out not to be one.
     ///
     /// <b>Quarantine rather than overwrite</b> - `ADR-18`. A file that will not parse is often the
@@ -113,23 +104,24 @@ internal sealed class PreferencesFile
                 return new LayoutReading();
             }
 
-            // ASKED HOW BIG IT IS BEFORE READING IT ALL, SINCE 2026-09-03 - backlog 308(c). The
-            // reader below builds one string out of every byte in the file, so a path that happens
-            // to point at something enormous is a window that will not open, with an out of memory
-            // failure in place of a sentence. This file is eighteen short lines, so a megabyte is
-            // a thousandfold allowance rather than a limit anybody could meet by using the
-            // program - and it is quarantined like any other file that turns out not to be a
-            // layout, which is also what lets the next write succeed.
-            if (new FileInfo(Where).Length > Biggest)
+            // NEVER READ PAST A MEGABYTE - backlog 308(c). A reader building one string out of every
+            // byte at a path that points at something enormous is a window that will not open, with
+            // an out of memory failure in place of a sentence. KeptChoices.ReadText counts the bytes
+            // as they arrive, so a file replaced after any question about its size cannot get round
+            // it. This file is twenty short lines, so the ceiling is a thousandfold allowance rather
+            // than a limit anybody could meet by using the program - and a file past it is
+            // quarantined like any other that turns out not to be a layout, which is also what lets
+            // the next write succeed.
+            if (KeptChoices.ReadText(Where) is not { } text)
             {
                 return new LayoutReading
                 {
-                    Unreadable = Texts.Of("gui.layout.tooBig", Biggest / 1024),
+                    Unreadable = Texts.Of("gui.layout.tooBig", KeptChoices.Biggest / 1024),
                     MovedAside = Aside()
                 };
             }
 
-            content = ReadText(Where);
+            content = text;
         }
         // NOT OPENED RATHER THAN UNREADABLE, SINCE 2026-10-05 - G-3. Nobody has seen these bytes, so
         // nothing here may say they are not a layout, and nothing may write over them.
@@ -181,6 +173,14 @@ internal sealed class PreferencesFile
     internal KeptChoices? PeekChoices() => HasAPlace ? KeptChoices.Peek(Where) : null;
 
     /// <summary>
+    /// Whether the file and its folder are there now - for the settings page, which asks when it comes on
+    /// screen and after a change it handed out, never from a binding. A profile kept on a share is then asked
+    /// once per look rather than once per render, and the sheet of components never asks at all.
+    /// </summary>
+    internal (bool File, bool Folder) OnDisk() =>
+        HasAPlace ? (File.Exists(Where), Directory.Exists(_directory)) : (false, false);
+
+    /// <summary>
     /// Writes the layout, and says what stopped it when something did.
     ///
     /// <b>A sentence back rather than an exception</b>, because every way this fails is an
@@ -215,25 +215,6 @@ internal sealed class PreferencesFile
         {
             return problem.Message;
         }
-    }
-
-    /// <summary>
-    /// The file as text, refusing bytes that are not text this build can read.
-    ///
-    /// Word for word the decoder <c>SnapshotFiles.ReadText</c> uses, and for the reason written
-    /// there. A byte order mark is still honoured, so a file something else saved as UTF-16 still
-    /// reads - only bytes that are none of those come back as a refusal.
-    /// </summary>
-    /// <exception cref="DecoderFallbackException">The bytes are not text this build can read.</exception>
-    private static string ReadText(string path)
-    {
-        using var stream = File.OpenRead(path);
-        using var reader = new StreamReader(
-            stream,
-            new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true),
-            detectEncodingFromByteOrderMarks: true);
-
-        return reader.ReadToEnd();
     }
 
     /// <summary>

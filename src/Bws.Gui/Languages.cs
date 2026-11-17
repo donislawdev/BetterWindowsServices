@@ -123,12 +123,17 @@ internal static class Languages
     /// the languages built in - and the settings page lists exactly those. The one case worth a sentence, a
     /// translation beside the program an administrator's window refused, is Texts.BesideNotRead's.
     /// </summary>
-    private static string[] BesideFiles()
+    private static string[] BesideFiles() => BesideFiles(Path.Combine(AppContext.BaseDirectory, "languages"));
+
+    /// <summary>
+    /// The language files in one folder - the half of <see cref="BesideFiles()"/> a test can reach. Asked of
+    /// the folder beside the program only in a session without administrator rights (S-9), and the machines
+    /// that run the suites have them, so without this seam the listing would run in none of them.
+    /// </summary>
+    internal static string[] BesideFiles(string folder)
     {
         try
         {
-            var folder = Path.Combine(AppContext.BaseDirectory, "languages");
-
             return Directory.Exists(folder) ? Directory.GetFiles(folder, "gui.*" + Texts.Suffix) : [];
         }
         catch (Exception refused) when (refused is IOException or UnauthorizedAccessException)

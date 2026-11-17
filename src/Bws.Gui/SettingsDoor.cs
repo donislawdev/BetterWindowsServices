@@ -33,7 +33,8 @@ internal static class SettingsDoor
                 () => kept.RecentQueries,
                 () => model.Planned.Busy,
                 code => kept.ChooseLanguage(code, model.Says),
-                remember => kept.RememberRecentIs(remember, model.Says)));
+                remember => kept.RememberRecentIs(remember, model.Says),
+                file.OnDisk));
 
         window.Preferences.DataContext = page;
 
@@ -109,16 +110,30 @@ internal static class SettingsDoor
         window.Preferences.OpenFolder.Click += async (_, _) =>
             await window.OpenPage(ExternalLinks.Destination.SettingsFolder).ConfigureAwait(true);
 
-        window.Preferences.Restart.Click += (_, _) => Restart(window, model, kept, handOver);
+        window.Preferences.Restart.Click += (_, _) => Restart(window, model, kept, handOver, Elevation.Reopen);
     }
 
     /// <summary>
     /// Starts the window again in the chosen language and closes this one - the order of
     /// MainWindow.RestartAsAdministrator, and for its reason: the layout goes on disk before the new window
     /// exists, nothing is written after it (G-7), and a refusal leaves this window as it was.
+    ///
+    /// <b>A WRITE THE FILE REFUSED STOPS IT, unlike the restart with administrator rights.</b> The replacement
+    /// would open from the file as it was, without what changed here since the last write that went through,
+    /// and Leave would stop the write on closing that could still keep it - while the sentence saying why
+    /// (gui.layout.notKept) would go with the window. A language is chosen by writing it, so a file that
+    /// refuses writes holds no new language either, and the restart would show the same one again. Asking for
+    /// administrator rights is different: refusing it over a layout would keep somebody whose profile folder
+    /// is locked down from ever reaching them.
     /// </summary>
-    private static void Restart(MainWindow window, MainViewModel model, KeptColumns kept, Func<string> handOver)
+    internal static void Restart(MainWindow window, MainViewModel model, KeptColumns kept, Func<string> handOver, Func<string, string?> reopen)
     {
+        ArgumentNullException.ThrowIfNull(window);
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentNullException.ThrowIfNull(kept);
+        ArgumentNullException.ThrowIfNull(handOver);
+        ArgumentNullException.ThrowIfNull(reopen);
+
         if (model.Planned.Busy)
         {
             return;
@@ -126,9 +141,12 @@ internal static class SettingsDoor
 
         var carried = handOver();
 
-        kept.KeepNow(window.Entries, model.Says);
+        if (!kept.KeepNow(window.Entries, model.Says))
+        {
+            return;
+        }
 
-        if (Elevation.Reopen(carried) is { } trouble)
+        if (reopen(carried) is { } trouble)
         {
             model.Says.CouldNotDo(trouble);
             return;

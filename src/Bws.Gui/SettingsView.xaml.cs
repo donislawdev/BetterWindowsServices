@@ -20,28 +20,27 @@ public partial class SettingsView : UserControl
     internal Button OpenFolder => OpenFolderButton;
 
     /// <summary>
-    /// Puts the keyboard on the marked language, or on the first one when none is marked - the first thing
-    /// on the page somebody can change. Called after layout, when the page has just come up.
+    /// Puts the keyboard on <see cref="Landing"/> - the first thing on the page somebody can change. Called
+    /// after layout, when the page has just come up.
     /// </summary>
     internal void TakeTheKeyboard()
     {
-        RadioButton? first = null;
-
-        foreach (var option in RadioButtonsIn(LanguageList))
+        if (Landing() is { } option)
         {
-            first ??= option;
-
-            if (option.IsChecked == true)
-            {
-                Keyboard.Focus(option);
-                return;
-            }
+            _ = Keyboard.Focus(option);
         }
+    }
 
-        if (first is not null)
-        {
-            Keyboard.Focus(first);
-        }
+    /// <summary>
+    /// The marked language, or the first one when none is marked, or nothing before the list is drawn. Apart
+    /// from the move itself so that a test can ask it: whether keyboard focus lands depends on which window
+    /// Windows lets have it, and a suite cannot count on being that window.
+    /// </summary>
+    internal RadioButton? Landing()
+    {
+        var options = RadioButtonsIn(LanguageList).ToList();
+
+        return options.Find(option => option.IsChecked == true) ?? options.FirstOrDefault();
     }
 
     private static IEnumerable<RadioButton> RadioButtonsIn(System.Windows.DependencyObject parent)

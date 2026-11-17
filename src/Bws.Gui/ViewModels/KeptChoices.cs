@@ -13,11 +13,13 @@ namespace Bws.Gui.ViewModels;
 /// exists, so whatever reads it may not touch a type whose own start-up could ask Texts for a word -
 /// it would meet Texts half built. <c>PreferencesFile.Read</c> is out for that reason and one more: on a
 /// broken file it moves the file aside, which has to stay the window's move, made where it can say so.
-/// This reads the same bytes with the same strictness and touches nothing.
+/// This reads the same bytes through the same reader (<see cref="ReadText"/>) and touches nothing.
 ///
 /// <b>ONE READER OF EACH KEY FOR BOTH ROADS.</b> <see cref="ColumnLayouts.Read"/> takes these two keys
 /// through <see cref="LanguageFrom"/> and <see cref="RememberFrom"/>, and so does <see cref="Peek"/> - two
-/// readers of one hostile key would drift the first time either was changed.
+/// readers of one hostile key would drift the first time either was changed. The same goes for the file as
+/// a whole: <see cref="FromText"/> refuses exactly what ColumnLayouts.Read refuses, and SettingsFileGuards
+/// holds the two side by side, so a language is never taken from a file the window then quarantines.
 ///
 /// <b>AND READ AGAIN ON EVERY WRITE, decision E3.</b> Every write puts this window's whole layout back, so
 /// a window opened earlier and closed later would quietly undo a language chosen in another one in
@@ -35,10 +37,21 @@ internal sealed record KeptChoices(string? Language, bool RememberRecent)
     /// <summary>The key of the switch over recent searches, written only as false - none means "remember".</summary>
     internal const string RememberKey = "rememberRecentQueries";
 
-    /// <summary>The same ceiling PreferencesFile reads under - a megabyte for a file of twenty lines.</summary>
-    private const long Biggest = 1024 * 1024;
+    /// <summary>
+    /// The largest the preferences file may be before it is treated as not being one - for both roads, and
+    /// PreferencesFile says it in its sentence. A megabyte, against a real one of twenty short lines: not a
+    /// judgement about how much anybody may keep, but the point past which the thing at that path is
+    /// something else.
+    /// </summary>
+    internal const long Biggest = 1024 * 1024;
 
     private static readonly JsonDocumentOptions OneValueAKey = new() { AllowDuplicateProperties = false };
+
+    /// <summary>
+    /// Word for word the decoder <c>SnapshotFiles.ReadText</c> uses, for the reason written there: bytes that
+    /// are not text this build reads are refused rather than guessed at, and a byte order mark is honoured.
+    /// </summary>
+    private static readonly System.Text.UTF8Encoding StrictText = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
 
     /// <summary>
     /// A language code in the shape this window can use, lowered, or nothing.
@@ -99,18 +112,7 @@ internal sealed record KeptChoices(string? Language, bool RememberRecent)
     {
         try
         {
-            if (path.Length == 0 || !File.Exists(path) || new FileInfo(path).Length > Biggest)
-            {
-                return null;
-            }
-
-            using var stream = File.OpenRead(path);
-            using var reader = new StreamReader(
-                stream,
-                new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true),
-                detectEncodingFromByteOrderMarks: true);
-
-            return FromText(reader.ReadToEnd());
+            return path.Length > 0 && File.Exists(path) && ReadText(path) is { } text ? FromText(text) : null;
         }
         // NOTHING IS SAID HERE, AND THE PERSON IS TOLD ANYWAY. At startup the window reads the same file
         // through PreferencesFile.Read a moment later and says in the line under the list why it could not
@@ -124,7 +126,49 @@ internal sealed record KeptChoices(string? Language, bool RememberRecent)
         }
     }
 
-    /// <summary>The two choices in the text of a file, or nothing - the half of <see cref="Peek"/> a test can reach.</summary>
+    /// <summary>
+    /// The text of the preferences file, or nothing when it holds more than <see cref="Biggest"/> bytes - the
+    /// one reader of its bytes for both roads, this one and PreferencesFile.Read.
+    ///
+    /// <b>BOUNDED BY THE READ ITSELF, not by a length asked beforehand.</b> The file belongs to the account and
+    /// can be replaced between a question about its size and the read after it, and a read with no end of its
+    /// own would then build one string out of whatever stands there - rule 25. So the bytes are counted as
+    /// they arrive and the read stops one chunk past the ceiling, whatever the file said about itself.
+    /// </summary>
+    /// <exception cref="IOException">The file could not be opened or read.</exception>
+    /// <exception cref="UnauthorizedAccessException">This account may not read it.</exception>
+    /// <exception cref="System.Text.DecoderFallbackException">The bytes are not text this build reads.</exception>
+    internal static string? ReadText(string path)
+    {
+        using var stream = File.OpenRead(path);
+        using var held = new MemoryStream();
+        var chunk = new byte[16 * 1024];
+        int read;
+
+        while ((read = stream.Read(chunk)) > 0)
+        {
+            held.Write(chunk.AsSpan(0, read));
+
+            if (held.Length > Biggest)
+            {
+                return null;
+            }
+        }
+
+        held.Position = 0;
+
+        using var reader = new StreamReader(held, StrictText, detectEncodingFromByteOrderMarks: true);
+
+        return reader.ReadToEnd();
+    }
+
+    /// <summary>
+    /// The two choices in the text of a file, or nothing - the half of <see cref="Peek"/> a test can reach.
+    ///
+    /// <b>It refuses what ColumnLayouts.Read refuses, a file without its columns included.</b> A file that
+    /// gave a language here and was then quarantined by the window's own reader would open the window in a
+    /// language taken from a file it goes on to call broken.
+    /// </summary>
     internal static KeptChoices? FromText(string content)
     {
         JsonNode? tree;
@@ -143,7 +187,8 @@ internal sealed record KeptChoices(string? Language, bool RememberRecent)
             || root["schemaVersion"] is not JsonValue stated
             || !stated.TryGetValue<int>(out var version)
             || version > ColumnLayout.CurrentSchemaVersion
-            || version < ColumnLayout.OldestSchemaVersionRead)
+            || version < ColumnLayout.OldestSchemaVersionRead
+            || root["columns"] is not JsonArray)
         {
             return null;
         }

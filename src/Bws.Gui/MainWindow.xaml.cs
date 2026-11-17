@@ -489,6 +489,8 @@ public partial class MainWindow : Window
         // external stability report. The replacement reads the same file while this window closes,
         // and until 2026-10-05 the write on Closing raced that read. Written here, the read finds a
         // finished file, and Leave stops the closing write - nobody can move a column in between.
+        // A refused write does not stop this one, where it stops the language restart: SettingsDoor.Restart
+        // says why the two differ.
         _kept?.KeepNow(Entries, _model.Says);
 
         if (Elevation.Restart(handOver) is { } trouble)

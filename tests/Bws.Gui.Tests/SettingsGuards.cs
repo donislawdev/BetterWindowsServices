@@ -62,6 +62,7 @@ public sealed class SettingsGuards
     [InlineData("not json")]
     [InlineData("[]")]
     [InlineData("""{ "columns": [] }""")]
+    [InlineData("""{ "language": "pl", "schemaVersion": 7 }""")]
     [InlineData("""{ "columns": [], "language": "pl", "schemaVersion": 99 }""")]
     [InlineData("""{ "columns": [], "language": "pl", "language": "de", "schemaVersion": 7 }""")]
     public void A_file_the_window_would_not_read_gives_no_choices(string file) =>
@@ -382,7 +383,7 @@ public sealed class SettingsGuards
         new(["en"], "en", "en", null, RememberRecent: true, @"C:\nowhere\BetterWindowsServices\bws-preferences.json");
 
     /// <summary>Nothing kept, no plan running, and every change going nowhere.</summary>
-    private static readonly SettingsHands Quiet = new(() => [], () => false, _ => { }, _ => { });
+    private static readonly SettingsHands Quiet = new(() => [], () => false, _ => { }, _ => { }, () => (true, true));
 
     private static bool Before(string text, string first, string second) =>
         text.IndexOf(first, StringComparison.Ordinal) is >= 0 and var at
