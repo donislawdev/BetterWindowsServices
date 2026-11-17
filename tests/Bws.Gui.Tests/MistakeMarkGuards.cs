@@ -67,6 +67,44 @@ public sealed class MistakeMarkGuards
         WpfHost.On(window.Close);
     }
 
+    /// <summary>
+    /// A member far wider than the box - a long word pasted in - is waved only where the box can
+    /// show it, plus a turn past each edge, and every point of the cut wave is a point of the whole
+    /// one: the phase is counted from the member's own left end, so scrolling does not make it crawl.
+    /// </summary>
+    [Fact]
+    public void A_member_wider_than_the_box_is_waved_only_where_the_box_shows_it()
+    {
+        Point from = new(-10_000, 10), to = new(10_000, 10);
+
+        var whole = MistakeMarks.Path(from, to, 2, 1.5, from.X, to.X);
+        var seen = MistakeMarks.Path(from, to, 2, 1.5, 0, 100);
+
+        Assert.Equal(10_001, whole.Count);
+        Assert.Equal(to, whole[^1]);
+        Assert.InRange(seen.Count, 50, 53);
+        Assert.True(seen[0].X <= 0 && seen[^1].X >= 100, $"the cut wave runs from {seen[0].X} to {seen[^1].X}, short of the box's own 0 to 100");
+        Assert.All(seen, point => Assert.Contains(point, whole));
+    }
+
+    /// <summary>
+    /// Every bad value of one member is a sentence of its own about that member's place, and the
+    /// place is marked once - three lines on the same letters look like one and cost three.
+    /// </summary>
+    [Fact]
+    public void A_member_with_several_bad_values_is_marked_once()
+    {
+        var typed = Bws.Core.Querying.QueryAsTyped.Of("status:fast,slow name:sql");
+
+        Assert.True(typed.Parsed.Problems.Count >= 2, $"the parser said {typed.Parsed.Problems.Count} thing(s) about two bad values - the case is gone");
+        Assert.Equal([0..16], QueryMistakes.Of(typed).Places);
+    }
+
+    /// <summary>With no wave the line is its two ends, wherever the box's edges are.</summary>
+    [Fact]
+    public void A_line_with_no_wave_is_its_two_ends() =>
+        Assert.Equal([new Point(-50, 3), new Point(500, 3)], MistakeMarks.Path(new(-50, 3), new(500, 3), 0, 1.5, 0, 100));
+
     /// <summary>A query with nothing wrong in it carries no marks at all.</summary>
     [Fact]
     public async Task A_query_that_reads_is_not_marked()

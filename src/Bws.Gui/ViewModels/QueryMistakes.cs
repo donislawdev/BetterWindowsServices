@@ -20,12 +20,16 @@ public sealed record QueryMistakes(string Text, IReadOnlyList<Range> Places)
     public static QueryMistakes None { get; } = new(string.Empty, []);
 
     /// <summary>
-    /// The places of everything wrong with the text as typed. A problem with no place is left out
-    /// rather than guessed at - every problem the parser raises has one, and ParserPropertyTests
-    /// holds that over twenty thousand texts.
+    /// The places of everything wrong with the text as typed, each place once. A problem with no
+    /// place is left out rather than guessed at - every problem the parser raises has one, and
+    /// ParserPropertyTests holds that over twenty thousand texts.
+    ///
+    /// <b>Once, because the parser gives every bad value of a member that member's place</b> -
+    /// <c>status:a,b,c</c> is three sentences about one member. Three lines on the same letters look
+    /// like one, and each is a wave built and drawn again on every frame the box changes.
     /// </summary>
     internal static QueryMistakes Of(QueryAsTyped typed) =>
         typed.Parsed.IsValid
             ? None
-            : new(typed.Text, [.. typed.Parsed.Problems.Where(problem => problem.At is not null).Select(problem => problem.At!.Value)]);
+            : new(typed.Text, [.. typed.Parsed.Problems.Where(problem => problem.At is not null).Select(problem => problem.At!.Value).Distinct()]);
 }

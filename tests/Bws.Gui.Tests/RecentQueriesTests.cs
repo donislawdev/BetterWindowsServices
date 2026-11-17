@@ -66,6 +66,9 @@ public sealed class RecentQueriesTests
     [InlineData("status:", "status:", false)]
     [InlineData("   ", "   ", false)]
     [InlineData("status:running name:sql", "status:running", false)]
+    [InlineData("name:spooler start:dis", "name:spooler start:dis", false)]
+    [InlineData("mismatch:stopped", "mismatch:stopped", false)]
+    [InlineData(" file:missing ", " file:missing ", false)]
     public void Only_a_search_that_reads_and_that_the_model_has_read_is_worth_keeping(string inTheBox, string read, bool worth) =>
         Assert.Equal(worth, RecentQueries.Worth(inTheBox, Bws.Core.Querying.QueryAsTyped.Of(read)));
 

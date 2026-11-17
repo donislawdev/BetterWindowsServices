@@ -56,8 +56,12 @@ public sealed class LinkPressGuards
         Assert.Contains(trouble, WpfHost.On(() => model.Says.Problem), StringComparison.Ordinal);
     }
 
-    /// <summary>The help menu's one item - the menu is built in the window's constructor.</summary>
+    /// <summary>
+    /// The help menu's item for the query language page - found by the entry it carries, since the
+    /// menu holds How to search over it (HelpMenu). The menu is built in the window's constructor.
+    /// </summary>
     private static MenuItem TheHelpItem(MainWindow window) =>
-        window.Scope.Help.ContextMenu?.Items.OfType<MenuItem>().Single()
+        window.Scope.Help.ContextMenu?.Items.OfType<MenuItem>()
+            .Single(item => item.DataContext is RowMenuEntry { LabelKey: "gui.help.queryLanguage" })
             ?? throw new InvalidOperationException("the Help button has no menu");
 }

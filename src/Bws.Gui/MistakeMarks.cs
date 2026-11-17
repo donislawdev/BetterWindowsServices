@@ -166,31 +166,54 @@ public sealed class MistakeMarks : FrameworkElement
 
         foreach (var (from, to) in lines)
         {
-            drawingContext.DrawGeometry(null, pen, Shape(from, to));
+            // A member wholly scrolled out of sight is not drawn at all - the clip would hide it, but
+            // it would not spare building it.
+            if (to.X >= 0 && from.X <= RenderSize.Width)
+            {
+                drawingContext.DrawGeometry(null, pen, Shape(Path(from, to, Wave, WaveHeight, 0, RenderSize.Width)));
+            }
         }
 
         drawingContext.Pop();
     }
 
     /// <summary>
-    /// The line from one end to the other: straight when there is no wave, otherwise up and down
-    /// by <see cref="WaveHeight"/> every <see cref="Wave"/> along it, ending exactly at the right end.
+    /// The points of the line from one end to the other, first point first: straight when there is
+    /// no wave, otherwise up and down by <paramref name="height"/> every <paramref name="wave"/>
+    /// along it, ending exactly at the right end.
+    ///
+    /// <b>Only over <paramref name="left"/> to <paramref name="right"/>, and one turn past each</b>,
+    /// so the line runs into the clip rather than stopping short of it. A word pasted into the box
+    /// can be thousands of pixels wide while the box shows a few hundred, and a point for every
+    /// turn of it would be built again on every frame the box changes. The turns are counted from
+    /// the member's own left end, so a wave cut at the edge has the phase it had uncut - scrolling
+    /// moves it rather than making it crawl. MistakeMarkGuards holds both.
     /// </summary>
-    private StreamGeometry Shape(Point from, Point to)
+    internal static IReadOnlyList<Point> Path(Point from, Point to, double wave, double height, double left, double right)
     {
-        // One point every Wave along the line, up and down in turn, then the right end itself.
-        var turns = Wave > 0 && WaveHeight > 0 ? (int)Math.Ceiling((to.X - from.X) / Wave) - 1 : 0;
-        var points = Enumerable.Range(1, Math.Max(0, turns))
-            .Select(at => new Point(from.X + at * Wave, from.Y + (at % 2 == 1 ? -WaveHeight : WaveHeight)))
-            .Append(to)
-            .ToList();
+        var turns = wave > 0 && height > 0 ? Math.Max(0, (int)Math.Ceiling((to.X - from.X) / wave) - 1) : 0;
+        var first = turns > 0 ? Math.Clamp((int)Math.Floor((left - from.X) / wave), 0, turns) : 0;
+        var last = turns > 0 ? Math.Clamp((int)Math.Ceiling((right - from.X) / wave), first, turns) : 0;
 
+        Point Turn(int at) => at == 0 ? from : new Point(from.X + at * wave, from.Y + (at % 2 == 1 ? -height : height));
+
+        var points = new List<Point>(last - first + 2) { Turn(first) };
+
+        points.AddRange(Enumerable.Range(first + 1, last - first).Select(Turn));
+        points.Add(last == turns ? to : Turn(last + 1));
+
+        return points;
+    }
+
+    /// <summary>The line through the points <see cref="Path"/> gave, never filled.</summary>
+    private static StreamGeometry Shape(IReadOnlyList<Point> points)
+    {
         var shape = new StreamGeometry();
 
         using (var line = shape.Open())
         {
-            line.BeginFigure(from, isFilled: false, isClosed: false);
-            line.PolyLineTo(points, isStroked: true, isSmoothJoin: true);
+            line.BeginFigure(points[0], isFilled: false, isClosed: false);
+            line.PolyLineTo([.. points.Skip(1)], isStroked: true, isSmoothJoin: true);
         }
 
         shape.Freeze();

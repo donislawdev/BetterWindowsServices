@@ -52,10 +52,17 @@ internal static class RecentQueries
     /// reads, and it asks for something. A query with a mistake is not a search anybody made, a text
     /// the model has not read yet is not the one it answered, and <c>status:</c> reads while it is
     /// typed - the box passes it over - and asks for nothing.
+    ///
+    /// <b>Read as FINISHED, and never one of the questions to start from</b> - the two kinds of
+    /// query the list under an empty box hides (Suggesting.Examples). The box reads a last value
+    /// still being typed as nothing, so <c>name:spooler start:dis</c> reads there, and one of the
+    /// questions is a row already. Kept anyway, either would hold one of the five places as a row
+    /// nobody sees and Delete cannot reach.
     /// </summary>
     internal static bool Worth(string inTheBox, Bws.Core.Querying.QueryAsTyped typed) =>
         string.Equals(inTheBox, typed.Text, StringComparison.Ordinal)
-        && typed.Parsed is { IsValid: true, Query.IsEmpty: false };
+        && Bws.Core.Querying.QueryParser.Parse(typed.Text) is { IsValid: true, Query.IsEmpty: false }
+        && !QueryExamples.All.Any(question => string.Equals(question.Query, typed.Text.Trim(), StringComparison.Ordinal));
 
     /// <summary>The list without this query - somebody pressed Delete on its row.</summary>
     internal static IReadOnlyList<string> Without(IReadOnlyList<string> kept, string query) =>

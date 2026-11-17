@@ -15337,8 +15337,8 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
     @{
         Name = 'recent searches: a query with a mistake is not kept'
         File = 'src\Bws.Gui\ViewModels\RecentQueries.cs'
-        From = '&& typed.Parsed is { IsValid: true, Query.IsEmpty: false };'
-        To = '&& typed.Text.Length > 0;'
+        From = '&& Bws.Core.Querying.QueryParser.Parse(typed.Text) is { IsValid: true, Query.IsEmpty: false }'
+        To = '&& typed.Text.Length > 0'
         Test = 'RecentQueriesTests.Only_a_search_that_reads_and_that_the_model_has_read_is_worth_keeping'
     }
     @{
