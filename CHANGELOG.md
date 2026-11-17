@@ -11,6 +11,30 @@ is not part of this repository.
 
 ## [Unreleased]
 
+### Changed
+
+- A window started as administrator now keeps the column layout you arrange in it, the same way a
+  window without administrator rights does. Until now it saved nothing, and switching to *All* or
+  *Drivers* said "The column layout was not saved" every time. The README's *Honest limits* says what
+  this costs.
+- When a plan has been carried out, the top of the sheet says plainly how it ended, with a green
+  tick when every entry got where you asked and an amber mark when something did not - for one entry
+  in words such as "Done. Print Spooler is running." The button that ran the plan is replaced by
+  *Close*, which also has the keyboard, so Enter closes the sheet.
+- The *Wait up to ... seconds without progress* box on a plan has a line of its own above the
+  buttons, so a long service name on the button no longer covers the end of the sentence. During a
+  run the box stays where it is, greyed, holding the number the run is using.
+
+### Fixed
+
+- The list of suggestions under the search box now closes when you click anywhere else in the
+  window, not only on Escape. The click still does what it does, so clicking a row closes the list
+  and selects the row.
+- A plan over several entries, some of which could not be planned at all, no longer ends by saying
+  every entry is done. The entries listed under the plan as not going to happen now count, so
+  picking four rows with one refused reads "3 of 4 entries ended where you asked", and an interrupted
+  run counts them the same way.
+
 ## [0.5.0] - 2026-11-03
 
 ### Added

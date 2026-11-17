@@ -33,7 +33,7 @@ public sealed class ForcedRestartNoticeGuards
         panel.Show(Restarting());
         panel.Finished(Ran(panel));
 
-        Assert.Equal(Texts.Of("gui.plan.notice.done.one"), panel.Notice);
+        Assert.Equal(Texts.Of("gui.plan.notice.done.running.one", "ShareA"), panel.Notice);
         Assert.Empty(panel.Failures);
     }
 

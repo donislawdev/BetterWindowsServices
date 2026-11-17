@@ -191,6 +191,19 @@ internal static partial class PlanWords
     internal static string Listed(IReadOnlyList<string> names) => string.Join(", ", names);
 
     /// <summary>
+    /// The start type a plan sets, as the cell for it would read it - the same word the step line
+    /// uses, so the button, the step and the sentence after the run cannot disagree about what is
+    /// being written.
+    ///
+    /// <b>Refuses a start type plan that names no type rather than printing a blank</b>, because
+    /// the core builds every such plan with one and a button reading "Set Spooler to " would be a
+    /// silent hole exactly where the important word goes.
+    /// </summary>
+    internal static string SetTo(BulkPlan plan) => plan.Action.To is { } to
+        ? CellFaces.SettingLabel(to)
+        : throw new InvalidOperationException("A start type plan carries the type it sets, and this one does not.");
+
+    /// <summary>
     /// Every refusal in a plan as a person reads them, with the ones that say the same thing
     /// gathered into one sentence and a count.
     ///

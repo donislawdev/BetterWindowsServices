@@ -16,7 +16,7 @@ namespace Bws.Gui.Tests;
 /// KEEPING.</b> The first build left the box on screen during the run. Every assertion here passed,
 /// because the box was correct in every way except the one that mattered: the ceiling is read at
 /// the press, so a box a person can still type into while the machine is being changed is a control
-/// that accepts a number and does nothing with it. <c>A_run_takes_the_box_off_the_screen</c> is
+/// that accepts a number and does nothing with it. <c>A_run_takes_the_box_out_of_reach</c> is
 /// that fault written down.
 /// </summary>
 public sealed class WaitingGuards
@@ -140,7 +140,7 @@ public sealed class WaitingGuards
 
     /// <summary>
     /// <b>THE NOTIFICATION, NOT THE VALUE - and this is the guard that was missing since 2026-09-09.</b>
-    /// <c>A_run_takes_the_box_off_the_screen</c> below reads <c>Waits</c> after <c>Starting</c>
+    /// <c>A_run_takes_the_box_out_of_reach</c> below reads <c>Waits</c> after <c>Starting</c>
     /// and it went false, correctly. But Busy announces only itself, so the binding on the box's
     /// visibility was never told to look again, and the value that was right never reached the
     /// screen - `docs/08` position 19 in this panel. Found 2026-09-15 while the box was being
@@ -189,11 +189,13 @@ public sealed class WaitingGuards
     }
 
     /// <summary>
-    /// <b>THE ONE A SCREENSHOT FOUND.</b> The ceiling is read at the press, so a box still on
-    /// screen while the run is happening would take a number and throw it away.
+    /// <b>THE ONE A SCREENSHOT FOUND.</b> The ceiling is read at the press, so a box that could still
+    /// be typed into while the run is happening would take a number and throw it away. Since
+    /// 2026-11-16 the box stays on the sheet, greyed, so the buttons under it do not move when the run
+    /// begins - PlanResultGuards holds that half.
     /// </summary>
     [Fact]
-    public void A_run_takes_the_box_off_the_screen()
+    public void A_run_takes_the_box_out_of_reach()
     {
         var panel = new Planned { Elevated = true };
 

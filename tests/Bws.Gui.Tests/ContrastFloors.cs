@@ -47,6 +47,11 @@ internal static class ContrastFloors
         ["MeaningUntrusted"] = new(ForText),
         ["MeaningWarning"] = new(ForText),
         ["MeaningRunning"] = new(ForText),
+
+        // A rule and a mark on the plan sheet, never text - SC 1.4.11 for a graphic somebody needs
+        // to understand the result, measured on the panel because that is the only surface it is
+        // drawn on. 2026-11-16.
+        ["MeaningArrived"] = new(ForState, Against: "SurfacePanel"),
         ["MeaningUnknown"] = new(ForText),
 
         // THE THREE THAT ARE DRAWN ON THE PANEL AS WELL AS ON THE WINDOW, 2026-09-16, and the panel

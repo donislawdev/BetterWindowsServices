@@ -210,10 +210,13 @@ function Expand-Checked([string] $zip, [string] $program, [string] $version, [st
         if ($null -eq $entry) { Stop-Render "$zipName holds no $program, which its package starts and the release signs" }
         if ($entry.Length -gt $ProgramCap) { Stop-Render "$zipName declares $program at $($entry.Length) bytes, and no program of ours comes near $ProgramCap" }
         $copy = Join-Path $scratch ([guid]::NewGuid().ToString('N') + [System.IO.Path]::GetExtension($program))
-        # Copied by hand and counted, not by ExtractToFile: the .NET reader stops a compressed entry at the
-        # size its header declares, but reads a stored one to the end of its data whatever the header says
-        # (tools/feeds/zip-bound-probe.ps1 on .NET 10.0.14, 2026-11-03). So the count is what bounds the
-        # bytes written, and an archive whose entry holds more than it declares is refused as it is.
+        # Copied by hand and counted, not by ExtractToFile, because what the .NET reader does with an entry
+        # whose header lies depends on the runtime (tools/feeds/zip-bound-probe.ps1). On .NET 10.0.14
+        # (2026-11-03) it stopped a compressed entry at the declared size and read a stored one to the end
+        # of its data whatever the header said - so the count is what bounds the bytes written. On .NET
+        # 11.0.0 (pwsh 7.7.0, 2026-11-17) it refuses both before the first byte, with InvalidDataException.
+        # Either way the archive is refused with one sentence, and the cause after the dash says which.
+        $lied = "$zipName does not hold $program the way its header declares it"
         $from = $null
         $into = $null
         try {
@@ -223,11 +226,14 @@ function Expand-Checked([string] $zip, [string] $program, [string] $version, [st
             $written = [long]0
             while (($read = $from.Read($buffer, 0, $buffer.Length)) -gt 0) {
                 $written += $read
-                if ($written -gt $entry.Length) { Stop-Render "$zipName holds more of $program than the $($entry.Length) bytes it declares" }
+                if ($written -gt $entry.Length) { Stop-Render "$lied - it holds more than the $($entry.Length) bytes it declares" }
                 $into.Write($buffer, 0, $read)
             }
         }
         catch {
+            $cause = $_.Exception
+            if ($cause.InnerException) { $cause = $cause.InnerException }
+            if ($cause -is [System.IO.InvalidDataException]) { Stop-Render "$lied - $($cause.Message)" }
             Stop-Render "$program could not be read out of $zipName`: $(Get-Reason $_)"
         }
         finally {

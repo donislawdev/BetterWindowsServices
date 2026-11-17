@@ -268,7 +268,8 @@ public sealed class Underway : Observable
     /// the run's own flag would say "interrupted" about a run that did everything it was asked.
     /// </summary>
     /// <param name="arrived">How many of the entries ended where they were asked to be.</param>
-    internal static string Afterwards(BulkRun run, int arrived)
+    /// <param name="asked">How many entries were asked about, refused ones included (FinishedRun.Asked).</param>
+    internal static string Afterwards(BulkRun run, int arrived, int asked)
     {
         ArgumentNullException.ThrowIfNull(run);
 
@@ -284,12 +285,12 @@ public sealed class Underway : Observable
 
         var nothingPutBack = held.Any(result => result.Step.Reason == StepReason.Restore);
 
-        return (nothingPutBack, run.Runs.Count == 1) switch
+        return (nothingPutBack, asked == 1) switch
         {
             (true, true) => Texts.Of("gui.plan.notice.leftAsItWas.one"),
-            (true, false) => Texts.Of("gui.plan.notice.leftAsItWas.many", arrived, run.Runs.Count),
+            (true, false) => Texts.Of("gui.plan.notice.leftAsItWas.many", arrived, asked),
             (false, true) => Texts.Of("gui.plan.notice.interrupted.one"),
-            (false, false) => Texts.Of("gui.plan.notice.interrupted.many", arrived, run.Runs.Count)
+            (false, false) => Texts.Of("gui.plan.notice.interrupted.many", arrived, asked)
         };
     }
 

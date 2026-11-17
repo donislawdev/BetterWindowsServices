@@ -172,26 +172,31 @@
                 rule dividing head from body. That rule belongs to the body's Border, which pads
                 INSIDE itself, so the air above it has to come from here.
             -->
-            <StackPanel Grid.Row="1" Margin="{StaticResource MarginBelowSearch}">
-                <!--
-                    WHERE THIS PANEL IS IN THE ONLY SEQUENCE IT HAS, AND IT IS STILL THE MOST
-                    IMPORTANT LINE IN IT. A list of steps reads as a report of something done in
-                    every one of the three states, so this line is what tells a person which one
-                    they are looking at.
+            <!--
+                WHERE THIS PANEL IS IN THE ONLY SEQUENCE IT HAS, AND IT IS STILL THE MOST IMPORTANT
+                LINE IN IT. A list of steps reads as a report of something done in every one of the
+                three states, so this line is what tells a person which one they are looking at.
 
-                    IT WORE THE WARNING ORANGE UNTIL 2026-08-19 AND THAT WAS A FAULT rather than a
-                    style choice: it is the same colour as the line at the bottom of the window
-                    saying the session has no administrator rights, so a sentence reporting that
-                    NOTHING HAS HAPPENED read as something having gone wrong. It carries by weight
-                    now, and the colour is left for the line under it, which really is a warning.
-                -->
-                <TextBlock x:Name="PlanNotice"
-                           AutomationProperties.AutomationId="planNotice"
-                           Text="{Binding Notice}"
-                           TextWrapping="Wrap"
-                           Style="{StaticResource PlanNoticeText}" />
+                IT WORE THE WARNING ORANGE UNTIL 2026-08-19 AND THAT WAS A FAULT rather than a style
+                choice: a sentence reporting that NOTHING HAS HAPPENED read as something having gone
+                wrong. Before a run it carries by weight alone.
 
-            </StackPanel>
+                ONCE THERE IS A RESULT IT IS A BLOCK WITH A RULE AND A MARK, since 2026-11-16 - the
+                owner said the finished sheet did not read as done. Green and a tick when every entry
+                arrived, amber and an exclamation when anything fell short. PlanResult and
+                PlanResultMark in Themes/PlanRun.xaml carry the look, so the colour is never the only
+                signal.
+            -->
+            <Border Grid.Row="1" Style="{StaticResource PlanResult}">
+                <DockPanel>
+                    <Path DockPanel.Dock="Left" Style="{StaticResource PlanResultMark}" />
+
+                    <TextBlock x:Name="PlanNotice"
+                               AutomationProperties.AutomationId="planNotice"
+                               Text="{Binding Notice}"
+                               Style="{StaticResource PlanNoticeText}" />
+                </DockPanel>
+            </Border>
 
             <!--
                 THE HALF THAT SCROLLS, under a rule - what the rule is for is beside PlanBody in

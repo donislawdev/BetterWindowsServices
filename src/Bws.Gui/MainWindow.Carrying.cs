@@ -193,6 +193,15 @@ public partial class MainWindow
             //
             // A no-op on every ordinary path, because Finished has already lowered the flag.
             _model.Planned.NoLongerRunning();
+
+            // AND THE KEYBOARD GOES TO THE BUTTON THAT CLOSES THE REPORT, since 2026-11-16. The
+            // button pressed to start the run greyed under the keyboard, and a control that greys
+            // hands the keyboard to the window rather than to anything near it - `docs/10` trap 35 -
+            // so after a run Enter did nothing at all.
+            if (_model.Planned.HasResult)
+            {
+                PlanPanel.TakeTheKeyboard();
+            }
         }
 
         // Whatever moved, moved. Asking now rather than waiting up to a second means the list

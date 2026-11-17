@@ -153,6 +153,12 @@ public sealed partial class Planned
         // screenshot rather than in a test, which is `docs/08` position 19 arriving on schedule:
         // a binding that silently keeps a stale answer reddens nothing in this project.
         Raise(nameof(Waits));
+        Raise(nameof(OffersWaiting));
+
+        // AND WHAT THE RUN CAME TO - the block at the top of the sheet and the button under it,
+        // which change with a result and with nothing else.
+        Raise(nameof(HasResult));
+        Raise(nameof(Outcome));
 
         // AND WHAT THE BOX SAYS ABOUT ITSELF, WHICH FOLLOWS Waits: a word left in it by the last
         // sheet stops being a problem the moment a plan with nothing to wait for hides the box,

@@ -164,6 +164,17 @@
     <Geometry x:Key="ShapeAgainst">M 4,0 L 8,8 L 0,8 Z</Geometry>
 
     <!--
+        The two marks of a finished run, 2026-11-16: a tick in a ring when every entry arrived, an
+        exclamation in the same ring when anything fell short. Drawn on SizeResultMark's sixteen unit
+        square and stroked rather than filled, so the ring's line sits inside the square and nothing
+        is scaled - the two change together with that size. Two shapes rather than one in two
+        colours, so the mark says which way the run went to somebody who cannot tell the colours apart.
+    -->
+    <Geometry x:Key="ShapeResultArrived">M 1,8 A 7,7 0 1 0 15,8 A 7,7 0 1 0 1,8 Z M 4.6,8.3 L 7,10.7 L 11.5,5.6</Geometry>
+    <Geometry x:Key="ShapeResultFellShort">M 1,8 A 7,7 0 1 0 15,8 A 7,7 0 1 0 1,8 Z M 8,4.3 L 8,8.9 M 8,11.4 L 8,11.5</Geometry>
+    <system:Double x:Key="SizeResultMark">16</system:Double>
+
+    <!--
         One pixel, and the outline is an OVERLAY rather than the row's own border. A border on
         the row takes layout space, and two pixels per row over 810 rows is about a tenth of
         the list - a price this window has twice refused to pay for looks, and refuses again

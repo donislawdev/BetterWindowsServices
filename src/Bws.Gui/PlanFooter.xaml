@@ -108,18 +108,23 @@
             <local:PlanConfirmation x:Name="Confirmation" />
 
             <!--
-                TWO ROWS SINCE 2026-09-15: the controls, and under them the one sentence the box of
-                seconds can say about itself. THE SECOND ROW IS ALWAYS THERE, empty or not - an empty
-                TextBlock keeps the height of one line, measured at 16 for the small size - because
-                this row holds the button somebody is aiming at. A sentence that appeared only when
-                needed would push nothing (it is below the button) but would grow the sheet, and a
-                centred sheet growing moves everything in it by half a line. GUI rule 3: nothing on
-                this sheet may jump under a hand.
-            -->
-            <!--
-                FOUR COLUMNS SINCE 2026-09-30: the box of seconds, the second way of stopping a run,
-                Interrupt, and the button that carries the plan out. The second way of stopping has a
-                column of its own so that appearing moves nothing to its right.
+                THREE ROWS SINCE 2026-11-16: the box of seconds, the one line under it, and the
+                buttons. Until that day the box and the buttons shared one row, and the button names
+                the entry it acts on - so a long display name took the width the box's sentence needed
+                and cut it to "Wait up to 60 seconds without pro". A row of its own gives the sentence
+                the whole sheet whatever the name is, which is a rule rather than a width found to fit.
+
+                THE MIDDLE ROW IS ALWAYS THERE, empty or not - an empty TextBlock keeps the height of
+                one line, measured at 16 for the small size - because the row under it holds the
+                button somebody is aiming at. Before a run it says what is wrong with the box above
+                it, during a run which step is happening. A line that appeared only when needed would
+                grow the sheet, and a centred sheet growing moves everything in it by half a line.
+                GUI rule 3: nothing on this sheet may jump under a hand.
+
+                FOUR COLUMNS IN THE ROW OF BUTTONS: nothing, the second way of stopping a run,
+                Interrupt, and the button that carries the plan out - or, once there is a result, the
+                one that closes the sheet. The second way of stopping has a column of its own so that
+                appearing moves nothing to its right.
             -->
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -129,6 +134,7 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
@@ -143,7 +149,9 @@
                     THE WHOLE ROW GOES WHEN THE PLAN HAS NOTHING TO WAIT FOR, which is backlog 203 for
                     the second time in this file: a start type change writes a setting and moves no
                     service, so a box offering to change how long it is watched for would be a control
-                    that does nothing on a sheet where everything else does something.
+                    that does nothing on a sheet where everything else does something. It goes once
+                    there is a result too, and during a run it stays, greyed, holding the number the
+                    run is using - Planned.Waits says why.
 
                     A PLAIN TEXTBOX RATHER THAN A NUMBER BOX WITH ARROWS. What somebody types here is a
                     number they already know - the service they have learnt is slow - rather than one
@@ -166,12 +174,12 @@
                     rule 12. The number did not move, only where it lives.
                 -->
                 <StackPanel x:Name="WaitingSection"
-                            Grid.Column="0"
+                            Grid.ColumnSpan="4"
                             Grid.Row="0"
                             Orientation="Horizontal"
-                            VerticalAlignment="Center"
                             ToolTip="{DynamicResource gui.plan.waiting.hint}"
-                            Visibility="{Binding Waits, Converter={StaticResource WhenTrue}}">
+                            Visibility="{Binding OffersWaiting, Converter={StaticResource WhenTrue}}"
+                            IsEnabled="{Binding Waits}">
                     <TextBlock Text="{DynamicResource gui.plan.waiting.label}"
                                VerticalAlignment="Center"
                                Style="{StaticResource SubduedText}" />
@@ -191,15 +199,12 @@
                 </StackPanel>
 
                 <!--
-                    WHAT IS WRONG WITH THE BOX, UNDER THE ROW IT IS IN. Empty almost always, and
-                    ALWAYS PRESENT - the row it sits in is reserved, see the head of this grid. In
-                    the problem colour, the same one the box's edge wears, so the sentence and the
-                    field read as one thing. Spans every column because it is a sentence rather than
-                    a control, and a sentence wrapping inside the first column would be a tall
-                    narrow paragraph beside two buttons.
+                    WHAT IS WRONG WITH THE BOX, DIRECTLY UNDER IT. Empty almost always, and ALWAYS
+                    PRESENT - the row it sits in is reserved, see the head of this grid. In the problem
+                    colour, the same one the box's edge wears, so the sentence and the field read as
+                    one thing.
                 -->
-                <TextBlock Grid.Column="0"
-                           Grid.ColumnSpan="4"
+                <TextBlock Grid.ColumnSpan="4"
                            Grid.Row="1"
                            x:Name="WaitingProblemLine"
                            AutomationProperties.AutomationId="planWaitingProblem"
@@ -208,19 +213,17 @@
                            Style="{StaticResource ProblemText}" />
 
                 <!--
-                    WHICH STEP IS HAPPENING, IN THE ROW UNDER THE BUTTONS AND ACROSS ALL OF THEM
-                    SINCE 2026-09-30. It shared the first cell with the box of seconds, beside the
-                    buttons, and wrapped there already at about 308 px - a third button during a
-                    run would have left it half that. The row under the buttons is reserved at all
-                    times and says nothing during a run, because the box it speaks for is gone.
+                    WHICH STEP IS HAPPENING, IN THE SAME RESERVED LINE, across the whole sheet. It
+                    shared the first cell with the box of seconds until 2026-09-30 and wrapped there at
+                    about 308 px. During a run the box above is greyed and has nothing to say, so the
+                    line is free.
 
                     AND IT STILL GOES WHEN IT HAS NOTHING TO SAY. Until 2026-09-16 it lay on top of
                     the box of seconds at all times, empty, and a TextBlock takes the pointer over
                     its whole rectangle - so it caught every click meant for the box (plan-keys.ps1,
                     WaitingBoxGuards). It no longer covers the box, and the rule stays anyway.
                 -->
-                <TextBlock Grid.Column="0"
-                           Grid.ColumnSpan="4"
+                <TextBlock Grid.ColumnSpan="4"
                            Grid.Row="1"
                            x:Name="PlanProgress"
                            AutomationProperties.AutomationId="planProgress"
@@ -236,36 +239,35 @@
                     machine", and this changes nothing - it gives up putting things back.
                 -->
                 <Button Grid.Column="1"
+                        Grid.Row="2"
                         x:Name="AbandonButton"
                         AutomationProperties.AutomationId="planAbandon"
+                        Style="{StaticResource PlanRunButton}"
                         Content="{DynamicResource gui.plan.abandon}"
                         ToolTip="{DynamicResource gui.plan.abandon.hint}"
-                        ToolTipService.ShowOnDisabled="True"
-                        Margin="{StaticResource MarginBetweenControls}"
                         Visibility="{Binding Underway.OffersAbandoning, Converter={StaticResource WhenTrue}}"
                         IsEnabled="{Binding Underway.CanAbandon}"
                         Click="AbandonRequested" />
 
                 <!--
                     GREY ONCE PRESSED SINCE 2026-09-30, and saying so on the tooltip - until then a
-                    press left no trace on the sheet at all. ShowOnDisabled for the reason the button
-                    beside it gives: WPF serves no tooltip to a disabled control otherwise.
+                    press left no trace on the sheet at all. PlanRunButton in Themes/PlanRun.xaml makes
+                    the tooltip reachable on a grey button, for both buttons a run brings.
                 -->
                 <Button Grid.Column="2"
+                        Grid.Row="2"
                         x:Name="InterruptButton"
                         AutomationProperties.AutomationId="planInterrupt"
+                        Style="{StaticResource PlanRunButton}"
                         Content="{DynamicResource gui.plan.interrupt}"
                         ToolTip="{Binding Underway.InterruptTip}"
-                        ToolTipService.ShowOnDisabled="True"
-                        Margin="{StaticResource MarginBetweenControls}"
                         Visibility="{Binding Busy, Converter={StaticResource WhenTrue}}"
                         IsEnabled="{Binding Underway.CanInterrupt}"
                         Click="InterruptRequested" />
 
                 <!--
-                    THE TOOLTIP SAYS WHY IT IS GREY, AND ShowOnDisabled MAKES IT REACHABLE AT
-                    ALL: WPF stops serving tooltips for a disabled control, so without this line
-                    the reason below is a sentence nobody could read.
+                    THE TOOLTIP SAYS WHY IT IS GREY, and PlanCarryOut in Themes/PlanRun.xaml makes it
+                    reachable on a grey button - WPF serves no tooltip to a disabled control otherwise.
 
                     Bound rather than a fixed key, because the button has FIVE ways of going quiet
                     and only one was ever said out loud - CarryOutTip chooses between them. The
@@ -279,25 +281,42 @@
                     2026-09-15 (`docs/11` 2.14, point 4) applied it to the rest: "Stop Windows
                     Search", "Restart 3 entries", "Set Spooler to Disabled".
 
-                    A NAME IS UNBOUNDED AND THIS ROW IS NOT. The button stops growing at
-                    WidthCarryOutMost and its word is trimmed with an ellipsis through
-                    TrimmedButtonLabel, so the longest display name on a Polish Windows cannot push
-                    the waiting box off the row - the heading above carries the whole name. The
-                    automation name is bound as well as the content, so a probe reading this button
-                    gets the label whichever way WPF derives a name for templated content.
+                    A NAME IS UNBOUNDED AND THIS ROW IS NOT. PlanCarryOut stops the button at
+                    WidthCarryOutMost and trims its word with an ellipsis, and the heading above carries
+                    the whole name. The automation name is bound as well as the content, so a probe
+                    reading this button gets the label whichever way WPF derives a name for templated
+                    content.
+
+                    IT GOES ONCE THERE IS A RESULT - PlanCarryOut says why, and the button under it
+                    takes its place.
                 -->
                 <Button Grid.Column="3"
+                        Grid.Row="2"
                         x:Name="CarryOutButton"
-                        Style="{StaticResource DestructiveAction}"
+                        Style="{StaticResource PlanCarryOut}"
                         AutomationProperties.AutomationId="planCarryOut"
                         AutomationProperties.Name="{Binding CarryOutLabel}"
                         Content="{Binding CarryOutLabel}"
-                        ContentTemplate="{StaticResource TrimmedButtonLabel}"
-                        MaxWidth="{StaticResource WidthCarryOutMost}"
                         ToolTip="{Binding CarryOutTip}"
-                        ToolTipService.ShowOnDisabled="True"
                         IsEnabled="{Binding CanCarryOut}"
                         Click="CarryOutRequested" />
+
+                <!--
+                    THE WAY OUT OF A FINISHED SHEET, 2026-11-16 - PlanDone says why it looks the way it
+                    does. The window hands it the keyboard when the run ends, so Enter closes the sheet
+                    as Escape does.
+
+                    IN THE SAME CELL AS THE BUTTON IT REPLACES, and the double click that rule worries
+                    about cannot reach it: the button above is grey for the whole run, so a second
+                    click of a double click lands on a disabled button, and this appears only when the
+                    run has ended.
+                -->
+                <Button Grid.Column="3"
+                        Grid.Row="2"
+                        x:Name="DoneButton"
+                        Style="{StaticResource PlanDone}"
+                        AutomationProperties.AutomationId="planDone"
+                        Click="DoneRequested" />
             </Grid>
         </StackPanel>
         </AdornerDecorator>

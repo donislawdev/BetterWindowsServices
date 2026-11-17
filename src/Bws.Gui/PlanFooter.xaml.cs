@@ -38,6 +38,9 @@ public partial class PlanFooter : UserControl
     /// </summary>
     internal event EventHandler? AbandonRequest;
 
+    /// <summary>Somebody pressed the button that closes a sheet whose run has ended.</summary>
+    internal event EventHandler? DoneRequest;
+
     public PlanFooter() => InitializeComponent();
 
     /// <summary>
@@ -52,6 +55,15 @@ public partial class PlanFooter : UserControl
 
     /// <summary>The way to stop a run, which only exists while there is one.</summary>
     internal Button Interrupt => InterruptButton;
+
+    /// <summary>
+    /// The way out of a finished sheet, which takes the place of <see cref="CarryOut"/> once there
+    /// is a result - and where the sheet sends the keyboard then.
+    /// </summary>
+    internal Button Done => DoneButton;
+
+    /// <summary>The box of seconds and its two words, so a guard can ask whether the row fits.</summary>
+    internal FrameworkElement Waiting => WaitingSection;
 
     /// <summary>The line saying why this cannot be carried out here.</summary>
     internal TextBlock Blocked => PlanBlocked;
@@ -91,4 +103,7 @@ public partial class PlanFooter : UserControl
 
     private void AbandonRequested(object sender, RoutedEventArgs e) =>
         AbandonRequest?.Invoke(this, EventArgs.Empty);
+
+    private void DoneRequested(object sender, RoutedEventArgs e) =>
+        DoneRequest?.Invoke(this, EventArgs.Empty);
 }

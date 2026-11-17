@@ -28,7 +28,9 @@ public sealed class FeedGuards
     /// <summary>
     /// The size an archive's headers declare for its program, where a change has it lie: far past what the
     /// script copies out of an archive, or less than the program it holds - stored, as these archives store
-    /// it, so the .NET reader returns every byte whatever the header says.
+    /// it. What the .NET reader does with that lie depends on the runtime that runs the script, so the
+    /// sentence held is the part both answers share: on .NET 10 the reader returned every byte and the
+    /// script's own count refused it, on .NET 11 the reader refuses it first (tools/feeds/zip-bound-probe.ps1).
     /// </summary>
     private static readonly Dictionary<string, uint> Declared = new(StringComparer.Ordinal)
     {
@@ -184,7 +186,7 @@ public sealed class FeedGuards
     [InlineData("as-text:gui", "BetterWindowsServices/BetterWindowsServices.exe in BetterWindowsServices-win-x64.zip is version ''")]
     [InlineData("foreign:gui", "BetterWindowsServices/BetterWindowsServices.exe in BetterWindowsServices-win-x64.zip is version '7.")]
     [InlineData("declares-huge:cli", "bws-cli-win-x64.zip declares bws/bws.exe at 4026531840 bytes")]
-    [InlineData("declares-less:cli", "bws-cli-win-x64.zip holds more of bws/bws.exe than the 1000 bytes it declares")]
+    [InlineData("declares-less:cli", "bws-cli-win-x64.zip does not hold bws/bws.exe the way its header declares it - ")]
     public void A_folder_that_is_not_a_published_release_is_refused_and_leaves_nothing(string change, string says)
     {
         var dir = Case();
@@ -194,6 +196,15 @@ public sealed class FeedGuards
             Change(release, change);
             var (code, said) = BuildFeeds(Tag(), release, Path.Combine(dir, "out"));
             Assert.True(code == 1 && said.Contains(says, StringComparison.Ordinal), $"{change}: exited {code} and said:{Environment.NewLine}{said}{Environment.NewLine}want exit 1 and \"{says}\"");
+
+            // A refusal ending in a dash promises its cause after it. The cause differs by runtime
+            // (the script's own count on .NET 10, the reader's InvalidDataException on .NET 11), so
+            // only that one is there is held - a sentence that dropped it would still match above.
+            if (says.EndsWith(" - ", StringComparison.Ordinal))
+            {
+                Assert.Matches(Regex.Escape(says) + @"\S", said);
+            }
+
             Assert.DoesNotContain(Left(dir), name => name != "release");
         }
         finally

@@ -21,6 +21,15 @@ namespace Bws.Gui;
 /// happens while there is still a window to say it in. The cost of that choice is stated rather
 /// than hidden: a width dragged and then a process killed is a width that was never written, and
 /// only a tick or an orderly close puts it on disk.
+///
+/// <b>TWO WINDOWS OPEN AT ONCE: THE ONE THAT WRITES LAST WINS, FOR ALL THREE LISTS.</b> The file
+/// is read once, at startup, and every write puts this window's whole layout back - so a list
+/// arranged in one window and left untouched in another comes back as the second window had it,
+/// if the second closes later. Accepted, not overlooked: the hand-over to an elevated window is
+/// not this case, because the window that starts its replacement stops writing first
+/// (<see cref="Leave"/>), and an administrator window writes like any other since 2026-11-16.
+/// Merging would mean reading the file again before each write and keeping, list by list, only
+/// what this window changed - backlog 640 holds that design until somebody asks for it.
 /// </summary>
 internal sealed class KeptColumns
 {
@@ -325,16 +334,11 @@ internal sealed class KeptColumns
     }
 
     /// <summary>
-    /// The sentence about a file that is not a layout, in the three ways it can have ended.
-    ///
-    /// <b>The third since 2026-10-06 - security report S-7.</b> An administrator window under User
-    /// Account Control does not TRY to move the file (<see cref="PreferencesFile.LeavesTheProfileAlone"/>),
-    /// and the sentence for a move that failed says "could not be moved" and "this will happen again" -
-    /// a claim about an attempt nobody made.
+    /// The sentence about a file that is not a layout, in the two ways it can have ended: moved
+    /// aside, or left where it was because the move failed.
     /// </summary>
     private string Unreadable(string why) =>
         _reading.MovedAside is { } aside ? Texts.Of("gui.layout.unreadable", why, aside)
-        : _file.LeavesTheProfileAlone ? Texts.Of("gui.layout.unreadableLeftAsAdministrator", why)
         : Texts.Of("gui.layout.unreadableStays", why);
 
     /// <summary>
