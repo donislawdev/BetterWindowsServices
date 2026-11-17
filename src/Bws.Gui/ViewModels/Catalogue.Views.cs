@@ -330,7 +330,10 @@ public static partial class Catalogue
 
         // The fields under the guide to the language, over a model of its own - Catalogue.Guide.cs says why.
         // The extreme cell is the narrow column, where twenty one pills wrap the most.
-        View(() => new SearchGuide(), data: Guiding(), extreme: Guiding())
+        View(() => new SearchGuide(), data: Guiding(), extreme: Guiding()),
+
+        // The settings page, over models of its own - Catalogue.Settings.cs says what each cell holds.
+        View(() => new SettingsView(), data: SettingsIn("data"), empty: SettingsIn("empty"), wrong: SettingsIn("wrong"), extreme: SettingsIn("extreme"))
     ];
 
     private static async Task ShowPlanAsync(MainViewModel model, ActionKind kind, params string[] names)

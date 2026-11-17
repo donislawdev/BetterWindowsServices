@@ -335,6 +335,9 @@
                          x:Name="Toolbox"
                          Visibility="Collapsed" />
 
+        <!-- The settings page, in the same cell and the same way - SettingsView.xaml. -->
+        <local:SettingsView Grid.Row="4" Grid.ColumnSpan="2" x:Name="Preferences" Visibility="Collapsed" />
+
         <!-- What changed since a snapshot, in the same cell and the same way - DiffView.xaml. -->
         <local:DiffView Grid.Row="4"
                         Grid.ColumnSpan="2"

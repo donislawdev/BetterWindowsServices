@@ -38,6 +38,8 @@ public partial class ScopeBar : UserControl
     /// </summary>
     internal Button Help => HelpButton;
 
+    internal Button Settings => SettingsButton;
+
     /// <summary>
     /// A list tab was pressed - including the one already marked, which a radio button does not report
     /// through its mark. Over the overview or a view of the audit that press is the way back to the list

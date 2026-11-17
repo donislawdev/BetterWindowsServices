@@ -164,6 +164,22 @@ internal sealed class PreferencesFile
         return reading.Unreadable is null ? reading : reading with { MovedAside = Aside() };
     }
 
+    /// <summary>Whether Windows names a folder for this file at all - an account without a profile has none.</summary>
+    internal bool HasAPlace => _directory.Length > 0;
+
+    /// <summary>
+    /// The folder in the profile, or an empty name - for the settings page's "Open folder", which hands
+    /// the shell nothing it did not work out itself (ExternalLinks.SettingsFolder).
+    /// </summary>
+    internal static string FolderInTheProfile => InTheProfile();
+
+    /// <summary>
+    /// The two choices of the settings page as the file holds them NOW, or nothing - read without moving
+    /// the file and without a word from Texts, which is what makes it safe before the first sentence and
+    /// before every write (KeptChoices).
+    /// </summary>
+    internal KeptChoices? PeekChoices() => HasAPlace ? KeptChoices.Peek(Where) : null;
+
     /// <summary>
     /// Writes the layout, and says what stopped it when something did.
     ///

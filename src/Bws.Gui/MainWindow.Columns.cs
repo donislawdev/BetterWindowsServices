@@ -80,6 +80,9 @@ public partial class MainWindow
         // The searches made lately live in the same file, so they are wired where the file is - 2026-11-17.
         RecentSearches.Watch(this, Search.Box, _model, kept);
 
+        // And the settings page, which shows that file and changes what is in it - SettingsDoor.cs.
+        SettingsDoor.Watch(this, _model, kept, preferences, () => HandOverNow().Encode());
+
         // THE PANEL TAKES THE PROSE COLUMNS OFF THE LIST WHILE IT IS OPEN - UX-GUI-012, owner's
         // decision of 2026-09-24. Told here because this is the one place holding the bar and the
         // model at once. The bar decides which columns and never the last one - ColumnBar.Rethink.

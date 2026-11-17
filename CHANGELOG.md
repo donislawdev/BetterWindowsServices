@@ -13,6 +13,13 @@ is not part of this repository.
 
 ### Added
 
+- *Settings*, at the top right beside *Help*, or Ctrl+comma: a page where you choose the language
+  of the window (*Same as Windows* or one of the languages built into the program), turn off
+  remembering your recent searches or forget them, and see where the file with your settings is,
+  with a button that opens its folder. A new language is used the next time the window starts, and
+  *Restart now* opens it again at once. Turning off recent searches forgets the ones already kept.
+  With two windows open, a setting changed in one is no longer undone when the other closes.
+
 - Clicking the empty search box shows your last five searches above the questions to start from,
   with a clock beside each. Delete forgets the chosen one. A search is kept when you leave the box or
   press Enter in it, and only if it can be read. They are kept in the same file as the column
@@ -27,6 +34,9 @@ is not part of this repository.
 
 ### Changed
 
+- The file with your column layout now also keeps your recent searches and the language you choose,
+  and the window's messages about it speak of your settings. A version older than this one leaves
+  that file alone and saves nothing over it until it is gone.
 - A window started as administrator now keeps the column layout you arrange in it, the same way a
   window without administrator rights does. Until now it saved nothing, and switching to *All* or
   *Drivers* said "The column layout was not saved" every time. The README's *Honest limits* says what

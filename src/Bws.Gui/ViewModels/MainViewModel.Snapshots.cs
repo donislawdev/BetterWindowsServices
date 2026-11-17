@@ -30,7 +30,7 @@ public sealed partial class MainViewModel
     /// the same way, and <see cref="HistoryReading.InTheMiddle"/> answers for it. The Tools tab (since
     /// 2026-10-20) takes the whole page rather than the middle, and hides the list all the same.
     /// </summary>
-    public bool ListOnScreen => !_showingOverview && !Snapshotting.InTheMiddle && !History.InTheMiddle && !Tabs.ShowingTools;
+    public bool ListOnScreen => !_showingOverview && !Snapshotting.InTheMiddle && !History.InTheMiddle && !Tabs.ShowingTools && !Tabs.ShowingSettings;
 
     /// <summary>
     /// Escape's middle step: a comparison or the change history standing where the list was goes first,
@@ -52,7 +52,7 @@ public sealed partial class MainViewModel
     /// puts the middle views away when it arrives, so its place in the chain decides nothing either.
     /// </summary>
     internal bool PutAwayAView() =>
-        MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveTheTools() || Chosen.Hide();
+        MiddleSearchEmptied() || Snapshotting.PutAway() || History.PutAway() || Tabs.LeaveThePage() || Chosen.Hide();
 
     /// <summary>
     /// The choices over the table standing where the list was - the comparison's or the change history's -

@@ -58,7 +58,8 @@ servers, and what is cheap to close is closed. Reports in this area are welcome.
 known and not closed, and both are described in the README under *Honest limits*: a .NET profiler
 or diagnostic setting in the account's environment is named by an elevated session rather than
 refused, because a program cannot switch those off for itself, and an elevated window saves its
-column layout into the account's profile, whose location the account chooses. The native
+settings - the column layout, recent searches and the chosen language - into the account's profile,
+whose location the account chooses. The native
 libraries the window unpacks before it starts are kept, when it runs elevated, in a folder only
 administrators can change, and the window does not start when that folder cannot be trusted.
 

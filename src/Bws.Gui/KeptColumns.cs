@@ -56,6 +56,15 @@ internal sealed class KeptColumns
     /// <summary>Whether <see cref="Leave"/> has been called - nothing more is written.</summary>
     private bool _left;
 
+    /// <summary>
+    /// Whether THIS window changed the language or the switch over recent searches. A choice it did not
+    /// make is taken from the file before every write rather than from what it read at startup -
+    /// decision E3, KeptChoices says why.
+    /// </summary>
+    private bool _languageChosen;
+
+    private bool _rememberChosen;
+
     internal KeptColumns(PreferencesFile file)
     {
         _file = file;
@@ -121,10 +130,43 @@ internal sealed class KeptColumns
     /// rather than closed. Nothing is written when the list did not change, so the same search made
     /// twice costs one write. RecentQueries holds what counts as the same and how many are kept.
     /// </summary>
-    internal void Remember(string query, Says says) => KeepTheRecent(ViewModels.RecentQueries.With(RecentQueries, query), says);
+    internal void Remember(string query, Says says)
+    {
+        // NOTHING IS ADDED WHILE THE SWITCH IS OFF - the settings page, schema 7.
+        if (_layouts.RememberRecent)
+        {
+            KeepTheRecent(ViewModels.RecentQueries.With(RecentQueries, query), says);
+        }
+    }
 
     /// <summary>Takes a search off the list and writes it - Delete on its row.</summary>
     internal void Forget(string query, Says says) => KeepTheRecent(ViewModels.RecentQueries.Without(RecentQueries, query), says);
+
+    /// <summary>Takes every search off the list and writes it - "Forget recent searches" on the settings page.</summary>
+    internal void ForgetAll(Says says) => KeepTheRecent([], says);
+
+    /// <summary>The two choices of the settings page as this window holds them.</summary>
+    internal KeptChoices Choices => _layouts.Choices;
+
+    /// <summary>
+    /// Keeps the language chosen on the settings page - a code, or nothing for "same as Windows". It takes
+    /// effect at the next start (decision D2): the words of this window were read when it opened.
+    /// </summary>
+    internal void ChooseLanguage(string? language, Says says)
+    {
+        _languageChosen = true;
+        KeepTheProfile(_layouts with { Language = KeptChoices.Shaped(language) }, says);
+    }
+
+    /// <summary>
+    /// Turns remembering recent searches on or off. Off forgets the ones kept so far in the same write -
+    /// decision E4: somebody who turns it off does not want them left on the disk.
+    /// </summary>
+    internal void RememberRecentIs(bool remember, Says says)
+    {
+        _rememberChosen = true;
+        KeepTheProfile(_layouts.WithChoices(_layouts.Choices with { RememberRecent = remember }), says);
+    }
 
     private void KeepTheRecent(IReadOnlyList<string> recent, Says says)
     {
@@ -169,6 +211,16 @@ internal sealed class KeptColumns
         if (_reading.LeftAlone || _left)
         {
             return;
+        }
+
+        // THE CHOICES OF THE SETTINGS PAGE THIS WINDOW DID NOT MAKE COME FROM THE FILE, decision E3 - another
+        // window may have changed them since this one read it, and this write must not undo that in silence.
+        // A file that cannot be read now changes nothing here.
+        if ((!_languageChosen || !_rememberChosen) && _file.PeekChoices() is { } onDisk)
+        {
+            _layouts = _layouts.WithChoices(new KeptChoices(
+                _languageChosen ? _layouts.Language : onDisk.Language,
+                _rememberChosen ? _layouts.RememberRecent : onDisk.RememberRecent));
         }
 
         if (_file.Write(_layouts) is { } trouble)

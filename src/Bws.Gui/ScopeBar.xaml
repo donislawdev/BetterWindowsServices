@@ -160,6 +160,19 @@
                 </StackPanel>
             </Button>
 
+            <!--
+                SETTINGS SINCE 2026-11-17, just left of Help - `docs/PROJEKT-USTAWIENIA-20261117.md`. The two
+                that are about this program stand together in the corner, the two about the project (GitHub,
+                Donate) before them. Text only, the way Help is. Pressed, it brings the settings page up
+                (SettingsDoor).
+            -->
+            <Button x:Name="SettingsButton"
+                    AutomationProperties.AutomationId="settings"
+                    AutomationProperties.Name="{DynamicResource gui.settings.button}"
+                    ToolTip="{DynamicResource gui.settings.hint}"
+                    Margin="{StaticResource MarginBetweenControls}"
+                    Content="{DynamicResource gui.settings.button}" />
+
             <!-- The menu is hung on it by MainWindow.Help.cs, the items are HelpMenu.cs. -->
             <Button x:Name="HelpButton"
                     AutomationProperties.AutomationId="help"

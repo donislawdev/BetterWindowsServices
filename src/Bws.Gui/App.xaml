@@ -89,6 +89,8 @@
                 <ResourceDictionary Source="Themes/Text.xaml" />
                 <ResourceDictionary Source="Themes/Overview.xaml" />
                 <ResourceDictionary Source="Themes/Tools.xaml" />
+                <!-- The settings page, 2026-11-17: after Overview.xaml, whose card its card is. -->
+                <ResourceDictionary Source="Themes/Settings.xaml" />
                 <ResourceDictionary Source="Themes/Tabs.xaml" />
                 <ResourceDictionary Source="Themes/Chips.xaml" />
                 <ResourceDictionary Source="Themes/Controls.xaml" />

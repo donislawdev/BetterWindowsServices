@@ -60,6 +60,14 @@ public sealed class SilentCatchGuards
         // measurement), so the branch is expected to stay unreached.
         ["src/Bws.Core/Snapshots/SystemFacts.cs"] = 1,
         ["src/Bws.Gui/Elevation.cs"] = 1,
+
+        // 2026-11-17, the settings page (docs/PROJEKT-USTAWIENIA-20261117.md), each argued beside its catch.
+        // Languages.cs: a languages folder that cannot be listed offers nothing, and nothing is read from it
+        // either, so the window and the page show the same languages. KeptChoices.cs: the early read of the
+        // language and the read before a write - the window reads the same file a moment later and says why
+        // it could not, and a write that fails says so itself.
+        ["src/Bws.Gui/Languages.cs"] = 1,
+        ["src/Bws.Gui/ViewModels/KeptChoices.cs"] = 2,
         ["src/Bws.Gui/ListColumns.cs"] = 3,
         ["src/Bws.Gui/PreferencesFile.cs"] = 2,
         ["src/Bws.Gui/Texts.cs"] = 4,

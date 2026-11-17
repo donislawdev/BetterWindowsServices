@@ -497,13 +497,15 @@ A tool that quietly fails to cover something is worse than one that says what it
   profiler, a trace or dump switch, or a diagnostic port set in the environment cannot be switched
   off from inside a .NET program, so with administrator rights both halves list any they find.
   Startup hooks are switched off outright.
-- **An elevated window saves its column layout into your profile, like any other window.** The
-  account itself decides where that folder is, so a program already running in your account
-  without administrator rights could point the save somewhere else. The save writes only the
-  layout, so the worst such a program can do is make the window write that layout over another
-  file - it cannot make the window run anything. Keeping such a program out of the account is the
-  real protection, which is also why Windows does not treat User Account Control as a security
-  boundary.
+- **An elevated window saves its settings into your profile, like any other window.** That is the
+  column layout, your recent searches and the language chosen under *Settings*. The account itself
+  decides where that folder is, so a program already running in your account without administrator
+  rights could point the save somewhere else, or edit the file. The save writes only those settings,
+  and a window started as administrator opens only in a language built into the program, so the
+  worst such a program can do is make the window write its settings over another file or open in
+  another built-in language - it cannot make the window run anything. Keeping such a program out of
+  the account is the real protection, which is also why Windows does not treat User Account Control
+  as a security boundary.
 
 **Things Windows does that this tool reports as they are:**
 
@@ -674,11 +676,18 @@ itself it restarts as administrator. Nobody types it, and anything in it that wi
 written is refused.
 
 The row across the top holds the three lists - *Services*, *Drivers*, *All*, each saying how big it
-is - then *Tools*, a page of ready-made fixes that each open a plan, and *GitHub*, *Donate* and
-*Help* at its right end. The row stays on every page, so a list's tab is also the way back to it
-from the overview or a comparison. *GitHub* and *Donate* open the project's repository and its
-support page in your browser - and in a window running as administrator they ask the desktop to
-open it, so the browser does not get those rights.
+is - then *Tools*, a page of ready-made fixes that each open a plan, and *GitHub*, *Donate*,
+*Settings* and *Help* at its right end. The row stays on every page, so a list's tab is also the way
+back to it from the overview or a comparison. *GitHub* and *Donate* open the project's repository
+and its support page in your browser - and in a window running as administrator they ask the desktop
+to open it, so the browser does not get those rights.
+
+*Settings*, or Ctrl+comma, is a page with three things on it. The language of the window, from the
+translations built into it, with *Same as Windows* first. Whether the search box remembers your
+recent searches, with a button that forgets them. And where the file with your settings is, with a
+button that opens its folder. A change takes effect at once, except the language, which the window
+reads when it starts - *Restart now* opens it again in the language you chose. Numbers and dates
+keep the format set in Windows, and `bws` on the command line always speaks English.
 
 The search box takes the query language and suggests as you type - Tab or Enter writes the
 highlighted word - and the filter buttons write into the box. Clicked while empty, it offers your

@@ -43,6 +43,14 @@ internal static class Shortcuts
             return Shortcut.CopyRow;
         }
 
+        // Ctrl+comma opens the settings, which is what it does in Visual Studio Code and in the browsers
+        // built on Chromium - a habit, not a Windows rule, said so in `docs/PROJEKT-USTAWIENIA-20261117.md`.
+        // OemComma is the key that types a comma on the US layout and on the Polish one alike.
+        if (key == Key.OemComma && modifiers == ModifierKeys.Control)
+        {
+            return Shortcut.Settings;
+        }
+
         // The rest carry no modifier at all, for the same reason.
         if (modifiers != ModifierKeys.None)
         {
@@ -116,6 +124,12 @@ internal enum Shortcut
     /// it, and the help menu is one press of F1 away from anywhere else.
     /// </summary>
     Guide,
+
+    /// <summary>
+    /// Open the settings page - Ctrl+comma, since 2026-11-17. Answered by SettingsDoor rather than by
+    /// MainWindow.Act, which hands it on - SettingsDoor says why.
+    /// </summary>
+    Settings,
 
     /// <summary>
     /// Back out of the innermost thing that can be backed out of.
