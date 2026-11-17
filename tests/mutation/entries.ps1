@@ -2050,6 +2050,36 @@ $mutations = @(
         Test = 'PreferencesFileGuards.A_file_too_big_to_be_a_layout_is_refused_rather_than_read_into_memory'
     },
     @{
+        # BACKLOG 645, rule 28 (b). The kept language becomes a resource name and a path beside the
+        # program (languages\gui.<code>.json), and the settings file it comes from is anybody's to edit.
+        # Without the letter test ".." and "..\" are three characters or fewer and go straight into
+        # that path - the length check alone does not stop them.
+        Name = 'settings: a kept language is letters only, because it becomes a path'
+        File = 'src\Bws.Gui\ViewModels\KeptChoices.cs'
+        From = '        code is { Length: >= 2 and <= 3 } && code.All(char.IsAsciiLetter) ? code.ToLowerInvariant() : null;'
+        To = '        code is { Length: >= 2 and <= 3 } ? code.ToLowerInvariant() : null;'
+        Test = 'SettingsGuards.Only_a_code_of_letters_is_kept'
+    },
+    @{
+        # BACKLOG 645, rule 28 (b), decision E3. A window that did not choose a language takes the one
+        # on disk at each write. Taking its own instead puts back what it read at its start, which undoes
+        # a choice somebody made later in another window - quietly, at the next column drag or close.
+        Name = 'settings: a choice made in another window is not undone by this one writing'
+        File = 'src\Bws.Gui\KeptColumns.cs'
+        From = '                _languageChosen ? _layouts.Language : onDisk.Language,'
+        To = '                _layouts.Language,'
+        Test = 'SettingsGuards.A_choice_made_in_one_window_is_not_undone_by_another'
+    },
+    @{
+        # BACKLOG 645, rule 28 (b), decision E4. Turning remembering off takes the kept searches off
+        # the disk in the same write - somebody who switches it off does not want them left there.
+        Name = 'settings: remembering off takes the kept searches with it'
+        File = 'src\Bws.Gui\ViewModels\ColumnLayout.cs'
+        From = '        RecentQueries = choices.RememberRecent ? RecentQueries : []'
+        To = '        RecentQueries = RecentQueries'
+        Test = 'SettingsGuards.Turning_remembering_off_takes_the_searches_with_it'
+    },
+    @{
         # BACKLOG 305. The cascade goes into a dictionary keyed by name, and a dictionary meets a
         # repeated key by throwing - so a name EnumDependentServices happened to give twice turned a
         # PREVIEW into a sentence about a failure, with nothing to say the failure was ours.

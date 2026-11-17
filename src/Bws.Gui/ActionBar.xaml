@@ -32,7 +32,21 @@
         stop that does nothing, in front of the buttons it holds. `docs/10` trap 8.
     -->
 
-    <StackPanel Orientation="Horizontal">
+    <!--
+        TWO GROUPS THAT WRAP, since 2026-11-17 - the day Polish was built in and the bar stood half
+        outside the window at every width below maximised (Export cut in half, Audit and Overview
+        gone). Until then this was one horizontal StackPanel, which cannot break a line
+        (docs/10 trap 18), with 17 units to spare at the narrowest window in English. A translation is a
+        file with no change in code (ADR-21), so a bar that fits only the words of one language fits
+        none - the answer is the layout, and ActionBarGuards says so in as many words.
+
+        THE BREAK COMES BETWEEN THE GROUPS FIRST: what is done to a service on the first line, what is
+        done to the listing on the second. Each group wraps inside itself too, for a language whose
+        verbs alone are wider than the window. A WrapPanel here gets a finite width because the bar
+        stands in a row of the window's grid - trap 18 the right way round.
+    -->
+    <WrapPanel>
+    <WrapPanel Margin="{StaticResource MarginActionGroup}">
         <Button x:Name="StopButton"
                 AutomationProperties.AutomationId="actionStop"
                 Content="{DynamicResource gui.action.stop}"
@@ -127,7 +141,9 @@
                 <ContextMenu x:Name="StartTypeMenu" />
             </Button.ContextMenu>
         </Button>
+    </WrapPanel>
 
+    <WrapPanel Margin="{StaticResource MarginActionGroup}">
         <!--
             The line between what is done to a service and what is done to the listing. A shape
             rather than a gap, because a gap at this width reads as an accident.
@@ -207,5 +223,6 @@
                 ToolTip="{DynamicResource gui.overview.button.hint}"
                 Margin="{StaticResource MarginBetweenControls}"
                 Click="OverviewAsked" />
-    </StackPanel>
+    </WrapPanel>
+    </WrapPanel>
 </UserControl>

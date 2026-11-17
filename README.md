@@ -683,7 +683,8 @@ and its support page in your browser - and in a window running as administrator 
 to open it, so the browser does not get those rights.
 
 *Settings*, or Ctrl+comma, is a page with three things on it. The language of the window, from the
-translations built into it, with *Same as Windows* first. Whether the search box remembers your
+translations built into it - English and Polish - with *Same as Windows* first, so on a Windows set
+to Polish the window opens in Polish until you choose English. Whether the search box remembers your
 recent searches, with a button that forgets them. And where the file with your settings is, with a
 button that opens its folder. A change takes effect at once, except the language, which the window
 reads when it starts - *Restart now* opens it again in the language you chose. Numbers and dates

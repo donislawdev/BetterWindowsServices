@@ -178,6 +178,26 @@ public sealed class PublicSurfaceGuards
             + "JSON file a visitor reads words from"
     };
 
+    /// <summary>
+    /// A translation of the window built into the program - Polish since 2026-11-17 - which holds
+    /// another alphabet for the same reason the website's language files do, and is let through by
+    /// path for the same reason: one per language, the same sentence for each. <b>English is not one
+    /// of them</b>: it is what every other language falls back to, so it stays under this sweep, which
+    /// is also what keeps a long dash out of it. TranslationGuards holds every one of them to English.
+    /// </summary>
+    internal static bool IsWindowTranslation(string relativePath) =>
+        relativePath.StartsWith("src/Bws.Gui/Resources/gui.", StringComparison.OrdinalIgnoreCase)
+        && relativePath.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+        && !relativePath.Equals("src/Bws.Gui/Resources/gui.en.json", StringComparison.OrdinalIgnoreCase);
+
+    [Theory]
+    [InlineData("src/Bws.Gui/Resources/gui.pl.json", true)]
+    [InlineData("src/Bws.Gui/Resources/gui.en.json", false)]
+    [InlineData("src/Bws.Gui/Resources/notes.json", false)]
+    [InlineData("src/Bws.Cli/Resources/cli.pl.json", false)]
+    public void Only_a_translation_of_the_window_other_than_english_is_let_through(string path, bool through) =>
+        Assert.Equal(through, IsWindowTranslation(path));
+
     [Fact]
     public void Nothing_outside_plain_ascii_appears_without_a_reason_on_the_list()
     {
@@ -196,7 +216,8 @@ public sealed class PublicSurfaceGuards
             var relativePath = Path.GetRelativePath(root, file).Replace('\\', '/');
             if (file.EndsWith(".html", StringComparison.OrdinalIgnoreCase)
                 || file.EndsWith(".css", StringComparison.OrdinalIgnoreCase)
-                || relativePath.StartsWith("site/i18n/", StringComparison.OrdinalIgnoreCase))
+                || relativePath.StartsWith("site/i18n/", StringComparison.OrdinalIgnoreCase)
+                || IsWindowTranslation(relativePath))
             {
                 continue;
             }

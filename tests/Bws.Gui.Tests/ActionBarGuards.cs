@@ -317,17 +317,33 @@ public sealed class ActionBarGuards
     /// button off the window with nothing to say so - and the answer then is a decision about the
     /// bar, not a shorter word, which is exactly the moment somebody should be told.
     ///
+    /// <b>That moment came on 2026-11-17 and this guard did not see it</b>, because it measured the
+    /// pinned English only. Polish put "Eksportuj..." half outside the window and "Audyt..." off it.
+    /// The answer was the bar - it wraps now (ActionBar.xaml says how) - and this runs once per
+    /// language built in, so the next language is measured on the day it arrives.
+    ///
     /// <b>Measured against the BAR rather than the window</b>, for the reason the chip guard
     /// records: a control that shares its row is not bounded by the window's edge. Here the two
     /// happen to be close, and asking the wrong one would still be asking the wrong one.
     /// </summary>
-    [Fact]
-    public void No_action_button_stands_outside_the_bar_at_the_narrowest_window()
+    [Theory]
+    [MemberData(nameof(BuiltIn))]
+    public void No_action_button_stands_outside_the_bar_at_the_narrowest_window(string language)
     {
         var window = WpfHost.Window();
+        var words = TranslationGuards.Sentences(language);
 
         var (buttons, worst, name, edge) = WpfHost.On(() =>
         {
+            // EVERY LANGUAGE BUILT IN, since 2026-11-17. This host pins English, so until then the
+            // guard measured English only - and Polish, built in that day, stood half outside the
+            // window while this stayed green. Laid over the window's own resources, which the
+            // markup's DynamicResource reaches before the application's English ones.
+            foreach (var (key, text) in words)
+            {
+                window.Resources[key] = text;
+            }
+
             window.Width = (double)WpfHost.Resources["WidthWindowLeast"];
             window.Height = (double)WpfHost.Resources["HeightWindowLeast"];
 
@@ -371,13 +387,15 @@ public sealed class ActionBarGuards
 
         Assert.True(
             worst <= edge,
-            $"The action \"{name}\" ends {worst} across, in a bar that ends at {edge} - so it is "
-            + "standing outside the bar, where it can be neither read nor clicked. These ten sit "
-            + "on one line and cannot wrap, so the answer is a decision about the bar rather than a "
-            + "shorter word.");
+            $"In {language}, the action \"{name}\" ends {worst} across, in a bar that ends at {edge} - so "
+            + "it is standing outside the bar, where it can be neither read nor clicked. The bar wraps "
+            + "between its two groups and inside each since 2026-11-17, so something made it stop.");
 
         WpfHost.On(window.Close);
     }
+
+    /// <summary>The languages built into the window, each one a case of the guard above.</summary>
+    public static TheoryData<string> BuiltIn() => [.. TranslationGuards.Built()];
 
     private static void Gather(DependencyObject from, List<Control> found)
     {
