@@ -95,7 +95,13 @@ internal sealed record ColumnLayout(IReadOnlyList<KeptColumn> Columns, KeptSort?
     /// 4 file IS a version 5 file that says nothing about it, and saying nothing means "open", which
     /// is what the window has always done and what somebody who has never folded them should see.
     /// </summary>
-    internal const int CurrentSchemaVersion = 5;
+    /// <summary>
+    /// SIX SINCE 2026-11-17, AND ONE MORE SIBLING - the last five searches, newest first, shown over
+    /// the questions to start from (RecentQueries). The owner's choice of 2026-11-16 named this file
+    /// and a new version of it. A version 5 file IS a version 6 file that says nothing about it, and
+    /// saying nothing means no searches yet, which is what an older file honestly means.
+    /// </summary>
+    internal const int CurrentSchemaVersion = 6;
 
     /// <summary>The oldest schema this build reads and carries forward. See <see cref="ColumnLayouts.Read"/>.</summary>
     internal const int OldestSchemaVersionRead = 1;
@@ -251,6 +257,12 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
     /// </summary>
     internal bool FiltersFolded { get; init; }
 
+    /// <summary>
+    /// The last searches, newest first - schema 6. Init-only for the reason <see cref="OverviewSeen"/>
+    /// is, and empty for every file this build did not write. RecentQueries holds the rules.
+    /// </summary>
+    internal IReadOnlyList<string> RecentQueries { get; init; } = [];
+
     /// <summary>The layout for one scope.</summary>
     internal ColumnLayout For(EntryScope scope) => scope switch
     {
@@ -315,6 +327,9 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
         {
             tree["overviewSeen"] = true;
         }
+
+        // r after o and before s, so the ordinal order holds.
+        ViewModels.RecentQueries.Render(tree, RecentQueries);
 
         tree["schemaVersion"] = ColumnLayout.CurrentSchemaVersion;
 
@@ -400,9 +415,12 @@ internal sealed record ColumnLayouts(ColumnLayout Services, ColumnLayout Drivers
         // reason: a hand-edited key costs at most a row of chips somebody folds again.
         var filtersFolded = root["filtersFolded"] is JsonValue fold && fold.TryGetValue<bool>(out var folded) && folded;
 
+        // Schema 6 - anything in that key that is not a search is passed over, never the file.
+        var recent = ViewModels.RecentQueries.From(root["recentQueries"]);
+
         return new LayoutReading
         {
-            Layouts = new ColumnLayouts(services, drivers, everything) { OverviewSeen = overviewSeen, FiltersFolded = filtersFolded },
+            Layouts = new ColumnLayouts(services, drivers, everything) { OverviewSeen = overviewSeen, FiltersFolded = filtersFolded, RecentQueries = recent },
             CarriedForwardFrom = version < ColumnLayout.CurrentSchemaVersion ? version : null
         };
     }

@@ -97,6 +97,18 @@
     <Thickness x:Key="MarginSearchMessage">0,0,10,0</Thickness>
     <Thickness x:Key="MarginUnderSearchField">0,4,0,0</Thickness>
 
+    <!--
+        THE HELP THE SEARCH BOX GIVES, 2026-11-17 - QueryHelp.xaml. The clock keeps eight from the
+        search beside it, as the magnifier keeps six from the text. The ? keeps four from the frame and
+        five round its mark, so its lit square stays inside the field. The field pills are narrower than
+        the filter chips because there are twenty one of them.
+    -->
+    <Thickness x:Key="MarginRecentMark">0,0,8,0</Thickness>
+    <Thickness x:Key="MarginSearchGuideButton">0,0,4,0</Thickness>
+    <Thickness x:Key="PadSearchGuideButton">5,4,5,4</Thickness>
+    <Thickness x:Key="MarginGuideFieldsLabel">0,0,0,4</Thickness>
+    <Thickness x:Key="PadGuideField">10,2,10,2</Thickness>
+
     <Thickness x:Key="MarginAboveStatus">0,8,0,0</Thickness>
     <Thickness x:Key="MarginBelowSearch">0,0,0,8</Thickness>
     <!--

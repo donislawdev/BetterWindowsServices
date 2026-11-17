@@ -110,6 +110,31 @@ internal sealed class KeptColumns
     internal void TheFiltersWere(bool folded, Says says) => KeepTheProfile(_layouts with { FiltersFolded = folded }, says);
 
     /// <summary>
+    /// The last searches, newest first - what this window read and what it has added since, which
+    /// is why it is asked of the layouts rather than of what was read (schema 6).
+    /// </summary>
+    internal IReadOnlyList<string> RecentQueries => _layouts.RecentQueries;
+
+    /// <summary>
+    /// Puts a search at the front of the list and writes it, at the moment it is made rather than
+    /// when the window closes - the reason <see cref="TheOverviewWasSeen"/> gives, a window killed
+    /// rather than closed. Nothing is written when the list did not change, so the same search made
+    /// twice costs one write. RecentQueries holds what counts as the same and how many are kept.
+    /// </summary>
+    internal void Remember(string query, Says says) => KeepTheRecent(ViewModels.RecentQueries.With(RecentQueries, query), says);
+
+    /// <summary>Takes a search off the list and writes it - Delete on its row.</summary>
+    internal void Forget(string query, Says says) => KeepTheRecent(ViewModels.RecentQueries.Without(RecentQueries, query), says);
+
+    private void KeepTheRecent(IReadOnlyList<string> recent, Says says)
+    {
+        if (!recent.SequenceEqual(RecentQueries))
+        {
+            KeepTheProfile(_layouts with { RecentQueries = recent }, says);
+        }
+    }
+
+    /// <summary>
     /// Writes one changed fact about the profile, or nothing when it is already written - so clicking
     /// through the numbers or the toggle costs one write rather than one per click.
     /// </summary>

@@ -288,6 +288,18 @@
     <system:Double x:Key="SizeSearchMark">14</system:Double>
 
     <!--
+        The wavy line under a mistake in the search box (MistakeMarks, 2026-11-17): one rise every 2
+        units along it, 1.5 up and down from its middle - the shape a spelling checker draws, so it
+        reads as "wrong here" without a word. The middle stands as far under the letters as it rises.
+        A wave of 0 draws a straight line.
+    -->
+    <system:Double x:Key="SizeMistakeWave">2</system:Double>
+    <system:Double x:Key="SizeMistakeWaveHeight">1.5</system:Double>
+
+    <!-- The clock beside a search made lately and the ? at the end of the search box (QueryHelp.xaml). Both are drawn on a 14 unit square, so this and their Data change together. -->
+    <system:Double x:Key="SizeQueryHelpMark">14</system:Double>
+
+    <!--
         The sentence at the right end of the search field is never wider than this, and the typed
         query keeps the rest of the field. Chosen for a two-clause sentence at the notice size, not
         measured against the narrowest window the frame allows.

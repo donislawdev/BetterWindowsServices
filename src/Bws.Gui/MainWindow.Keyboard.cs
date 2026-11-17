@@ -97,6 +97,7 @@ public partial class MainWindow
                 Shortcut.OpenDetails => _model.Suggesting.CanTake ? Shortcut.TakeSuggestion : Shortcut.None,
                 Shortcut.CompleteWord => _model.Suggesting.TabWrites ? Shortcut.TakeSuggestion : Shortcut.None,
                 Shortcut.CopyRow => Shortcut.None,
+                Shortcut.Help => Shortcut.Guide,
                 _ => wanted
             };
         }
@@ -180,6 +181,9 @@ public partial class MainWindow
 
             case Shortcut.Help:
                 return OpenHelp();
+
+            case Shortcut.Guide:
+                return Search.OpenGuide();
 
             case Shortcut.Back:
                 // A PANEL FIRST, THE QUERY LAST, and the order is the decision rather than the

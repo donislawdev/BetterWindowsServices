@@ -37,26 +37,31 @@ public sealed class FilterRowGuards
     ///
     /// Asked of the tooltip the box really carries, not of the composer, so a binding that stopped
     /// reaching it goes red here.
+    ///
+    /// <b>SINCE 2026-11-17 THE TOOLTIP POINTS AND THE GUIDE CARRIES</b> - owner's decision D3 of
+    /// docs/PROJEKT-POLE-ZAPYTANIA-20261117.md. The ? at the end of the box opens the guide, which
+    /// writes the syntax into the box by a click, so the tooltip says where it is rather than
+    /// repeating it. What stays held is the same claim: the field leads to the language. The
+    /// regular expression is still asked by name, now of the guide.
     /// </summary>
     [Fact]
-    public void The_search_box_carries_the_query_language()
+    public void The_search_box_leads_to_the_guide_that_carries_the_query_language()
     {
         var window = WpfHost.Window();
-        var model = WpfHost.On(() => (MainViewModel)window.DataContext);
 
         WpfHost.Settled();
 
-        var tip = WpfHost.On(() => window.Search.Box.ToolTip) as string;
+        var (tip, button, named) = WpfHost.On(() => (
+            window.Search.Box.ToolTip as string,
+            window.Search.GuideButton,
+            System.Windows.Automation.AutomationProperties.GetName(window.Search.GuideButton)));
 
         Assert.False(string.IsNullOrWhiteSpace(tip), "The search box says nothing about what goes in it.");
-
-        foreach (var example in model.Examples)
-        {
-            Assert.Contains(example.Query, tip, StringComparison.Ordinal);
-            Assert.Contains(example.Label, tip, StringComparison.Ordinal);
-        }
-
-        Assert.Contains("/", tip, StringComparison.Ordinal);
+        Assert.Contains("?", tip, StringComparison.Ordinal);
+        Assert.Contains("F1", tip, StringComparison.Ordinal);
+        Assert.NotNull(button);
+        Assert.Equal(Texts.Of("gui.search.guide.name"), named);
+        Assert.Contains(QueryGuide.Lines, line => line.Written.StartsWith("name:/", StringComparison.Ordinal));
 
         WpfHost.On(window.Close);
     }

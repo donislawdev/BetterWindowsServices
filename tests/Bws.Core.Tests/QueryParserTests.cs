@@ -353,6 +353,49 @@ public sealed class QueryParserTests
         Assert.True(Valid("Status:Running").Match(Entries.Any).Matched);
     }
 
+    /// <summary>
+    /// Every problem says where it stands, as the member it came from written exactly as it is in
+    /// the text - spaces around it left out, quotes and a leading ! kept in. The window marks the
+    /// place under the box with this, so a range that is off by one marks the wrong letters.
+    /// </summary>
+    [Theory]
+    [InlineData("stat:running", "stat:running")]
+    [InlineData("name:sql   stat:running", "stat:running")]
+    [InlineData("  !status:runing  ", "!status:runing")]
+    [InlineData("display:\"Print Spooler\" pid:abc", "pid:abc")]
+    [InlineData("name:/[a/", "name:/[a/")]
+    [InlineData("name:sql status:\"running", "\"running")]
+    [InlineData("status:running,stx", "status:running,stx")]
+    public void A_problem_says_which_member_of_the_text_it_is_about(string text, string marked)
+    {
+        var problem = QueryParser.Parse(text).Problems[0];
+
+        Assert.NotNull(problem.At);
+        Assert.Equal(marked, text[problem.At!.Value]);
+    }
+
+    /// <summary>Two mistakes are two places, each its own member and in the order they were written.</summary>
+    [Fact]
+    public void Two_problems_stand_in_two_places()
+    {
+        const string text = "stat:running name:sql pid:abc";
+
+        var places = QueryParser.Parse(text).Problems.Select(problem => text[problem.At!.Value]).ToList();
+
+        Assert.Equal(["stat:running", "pid:abc"], places);
+    }
+
+    /// <summary>
+    /// The member somebody is still typing is passed over in the window, and so has no place to be
+    /// marked - while the same text, finished, is a mistake with one.
+    /// </summary>
+    [Fact]
+    public void A_member_still_being_typed_has_no_problem_and_so_no_place()
+    {
+        Assert.Empty(QueryParser.Parse("status:r", QueryInput.BeingTyped).Problems);
+        Assert.Equal("status:", "status:"[QueryParser.Parse("status:", QueryInput.Finished).Problems[0].At!.Value]);
+    }
+
     internal static Query Valid(string text)
     {
         var parsed = QueryParser.Parse(text);

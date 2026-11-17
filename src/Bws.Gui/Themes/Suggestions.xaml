@@ -70,20 +70,38 @@
         trimmed rather than wrapped because a row that grows taller moves the rows under the
         pointer.
     -->
+    <!--
+        A SEARCH MADE LATELY IS ONE ROW WIDE, since 2026-11-17: the clock and the query, trimmed, out of
+        the shared lead column - a query is as long as somebody typed it, and in that column it would
+        push the syntax of every question to the right. The pair of columns is collapsed for it, and a
+        collapsed grid gives the shared column nothing.
+    -->
     <DataTemplate x:Key="SuggestionRow">
         <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" SharedSizeGroup="SuggestionLead" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="{Binding Lead}" Style="{StaticResource SuggestionLeadText}" />
-            <TextBlock Grid.Column="1"
-                       Text="{Binding Trail}"
-                       Style="{StaticResource SuggestionTrailText}"
-                       Margin="{StaticResource MarginSuggestionTrail}"
-                       VerticalAlignment="Center"
-                       TextTrimming="CharacterEllipsis" />
+            <Grid x:Name="Pair">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" SharedSizeGroup="SuggestionLead" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{Binding Lead}" Style="{StaticResource SuggestionLeadText}" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding Trail}"
+                           Style="{StaticResource SuggestionTrailText}"
+                           Margin="{StaticResource MarginSuggestionTrail}"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis" />
+            </Grid>
+            <DockPanel x:Name="Recent" Visibility="Collapsed">
+                <Path DockPanel.Dock="Left" Style="{StaticResource RecentMark}" />
+                <TextBlock Text="{Binding Word}" Style="{StaticResource FixedText}" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
         </Grid>
+        <DataTemplate.Triggers>
+            <DataTrigger Binding="{Binding IsRecent}" Value="True">
+                <Setter TargetName="Pair" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="Recent" Property="Visibility" Value="Visible" />
+            </DataTrigger>
+        </DataTemplate.Triggers>
     </DataTemplate>
 
     <!--
@@ -146,13 +164,19 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
-                    <Border x:Name="Face"
-                            Background="{x:Static media:Brushes.Transparent}"
-                            Padding="{TemplateBinding Padding}">
-                        <ContentPresenter />
-                    </Border>
+                    <!-- The name of the group this row opens, over the part that lights up (QueryHelp.xaml, SuggestionHeading). -->
+                    <StackPanel>
+                        <Border Style="{StaticResource SuggestionHeading}">
+                            <TextBlock Text="{Binding Heading}" Style="{StaticResource SubduedText}" />
+                        </Border>
+                        <Border x:Name="Face"
+                                Background="{x:Static media:Brushes.Transparent}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter />
+                        </Border>
+                    </StackPanel>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
+                        <Trigger SourceName="Face" Property="IsMouseOver" Value="True">
                             <Setter TargetName="Face" Property="Background" Value="{StaticResource SurfaceHoverOnPanel}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">

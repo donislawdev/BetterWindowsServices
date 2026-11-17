@@ -137,9 +137,12 @@ public sealed class SuggestionGuards
         {
             var (_, items) = Built(chosen: -1);
 
+            // THE TEXTS THE ROW SHOWS, since 2026-11-17: the item now also carries the heading of a
+            // group (collapsed unless the row opens one) and the one-wide face of a search made lately
+            // (collapsed unless it is one), so "every TextBlock" stopped meaning "what the row says".
             return (
                 items.Select(item => UIElementAutomationPeer.CreatePeerForElement(item)!.GetName()).ToList(),
-                items.Select(item => Descendants(item).OfType<TextBlock>().Select(block => block.Text).ToList()).ToList());
+                items.Select(item => Descendants(item).OfType<TextBlock>().Where(block => Shown(block, item)).Select(block => block.Text).ToList()).ToList());
         });
 
         Assert.Equal(["status", "start", "sddl"], names);
@@ -202,7 +205,9 @@ public sealed class SuggestionGuards
             var cap = list.Setters.OfType<Setter>().Single(setter => setter.Property == FrameworkElement.MaxHeightProperty).Value;
 
             var (_, items) = Built(chosen: -1);
-            var border = Descendants(items[0]).OfType<Border>().First();
+
+            // The face by its name - the heading of a group stands over it in the same item since 2026-11-17.
+            var border = Descendants(items[0]).OfType<Border>().First(found => found.Name == "Face");
 
             return ((double)cap, (double)WpfHost.Resources["HeightMenu"], border.Background);
         });
@@ -280,6 +285,23 @@ public sealed class SuggestionGuards
         bitmap.CopyPixels(new Int32Rect(x, y, 1, 1), pixel, 4, 0);
 
         return Color.FromRgb(pixel[2], pixel[1], pixel[0]);
+    }
+
+    /// <summary>
+    /// Whether nothing between the element and the row is collapsed - asked of Visibility rather than
+    /// IsVisible, which needs a window on screen and is false for everything in a host never shown.
+    /// </summary>
+    private static bool Shown(DependencyObject element, DependencyObject row)
+    {
+        for (var at = element; at is not null && !ReferenceEquals(at, row); at = VisualTreeHelper.GetParent(at))
+        {
+            if (at is UIElement { Visibility: not Visibility.Visible })
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static IEnumerable<DependencyObject> Descendants(DependencyObject root)

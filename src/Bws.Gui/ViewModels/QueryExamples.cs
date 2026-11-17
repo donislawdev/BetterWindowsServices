@@ -104,48 +104,9 @@ internal static class QueryExamples
             scope => (IReadOnlyList<QueryExample>)[.. All.Where(example => example.Fits(scope))]);
 
     /// <summary>
-    /// The questions shown on one list - the tooltip and the list under the box read this same
-    /// cut, so the two never disagree about what somebody can start from.
+    /// The questions shown on one list - what the list under an empty box offers, so it never
+    /// offers a question the list on screen cannot answer. The box's tooltip listed them too until
+    /// 2026-11-17, when the guide under the ? took over explaining the language (MainViewModel.SearchTip).
     /// </summary>
     internal static IReadOnlyList<QueryExample> For(EntryScope scope) => ByScope[scope];
-
-    /// <summary>
-    /// What the search box says when somebody points at it - owner's decision, 2026-08-13, and it
-    /// replaced a button.
-    ///
-    /// <b>The examples were behind a control called "Examples" until then, and that was one click
-    /// too many for the thing this window is best at.</b> `docs/11` section 6 grades "recognition
-    /// rather than recall" as one of this window's two weakest heuristics: the query language has
-    /// to be discoverable from the box it is typed into, not from a button beside it. Pointing at a
-    /// field is what a person does when they do not know what goes in it.
-    ///
-    /// <b>ONE STRING RATHER THAN A PANEL OF CONTROLS, AND THAT IS THE POPUP TRAP AVOIDED RATHER
-    /// THAN RISKED.</b> A tooltip hangs off a Popup, which is not in the visual tree - the same
-    /// place this window's menus sit, and the reason their contents are handed over in code rather
-    /// than bound. A composed string is read from a binding on the BOX, which is in the tree, so
-    /// there is no question about what it inherits.
-    ///
-    /// <b>The regular expression is spelled out because nothing else on screen says it exists.</b>
-    /// Slashes are the one part of the language a person will not guess, and it was the only
-    /// syntax the old placeholder carried - which vanished at the first keystroke.
-    /// </summary>
-    internal static string Tip(IReadOnlyList<QueryExample> examples)
-    {
-        ArgumentNullException.ThrowIfNull(examples);
-
-        // The query under its own question rather than beside it, because several of these are
-        // longer than the label and a proportional face cannot be made to line up in two columns.
-        var lines = examples.SelectMany(example => new[] { example.Label, "    " + example.Query });
-
-        return string.Join(
-            Environment.NewLine,
-            new[]
-            {
-                Texts.Of("gui.search.tip.what"),
-                Texts.Of("gui.search.tip.regex"),
-                string.Empty,
-                Texts.Of("gui.search.tip.examples")
-            }
-            .Concat(lines));
-    }
 }

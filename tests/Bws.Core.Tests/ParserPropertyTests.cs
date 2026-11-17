@@ -190,6 +190,40 @@ public sealed class ParserPropertyTests
                 new(150));
     }
 
+    /// <summary>
+    /// Every problem stands inside the text it came from, on at least one character - finished or
+    /// still being typed. The window draws a mark under exactly those characters, so a place past
+    /// the end, or an empty one, is a mark drawn under nothing or a measurement that throws.
+    /// </summary>
+    [Fact]
+    [Trait("search", "weekly")]
+    public void Every_problem_stands_on_characters_of_the_text_it_came_from()
+    {
+        Awkward.Searched(
+            text => new[] { QueryInput.Finished, QueryInput.BeingTyped }
+                .SelectMany(input => QueryParser.Parse(text, input).Problems)
+                .All(problem => StandsIn(problem, text)),
+            new(20_000) { Print = text => $"a problem with no place, or a place outside <{text}>" });
+    }
+
+    /// <summary>
+    /// The problem has a place, and it is at least one character of the text. Each end is read on
+    /// its own rather than through GetOffsetAndLength, which throws on a place outside the text -
+    /// the very answer this asks about would arrive as an exception instead of as a counterexample.
+    /// </summary>
+    private static bool StandsIn(QueryProblem problem, string text)
+    {
+        if (problem.At is not { } at)
+        {
+            return false;
+        }
+
+        var start = at.Start.GetOffset(text.Length);
+        var end = at.End.GetOffset(text.Length);
+
+        return start >= 0 && end > start && end <= text.Length;
+    }
+
     [Fact]
     [Trait("search", "weekly")]
     public void Reading_a_query_as_expressions_never_fails_either()

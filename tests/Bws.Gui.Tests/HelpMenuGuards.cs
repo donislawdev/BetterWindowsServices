@@ -14,12 +14,13 @@ namespace Bws.Gui.Tests;
 public sealed class HelpMenuGuards
 {
     /// <summary>
-    /// The menu holds the query language page and nothing else - asked of the real menu hung on the
-    /// real button, so a shortcut, the project's website or the version coming back is a red test
-    /// rather than a menu that quietly grew again.
+    /// The menu holds how to search and the query language page, and nothing else - asked of the real
+    /// menu hung on the real button, so a shortcut, the project's website or the version coming back
+    /// is a red test rather than a menu that quietly grew again. The second item since 2026-11-17,
+    /// owner's decision (HelpMenu).
     /// </summary>
     [Fact]
-    public void The_help_menu_holds_the_query_language_page_and_nothing_else()
+    public void The_help_menu_holds_how_to_search_and_the_query_language_page_and_nothing_else()
     {
         var window = WpfHost.Window();
 
@@ -35,7 +36,7 @@ public sealed class HelpMenuGuards
             _ => "?"
         }).ToList());
 
-        Assert.Equal(["gui.help.queryLanguage"], shape);
+        Assert.Equal(["gui.help.guide", "gui.help.queryLanguage"], shape);
 
         WpfHost.On(window.Close);
     }
@@ -52,6 +53,22 @@ public sealed class HelpMenuGuards
         var window = WpfHost.Window();
 
         Assert.True(WpfHost.On(() => window.Act(Shortcut.Help, out _)));
+
+        WpfHost.On(window.Close);
+    }
+
+    /// <summary>
+    /// F1 with the keyboard in the search box opens the guide under the box rather than the menu -
+    /// help where somebody is, owner's decision of 2026-11-17 - and anywhere else it is still the menu.
+    /// </summary>
+    [Fact]
+    public void F1_in_the_search_box_opens_the_guide_and_anywhere_else_the_menu()
+    {
+        var window = WpfHost.Window();
+
+        Assert.Equal(Shortcut.Guide, WpfHost.On(() => window.Wanted(Key.F1, ModifierKeys.None, inTheBox: true, inTheGrid: false)));
+        Assert.Equal(Shortcut.Help, WpfHost.On(() => window.Wanted(Key.F1, ModifierKeys.None, inTheBox: false, inTheGrid: true)));
+        Assert.Equal(Shortcut.Help, WpfHost.On(() => window.Wanted(Key.F1, ModifierKeys.None, inTheBox: false, inTheGrid: false)));
 
         WpfHost.On(window.Close);
     }

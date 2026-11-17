@@ -69,4 +69,42 @@ public partial class SearchRow : UserControl
     internal bool Holds(object? pressed) =>
         pressed is System.Windows.DependencyObject node
         && (Trees.Within(node, SearchField) || Trees.Within(node, SuggestionPopup.Child));
+
+    /// <summary>
+    /// Opens the guide to the language under the box, or closes it when it is the list already open -
+    /// the button at the end of the field, F1 in it, and "How to search" in the help menu. The
+    /// owner's second choice of 2026-11-16.
+    ///
+    /// <b>The keyboard goes to the box first, at input priority</b>, because the guide is the list
+    /// under the box and that list closes the moment the box loses the keyboard. Asked for from the
+    /// help menu, the menu is still closing and handing the keyboard back to the button it hangs
+    /// from - so the box takes it after that, the lesson MainWindow.GiveTheBoxTheKeyboard paid for.
+    /// Always handled: the press asked for the guide, whether or not a list was open.
+    /// </summary>
+    internal bool OpenGuide()
+    {
+        if (DataContext is not ViewModels.MainViewModel model)
+        {
+            return false;
+        }
+
+        if (model.Suggesting.Guiding)
+        {
+            model.Suggesting.Close();
+
+            return true;
+        }
+
+        _ = Dispatcher.BeginInvoke(
+            System.Windows.Threading.DispatcherPriority.Input,
+            () =>
+            {
+                QueryBox.Focus();
+                model.Suggesting.Guide(QueryBox.Text);
+            });
+
+        return true;
+    }
+
+    private void GuideRequested(object sender, System.Windows.RoutedEventArgs e) => OpenGuide();
 }

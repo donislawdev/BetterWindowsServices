@@ -111,6 +111,13 @@ internal enum Shortcut
     Help,
 
     /// <summary>
+    /// Open the guide to the language under the search box - F1 while the keyboard is in the box,
+    /// since 2026-11-17. Help where somebody is: in the box, the help they need is how to write in
+    /// it, and the help menu is one press of F1 away from anywhere else.
+    /// </summary>
+    Guide,
+
+    /// <summary>
     /// Back out of the innermost thing that can be backed out of.
     ///
     /// <b>Named for what the person means rather than for what happens, and that changed on

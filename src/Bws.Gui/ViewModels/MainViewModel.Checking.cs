@@ -39,4 +39,15 @@ public sealed partial class MainViewModel
             RaiseErrors(nameof(QueryText));
         }
     }
+
+    /// <summary>
+    /// Where the mistakes in the query stand, for the marks under the characters in the box - the
+    /// sentence says what is wrong and these say where. <see cref="QueryMistakes"/> says why the
+    /// text comes with them.
+    ///
+    /// <b>Read off the query as typed rather than kept</b>, because they depend on the text and on
+    /// nothing else - the query is parsed once per text already (<see cref="AsTyped"/>). So they are
+    /// said to have changed when the text did, in <see cref="QueryText"/>, and never on a tick.
+    /// </summary>
+    public QueryMistakes Mistakes => QueryMistakes.Of(AsTyped());
 }

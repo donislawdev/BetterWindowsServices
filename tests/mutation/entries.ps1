@@ -2569,7 +2569,8 @@ $mutations = @(
         # switches the tolerance off.
         Name = 'typing tolerance: the start of a value is passed over while typed'
         File = 'src\Bws.Core\Querying\QueryParser.cs'
-        From = '                && StillBeingTyped(query, member, ReferenceEquals(member, members[^1]), problems, before))'
+        # RE-ANCHORED 2026-11-17: the member's index decides "last" since problems got a place.
+        From = '                && StillBeingTyped(query, member, index == members.Count - 1, problems, before))'
         To = '                && problems.Count < 0)'
         Test = 'QueryParserTests.The_start_of_a_value_in_the_member_being_typed_is_not_an_error'
     },
@@ -7934,7 +7935,7 @@ $mutations = @(
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Scope.cs'
         From = '    public IReadOnlyList<QueryExample> Examples => QueryExamples.For(Scope);'
         To = '    public IReadOnlyList<QueryExample> Examples => QueryExamples.All;'
-        Test = 'QueryExampleScopeTests.The_tooltip_and_the_list_under_the_box_offer_the_same_questions_as_the_scope'
+        Test = 'QueryExampleScopeTests.The_list_under_the_box_offers_the_questions_of_the_scope_and_the_tooltip_none'
     }
 
     @{
@@ -7943,10 +7944,11 @@ $mutations = @(
         # Services tooltip on the Drivers list for as long as the window stays open.
         Name = 'examples: moving the scope tells the box its questions changed'
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Scope.cs'
+        # RE-ANCHORED 2026-11-17: the tooltip no longer follows the scope (owner's decision D3).
         From = '            Raise(nameof(Examples));
-            Raise(nameof(SearchTip));'
-        To = ''
-        Test = 'QueryExampleScopeTests.Moving_the_scope_tells_the_box_that_its_questions_and_its_tooltip_changed'
+        }'
+        To = '        }'
+        Test = 'QueryExampleScopeTests.Moving_the_scope_tells_the_box_that_its_questions_changed'
     }
 
     @{
@@ -8027,12 +8029,15 @@ $mutations = @(
         Name = 'suggesting: the choice is set after the list, not before it'
         # RE-ANCHORED 2026-09-25: the sentence about the keys is raised with the caption.
         File = 'src\Bws.Gui\ViewModels\Suggesting.cs'
+        # RE-ANCHORED 2026-11-17: whether the list is the guide is raised with it.
         From = '        Offered = rows;
+        Raise(nameof(Guiding));
         Raise(nameof(Caption));
         Raise(nameof(Keys));
         Chosen = rows.FirstOrDefault(row => string.Equals(row.Word, kept, StringComparison.Ordinal)) ?? rows[0];'
         To = '        Chosen = rows.FirstOrDefault(row => string.Equals(row.Word, kept, StringComparison.Ordinal)) ?? rows[0];
         Offered = rows;
+        Raise(nameof(Guiding));
         Raise(nameof(Caption));
         Raise(nameof(Keys));'
         Test = 'SuggestingTests.The_choice_is_set_after_the_list_so_that_a_two_way_binding_cannot_clear_it'
@@ -8075,7 +8080,8 @@ $mutations = @(
         # rows under the pointer and sent the highlight back to the first one.
         Name = 'suggesting: the same list offered again is left alone'
         File = 'src\Bws.Gui\ViewModels\Suggesting.cs'
-        From = '        if (rows.SequenceEqual(_offered))
+        # RE-ANCHORED 2026-11-17: the same list in the same mode, since the list can be the guide.
+        From = '        if (rows.SequenceEqual(_offered) && guiding == _guiding)
         {
             return;
         }'
@@ -8086,7 +8092,7 @@ $mutations = @(
         # DECISION 3: A VALUE WEARS ITS CHIP'S LABEL, the same word somebody sees in the row above.
         # The chip's own value is the word already in the first column, said twice.
         Name = 'suggesting: a value carries the label of its chip'
-        File = 'src\Bws.Gui\ViewModels\Suggesting.cs'
+        File = 'src\Bws.Gui\ViewModels\Meanings.cs'
         From = '?.Label ?? string.Empty'
         To = '?.Value ?? string.Empty'
         Test = 'SuggestingTests.A_value_carries_the_label_of_its_chip_and_nothing_where_there_is_no_chip'
@@ -8095,7 +8101,7 @@ $mutations = @(
         # A CHIP THAT EXCLUDES A VALUE SAYS THE OPPOSITE OF WRITING IT. Its label beside the value
         # would tell somebody that typing `driver` hides drivers.
         Name = 'suggesting: a chip that excludes a value lends it no label'
-        File = 'src\Bws.Gui\ViewModels\Suggesting.cs'
+        File = 'src\Bws.Gui\ViewModels\Meanings.cs'
         From = '.FirstOrDefault(chip => !chip.Negated'
         To = '.FirstOrDefault(chip => chip.Field.Length >= 0'
         Test = 'SuggestingTests.A_value_carries_the_label_of_its_chip_and_nothing_where_there_is_no_chip'
@@ -8104,7 +8110,7 @@ $mutations = @(
         # DECISION 11: A FIELD CARRIES ITS OWN SENTENCE, and four of them say that they cost
         # seconds. This is a list of twenty-one bare names with nothing beside them.
         Name = 'suggesting: a field carries its own sentence'
-        File = 'src\Bws.Gui\ViewModels\Suggesting.cs'
+        File = 'src\Bws.Gui\ViewModels\Meanings.cs'
         From = 'QueryCompletionKind.Field => Sentence(Fields, completion.Word),'
         To = 'QueryCompletionKind.Field => string.Empty,'
         Test = 'SuggestingTests.A_field_carries_its_own_sentence_and_the_four_that_cost_a_second_reading_say_so'
@@ -8113,7 +8119,7 @@ $mutations = @(
         # EVERY FIELD OF THE LANGUAGE HAS A ROW IN THE TABLE. A row taken out is a field whose
         # key would be assembled at run time - or, as here, a field with no sentence at all.
         Name = 'suggesting: every field of the language has a sentence beside it'
-        File = 'src\Bws.Gui\ViewModels\Suggesting.cs'
+        File = 'src\Bws.Gui\ViewModels\Meanings.cs'
         From = '        new Meaning("mismatch", "gui.suggest.field.mismatch")'
         To = '        new Meaning("mismatch", "gui.suggest.field.mismatch"),
         new Meaning("mismatched", "gui.suggest.field.mismatch")'
@@ -8128,8 +8134,9 @@ $mutations = @(
         # over a list of words, so Tab is never mentioned where it writes.
         Name = 'suggesting: the sentence about the keys stands under the list'
         File = 'src\Bws.Gui\ViewModels\Suggesting.cs'
-        From = 'public string Keys => Texts.Of(_questions ? QuestionsKeys : WordsKeys);'
-        To = 'public string Keys => Texts.Of(QuestionsKeys);'
+        # RE-ANCHORED 2026-11-17: the keys also follow the guide and a search made lately.
+        From = '        : !_questions ? WordsKeys'
+        To = '        : !_questions ? QuestionsKeys'
         Test = 'SuggestingTypingTests.The_sentence_about_the_keys_names_Tab_only_where_Tab_writes'
     }
 
@@ -8302,7 +8309,8 @@ $mutations = @(
         # round, pointing at the chosen row takes its colour away.
         Name = 'suggestions: selection is declared after hover so that it wins'
         File = 'src\Bws.Gui\Themes\Suggestions.xaml'
-        From = '                        <Trigger Property="IsMouseOver" Value="True">
+        # RE-ANCHORED 2026-11-17: hover is asked of the face, since a group heading stands over it.
+        From = '                        <Trigger SourceName="Face" Property="IsMouseOver" Value="True">
                             <Setter TargetName="Face" Property="Background" Value="{StaticResource SurfaceHoverOnPanel}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
@@ -8311,7 +8319,7 @@ $mutations = @(
         To = '                        <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Face" Property="Background" Value="{StaticResource SurfaceSelected}" />
                         </Trigger>
-                        <Trigger Property="IsMouseOver" Value="True">
+                        <Trigger SourceName="Face" Property="IsMouseOver" Value="True">
                             <Setter TargetName="Face" Property="Background" Value="{StaticResource SurfaceHoverOnPanel}" />
                         </Trigger>'
         Test = 'SuggestionGuards.A_row_under_the_pointer_wears_the_hover_surface_by_its_own_trigger_and_selection_wins_over_it'
@@ -8531,8 +8539,9 @@ $mutations = @(
         # examples on an empty box lead with their sentence, a completion with its word - D1.
         Name = 'suggestions: a question leads with its word like a completion'
         File = 'src\Bws.Gui\ViewModels\Suggesting.cs'
-        From = '0..text.Length, example.Query, IsQuestion: true))];'
-        To = '0..text.Length, example.Query, IsQuestion: false))];'
+        # RE-ANCHORED 2026-11-17: a question can carry the heading of its group.
+        From = 'example.Query, example.Label, 0..text.Length, example.Query, IsQuestion: true,'
+        To = 'example.Query, example.Label, 0..text.Length, example.Query, IsQuestion: false,'
         Test = 'SuggestingWordingTests.A_question_leads_with_its_sentence_and_a_completion_leads_with_its_word'
     },
     @{
@@ -9345,7 +9354,7 @@ $mutations = @(
         File = 'src\Bws.Gui\MainWindow.Help.cs'
         From = 'Scope.Help.ContextMenu = RowMenu.Build('
         To = 'Scope.Help.Tag = RowMenu.Build('
-        Test = 'HelpMenuGuards.The_help_menu_holds_the_query_language_page_and_nothing_else'
+        Test = 'HelpMenuGuards.The_help_menu_holds_how_to_search_and_the_query_language_page_and_nothing_else'
     },
     # Three entries left here on 2026-09-24 with the code they broke - select every entry, a shortcut
     # item doing what its key does, and the version dropping what the SDK appends. The Help menu
@@ -9355,7 +9364,7 @@ $mutations = @(
         File = 'src\Bws.Gui\HelpMenu.cs'
         From = 'new RowMenuEntry("gui.help.queryLanguage", null,'
         To = 'new RowMenuEntry("gui.help.button", null,'
-        Test = 'HelpMenuGuards.The_help_menu_holds_the_query_language_page_and_nothing_else'
+        Test = 'HelpMenuGuards.The_help_menu_holds_how_to_search_and_the_query_language_page_and_nothing_else'
     },
     @{
         Name = 'row menu: Ctrl+C is written beside copy everything'
@@ -9683,13 +9692,16 @@ $mutations = @(
         # or it keeps saying the questions' keys over a list of words.
         Name = 'suggestions: the sentence about the keys is announced when the list changes kind'
         File = 'src\Bws.Gui\ViewModels\Suggesting.cs'
+        # RE-ANCHORED 2026-11-17: whether the list is the guide is raised between the two.
         From = @'
         Offered = rows;
+        Raise(nameof(Guiding));
         Raise(nameof(Caption));
         Raise(nameof(Keys));
 '@
         To = @'
         Offered = rows;
+        Raise(nameof(Guiding));
         Raise(nameof(Caption));
 '@
         Test = 'SuggestingTypingTests.The_sentence_about_the_keys_names_Tab_only_where_Tab_writes'
@@ -15312,6 +15324,29 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = 'TriggerKind.Aggregate => Texts.Of("gui.cell.trigger.aggregate"),'
         To = 'TriggerKind.Aggregate => Texts.Of("gui.cell.trigger.custom"),'
         Test = 'CellFaceTests.Every_trigger_kind_the_core_names_has_a_word_of_its_own'
+    }
+    @{
+        # 2026-11-17, package 2 of the owner's remarks: the searches made lately live in the person's
+        # own layout file (rule 28 (b), their data). Three entries, the limit for one piece of work.
+        Name = 'recent searches: a query past the length kept leaves the list as it was'
+        File = 'src\Bws.Gui\ViewModels\RecentQueries.cs'
+        From = 'if (trimmed.Length == 0 || trimmed.Length > LengthMost)'
+        To = 'if (trimmed.Length == 0)'
+        Test = 'RecentQueriesTests.A_query_longer_than_the_most_kept_leaves_the_list_as_it_was'
+    }
+    @{
+        Name = 'recent searches: a query with a mistake is not kept'
+        File = 'src\Bws.Gui\ViewModels\RecentQueries.cs'
+        From = '&& typed.Parsed is { IsValid: true, Query.IsEmpty: false };'
+        To = '&& typed.Text.Length > 0;'
+        Test = 'RecentQueriesTests.Only_a_search_that_reads_and_that_the_model_has_read_is_worth_keeping'
+    }
+    @{
+        Name = 'layout file: the searches made lately are written into it'
+        File = 'src\Bws.Gui\ViewModels\ColumnLayout.cs'
+        From = '        ViewModels.RecentQueries.Render(tree, RecentQueries);'
+        To = ''
+        Test = 'RecentQueriesTests.The_searches_go_into_the_layout_file_and_come_back_out'
     }
 )
 

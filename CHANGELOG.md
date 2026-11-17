@@ -11,6 +11,20 @@ is not part of this repository.
 
 ## [Unreleased]
 
+### Added
+
+- Clicking the empty search box shows your last five searches above the questions to start from,
+  with a clock beside each. Delete forgets the chosen one. A search is kept when you leave the box or
+  press Enter in it, and only if it can be read. They are kept in the same file as the column
+  layout, so a version older than this one leaves that file alone and saves no layout until it is
+  gone.
+- *How to search*: the *?* at the end of the search box, F1 while you type in it, or the new item
+  under *Help*. It lists one example of each way to write a value, from a plain word to `trigger:any`,
+  and a click or Enter adds the example to the end of your query. Under them every field of the query
+  language is a button that writes the field and its colon and shows its values.
+- A part of the query that cannot be read gets a wavy red line under it in the search box, so you
+  can see which part the sentence under the box is about.
+
 ### Changed
 
 - A window started as administrator now keeps the column layout you arrange in it, the same way a
@@ -24,6 +38,9 @@ is not part of this repository.
 - The *Wait up to ... seconds without progress* box on a plan has a line of its own above the
   buttons, so a long service name on the button no longer covers the end of the sentence. During a
   run the box stays where it is, greyed, holding the number the run is using.
+- The tooltip of the search box is one sentence pointing at *How to search*, instead of the whole
+  query syntax. F1 in the search box opens *How to search*, and anywhere else it still opens the
+  *Help* menu.
 
 ### Fixed
 

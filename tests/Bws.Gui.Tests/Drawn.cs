@@ -50,17 +50,41 @@ internal sealed class Drawn
 
     /// <summary>
     /// Lays the element out at the size given and draws it at 96 DPI, so one pixel is one unit and
-    /// a rectangle from <see cref="Around"/> can be read straight off the picture.
+    /// a rectangle from <see cref="Around"/> can be read straight off the picture. Nothing under it,
+    /// which is what every guard counting colours asks for: a surface under the element is one more
+    /// colour to count around.
     /// </summary>
-    internal static Drawn Of(FrameworkElement host, int width, int height)
+    internal static Drawn Of(FrameworkElement host, int width, int height) => Rendered(host, new Size(width, height), under: null);
+
+    /// <summary>
+    /// The same on the surface of the window the element belongs to - for a picture somebody looks
+    /// at rather than counts. A row of the window is transparent, and its light text vanishes on the
+    /// white of an empty bitmap.
+    /// </summary>
+    internal static Drawn OnItsWindow(FrameworkElement host, int width, int height) =>
+        Rendered(host, new Size(width, height), WpfHost.On(() => Window.GetWindow(host)?.Background));
+
+    private static Drawn Rendered(FrameworkElement host, Size size, Brush? under)
     {
         var bitmap = WpfHost.On(() =>
         {
-            host.Measure(new Size(width, height));
-            host.Arrange(new Rect(0, 0, width, height));
+            host.Measure(size);
+            host.Arrange(new Rect(size));
             host.UpdateLayout();
 
-            var drawn = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
+            var drawn = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
+
+            if (under is not null)
+            {
+                var surface = new DrawingVisual();
+
+                using (var context = surface.RenderOpen())
+                {
+                    context.DrawRectangle(under, null, new Rect(size));
+                }
+
+                drawn.Render(surface);
+            }
 
             drawn.Render(host);
 
