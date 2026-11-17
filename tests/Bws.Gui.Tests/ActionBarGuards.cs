@@ -304,30 +304,39 @@ public sealed class ActionBarGuards
     /// <summary>
     /// No action button stands outside the bar that holds them, at the narrowest window allowed.
     ///
-    /// <b>The open question that <c>docs/10</c> trap 18 left behind, measured 2026-09-03 rather
-    /// than assumed.</b> That trap is about a horizontal StackPanel measuring its children with
-    /// infinite width, which is why a group of filter chips could stand outside the window. This
-    /// bar is a horizontal StackPanel too, and unlike the chips it CANNOT wrap - seven buttons on
-    /// one line is the design. So the question was whether it already overflows, and it does not:
-    /// at 640 the buttons end at 571 against a bar ending at 611.
+    /// <b>The hazard <c>docs/10</c> trap 18 names</b>: a panel measured wider than the bar it stands
+    /// in never breaks a line, and its buttons stand outside the window with nothing to say so. Every
+    /// word on these buttons comes out of a language file, so the way this happens in real life is a
+    /// longer word in another language on a bar that does not wrap.
     ///
-    /// <b>It is a guard rather than a note because the margin is thin and the labels are
-    /// TRANSLATED.</b> Forty units of six hundred is about six per cent, and every one of these
-    /// seven words comes out of a language file. A longer word in another language pushes the last
-    /// button off the window with nothing to say so - and the answer then is a decision about the
-    /// bar, not a shorter word, which is exactly the moment somebody should be told.
+    /// <b>The bar wraps</b> (ActionBar.xaml says how), so a longer word moves to the next line, and
+    /// what this guard watches is that it still does. It runs once per language built in, because
+    /// English fits on one line at the narrowest window and Polish does not - measured 2026-11-17,
+    /// when the one-line bar put Overview 325 units outside it in Polish and nothing outside in
+    /// English. The next language is measured on the day it arrives.
     ///
     /// <b>Measured against the BAR rather than the window</b>, for the reason the chip guard
     /// records: a control that shares its row is not bounded by the window's edge. Here the two
     /// happen to be close, and asking the wrong one would still be asking the wrong one.
     /// </summary>
-    [Fact]
-    public void No_action_button_stands_outside_the_bar_at_the_narrowest_window()
+    [Theory]
+    [MemberData(nameof(BuiltIn))]
+    public void No_action_button_stands_outside_the_bar_at_the_narrowest_window(string language)
     {
         var window = WpfHost.Window();
+        var words = TranslationGuards.Sentences(language);
 
         var (buttons, worst, name, edge) = WpfHost.On(() =>
         {
+            // EVERY LANGUAGE BUILT IN, since 2026-11-17. This host pins English, so until then the
+            // guard measured English only - and Polish, built in that day, stood half outside the
+            // window while this stayed green. Laid over the window's own resources, which the
+            // markup's DynamicResource reaches before the application's English ones.
+            foreach (var (key, text) in words)
+            {
+                window.Resources[key] = text;
+            }
+
             window.Width = (double)WpfHost.Resources["WidthWindowLeast"];
             window.Height = (double)WpfHost.Resources["HeightWindowLeast"];
 
@@ -371,13 +380,15 @@ public sealed class ActionBarGuards
 
         Assert.True(
             worst <= edge,
-            $"The action \"{name}\" ends {worst} across, in a bar that ends at {edge} - so it is "
-            + "standing outside the bar, where it can be neither read nor clicked. These ten sit "
-            + "on one line and cannot wrap, so the answer is a decision about the bar rather than a "
-            + "shorter word.");
+            $"In {language}, the action \"{name}\" ends {worst} across, in a bar that ends at {edge} - so "
+            + "it is standing outside the bar, where it can be neither read nor clicked. The bar wraps "
+            + "between its two groups and inside each since 2026-11-17, so something made it stop.");
 
         WpfHost.On(window.Close);
     }
+
+    /// <summary>The languages built into the window, each one a case of the guard above.</summary>
+    public static TheoryData<string> BuiltIn() => [.. TranslationGuards.Built()];
 
     private static void Gather(DependencyObject from, List<Control> found)
     {

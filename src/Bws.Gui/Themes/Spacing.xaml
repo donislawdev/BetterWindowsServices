@@ -58,6 +58,13 @@
     <Thickness x:Key="MarginBetweenControls">0,0,8,0</Thickness>
     <Thickness x:Key="MarginNone">0</Thickness>
 
+    <!--
+        The air under each group of the action bar, so that a group wrapped onto a second line does not
+        touch the first - the same four units a wrapped row of filter chips keeps (MarginChip). It costs
+        those four units under the bar when nothing wraps, which is the price of one rule for both.
+    -->
+    <Thickness x:Key="MarginActionGroup">0,0,0,4</Thickness>
+
     <!-- No air inside a control whose frame somebody else draws and pads - the field of commands on the plan sheet. -->
     <Thickness x:Key="PadNone">0</Thickness>
 

@@ -139,9 +139,16 @@
 
       These are plain data we load and choose between ourselves, not .NET satellite
       resources. Every gui.<language>.json added later needs the same two attributes.
+
+      Built in rather than laid beside the program, because a window with administrator rights does
+      not read a file beside itself (security report S-9) - a translation laid there would be one an
+      administrator could not choose.
     -->
     <EmbeddedResource Include="Resources\gui.en.json"
                       LogicalName="Bws.Gui.Resources.gui.en.json"
+                      WithCulture="false" />
+    <EmbeddedResource Include="Resources\gui.pl.json"
+                      LogicalName="Bws.Gui.Resources.gui.pl.json"
                       WithCulture="false" />
   </ItemGroup>
 

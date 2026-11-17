@@ -2050,6 +2050,36 @@ $mutations = @(
         Test = 'PreferencesFileGuards.A_file_too_big_to_be_a_layout_is_refused_rather_than_read_into_memory'
     },
     @{
+        # BACKLOG 645, rule 28 (b). The kept language becomes a resource name and a path beside the
+        # program (languages\gui.<code>.json), and the settings file it comes from is anybody's to edit.
+        # Without the letter test ".." and "..\" are three characters or fewer and go straight into
+        # that path - the length check alone does not stop them.
+        Name = 'settings: a kept language is letters only, because it becomes a path'
+        File = 'src\Bws.Gui\ViewModels\KeptChoices.cs'
+        From = '        code is { Length: >= 2 and <= 3 } && code.All(char.IsAsciiLetter) ? code.ToLowerInvariant() : null;'
+        To = '        code is { Length: >= 2 and <= 3 } ? code.ToLowerInvariant() : null;'
+        Test = 'SettingsGuards.Only_a_code_of_letters_is_kept'
+    },
+    @{
+        # BACKLOG 645, rule 28 (b), decision E3. A window that did not choose a language takes the one
+        # on disk at each write. Taking its own instead puts back what it read at its start, which undoes
+        # a choice somebody made later in another window - quietly, at the next column drag or close.
+        Name = 'settings: a choice made in another window is not undone by this one writing'
+        File = 'src\Bws.Gui\KeptColumns.cs'
+        From = '                _languageChosen ? _layouts.Language : onDisk.Language,'
+        To = '                _layouts.Language,'
+        Test = 'SettingsGuards.A_choice_made_in_one_window_is_not_undone_by_another'
+    },
+    @{
+        # BACKLOG 645, rule 28 (b), decision E4. Turning remembering off takes the kept searches off
+        # the disk in the same write - somebody who switches it off does not want them left there.
+        Name = 'settings: remembering off takes the kept searches with it'
+        File = 'src\Bws.Gui\ViewModels\ColumnLayout.cs'
+        From = '        RecentQueries = choices.RememberRecent ? RecentQueries : []'
+        To = '        RecentQueries = RecentQueries'
+        Test = 'SettingsGuards.Turning_remembering_off_takes_the_searches_with_it'
+    },
+    @{
         # BACKLOG 305. The cascade goes into a dictionary keyed by name, and a dictionary meets a
         # repeated key by throwing - so a name EnumDependentServices happened to give twice turned a
         # PREVIEW into a sentence about a failure, with nothing to say the failure was ours.
@@ -6399,19 +6429,18 @@ $mutations = @(
         Test = 'ColumnOrderGuards.An_order_asked_for_before_the_rows_arrive_is_still_marked_on_the_heading'
     },
     @{
-        # THE HAZARD docs/10 TRAP 18 LEFT OPEN, AND THE MUTATION IS THE HAZARD ITSELF RATHER
-        # THAN A STAND-IN FOR IT. The seven action buttons sit in a horizontal StackPanel and
-        # cannot wrap, and every one of their words comes out of a language file - so the way
-        # this bar overflows in real life is a longer word in another language, not a code
-        # change. This lengthens one label and asks whether anything notices.
-        #
-        # MEASURED BEFORE THE GUARD WAS WRITTEN, which is why it is a guard and not a note: at
-        # the narrowest window this build allows the buttons end at 571 against a bar ending at
-        # 611. Forty units of six hundred is thin, and nothing was watching it.
+        # THE HAZARD docs/10 TRAP 18 NAMES: a panel measured wider than its bar never breaks a
+        # line. The bar wraps, so a longer word in a language file is no longer the way it
+        # overflows - that word moves to the next line, and a mutation lengthening one went
+        # MISSED on 2026-11-18, rightly. What overflows it now is the bar losing its wrap, which
+        # this puts back by a value: the outer panel at least as wide as the widest window, the
+        # shape a horizontal StackPanel gave the bar until 2026-11-17, when that one line put
+        # Overview 325 units outside the bar in Polish and nothing outside it in English.
+        # Caught on 2026-11-18, the run that found the old entry MISSED.
         Name = 'window: no action button stands outside its bar at the narrowest window'
-        File = 'src\Bws.Gui\Resources\gui.en.json'
-        From = '  "gui.action.refresh": "Refresh",'
-        To = '  "gui.action.refresh": "Refresh the whole machine right now, every entry",'
+        File = 'src\Bws.Gui\ActionBar.xaml'
+        From = '    <WrapPanel>'
+        To = '    <WrapPanel MinWidth="4000">'
         Test = 'ActionBarGuards.No_action_button_stands_outside_the_bar_at_the_narrowest_window'
     },
     @{

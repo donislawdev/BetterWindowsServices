@@ -140,7 +140,7 @@ internal static class Texts
     ///
     /// <para>
     /// <b>Why.</b> The file is read only when nothing is built in for the machine's language, and the
-    /// only language built in is English (<c>Bws.Gui.csproj</c>), so on every other Windows the window
+    /// languages built in are few (<c>Bws.Gui.csproj</c> names them), so on every other Windows the window
     /// asks for <c>languages\gui.&lt;code&gt;.json</c> beside itself at each start - and the words it
     /// would take from there include the plan's warnings and the confirmations in front of what cannot
     /// be undone. A release's signature covers the executable, not the folder beside it, and that
@@ -153,9 +153,9 @@ internal static class Texts
     /// depends on where the program lies, and the token says nothing about that.
     /// </para>
     /// <para>
-    /// <b>No cost today, said rather than assumed:</b> no translation exists beyond the English built
-    /// in, so this only ever stops a file somebody dropped there. A translation shipped later is built
-    /// in, and <see cref="Assemble"/> reads the built-in one first - this does not touch it.
+    /// <b>No cost to a shipped translation, said rather than assumed:</b> every translation this project
+    /// ships is built in, so this only ever stops a file somebody dropped there, and
+    /// <see cref="Assemble"/> reads the built-in one first - this does not touch it.
     /// </para>
     /// </summary>
     internal static Func<string, Stream?> BesideFor(bool elevated)
@@ -171,10 +171,11 @@ internal static class Texts
     /// <summary>
     /// The language file beside the program this session would have read and did not, or nothing -
     /// for the line under the list, because a window that quietly opens in English while a translation
-    /// lies next to it is the silence rule 8 forbids.
+    /// lies next to it is the silence rule 8 forbids. The language asked about is the one this session
+    /// asked for (<see cref="Languages.LanguagePick.Asked"/>), so the line is true when it says English.
     /// </summary>
     internal static string? BesideNotRead() =>
-        BesideNotRead(Session.IsElevated(), CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, Embedded, File.Exists);
+        BesideNotRead(Session.IsElevated(), Picked.Asked(Languages.WindowsAsks), Embedded, File.Exists);
 
     /// <summary>The same question with every fact handed in, which is what a test can do.</summary>
     internal static string? BesideNotRead(

@@ -21,6 +21,8 @@ public sealed class SettingsGuards
     [InlineData("fil", "fil")]
     [InlineData(@"..\x", null)]
     [InlineData("../de", null)]
+    [InlineData("..", null)]
+    [InlineData(@"..\", null)]
     [InlineData("pt-BR", null)]
     [InlineData("p", null)]
     [InlineData("abcd", null)]

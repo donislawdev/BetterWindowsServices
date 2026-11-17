@@ -19,6 +19,10 @@ is not part of this repository.
   with a button that opens its folder. A new language is used the next time the window starts, and
   *Restart now* opens it again at once. Turning off recent searches forgets the ones already kept.
   With two windows open, a setting changed in one is no longer undone when the other closes.
+- The window in Polish. On a Windows set to Polish it opens in Polish, with the words Windows itself
+  uses for startup types, states and accounts, and *Settings* switches between Polish and English.
+  The command line stays in English. Where the Polish words do not fit on one line, the row of
+  buttons above the list breaks onto a second one instead of running off the edge of the window.
 
 - Clicking the empty search box shows your last five searches above the questions to start from,
   with a clock beside each. Delete forgets the chosen one. A search is kept when you leave the box or
