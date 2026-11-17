@@ -6429,19 +6429,18 @@ $mutations = @(
         Test = 'ColumnOrderGuards.An_order_asked_for_before_the_rows_arrive_is_still_marked_on_the_heading'
     },
     @{
-        # THE HAZARD docs/10 TRAP 18 LEFT OPEN, AND THE MUTATION IS THE HAZARD ITSELF RATHER
-        # THAN A STAND-IN FOR IT. The seven action buttons sit in a horizontal StackPanel and
-        # cannot wrap, and every one of their words comes out of a language file - so the way
-        # this bar overflows in real life is a longer word in another language, not a code
-        # change. This lengthens one label and asks whether anything notices.
-        #
-        # MEASURED BEFORE THE GUARD WAS WRITTEN, which is why it is a guard and not a note: at
-        # the narrowest window this build allows the buttons end at 571 against a bar ending at
-        # 611. Forty units of six hundred is thin, and nothing was watching it.
+        # THE HAZARD docs/10 TRAP 18 NAMES: a panel measured wider than its bar never breaks a
+        # line. The bar wraps, so a longer word in a language file is no longer the way it
+        # overflows - that word moves to the next line, and a mutation lengthening one went
+        # MISSED on 2026-11-18, rightly. What overflows it now is the bar losing its wrap, which
+        # this puts back by a value: the outer panel at least as wide as the widest window, the
+        # shape a horizontal StackPanel gave the bar until 2026-11-17, when that one line put
+        # Overview 325 units outside the bar in Polish and nothing outside it in English.
+        # Caught on 2026-11-18, the run that found the old entry MISSED.
         Name = 'window: no action button stands outside its bar at the narrowest window'
-        File = 'src\Bws.Gui\Resources\gui.en.json'
-        From = '  "gui.action.refresh": "Refresh",'
-        To = '  "gui.action.refresh": "Refresh the whole machine right now, every entry",'
+        File = 'src\Bws.Gui\ActionBar.xaml'
+        From = '    <WrapPanel>'
+        To = '    <WrapPanel MinWidth="4000">'
         Test = 'ActionBarGuards.No_action_button_stands_outside_the_bar_at_the_narrowest_window'
     },
     @{

@@ -304,23 +304,16 @@ public sealed class ActionBarGuards
     /// <summary>
     /// No action button stands outside the bar that holds them, at the narrowest window allowed.
     ///
-    /// <b>The open question that <c>docs/10</c> trap 18 left behind, measured 2026-09-03 rather
-    /// than assumed.</b> That trap is about a horizontal StackPanel measuring its children with
-    /// infinite width, which is why a group of filter chips could stand outside the window. This
-    /// bar is a horizontal StackPanel too, and unlike the chips it CANNOT wrap - seven buttons on
-    /// one line is the design. So the question was whether it already overflows, and it does not:
-    /// at 640 the buttons end at 571 against a bar ending at 611.
+    /// <b>The hazard <c>docs/10</c> trap 18 names</b>: a panel measured wider than the bar it stands
+    /// in never breaks a line, and its buttons stand outside the window with nothing to say so. Every
+    /// word on these buttons comes out of a language file, so the way this happens in real life is a
+    /// longer word in another language on a bar that does not wrap.
     ///
-    /// <b>It is a guard rather than a note because the margin is thin and the labels are
-    /// TRANSLATED.</b> Forty units of six hundred is about six per cent, and every one of these
-    /// seven words comes out of a language file. A longer word in another language pushes the last
-    /// button off the window with nothing to say so - and the answer then is a decision about the
-    /// bar, not a shorter word, which is exactly the moment somebody should be told.
-    ///
-    /// <b>That moment came on 2026-11-17 and this guard did not see it</b>, because it measured the
-    /// pinned English only. Polish put "Eksportuj..." half outside the window and "Audyt..." off it.
-    /// The answer was the bar - it wraps now (ActionBar.xaml says how) - and this runs once per
-    /// language built in, so the next language is measured on the day it arrives.
+    /// <b>The bar wraps</b> (ActionBar.xaml says how), so a longer word moves to the next line, and
+    /// what this guard watches is that it still does. It runs once per language built in, because
+    /// English fits on one line at the narrowest window and Polish does not - measured 2026-11-17,
+    /// when the one-line bar put Overview 325 units outside it in Polish and nothing outside in
+    /// English. The next language is measured on the day it arrives.
     ///
     /// <b>Measured against the BAR rather than the window</b>, for the reason the chip guard
     /// records: a control that shares its row is not bounded by the window's edge. Here the two

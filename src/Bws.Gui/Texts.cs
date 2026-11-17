@@ -171,10 +171,11 @@ internal static class Texts
     /// <summary>
     /// The language file beside the program this session would have read and did not, or nothing -
     /// for the line under the list, because a window that quietly opens in English while a translation
-    /// lies next to it is the silence rule 8 forbids.
+    /// lies next to it is the silence rule 8 forbids. The language asked about is the one this session
+    /// asked for (<see cref="Languages.LanguagePick.Asked"/>), so the line is true when it says English.
     /// </summary>
     internal static string? BesideNotRead() =>
-        BesideNotRead(Session.IsElevated(), CultureInfo.CurrentUICulture.TwoLetterISOLanguageName, Embedded, File.Exists);
+        BesideNotRead(Session.IsElevated(), Picked.Asked(Languages.WindowsAsks), Embedded, File.Exists);
 
     /// <summary>The same question with every fact handed in, which is what a test can do.</summary>
     internal static string? BesideNotRead(

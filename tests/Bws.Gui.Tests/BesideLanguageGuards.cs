@@ -45,6 +45,21 @@ public sealed class BesideLanguageGuards : IDisposable
         Assert.Null(Texts.BesideNotRead(elevated: true, Code, None, _ => false));
     }
 
+    /// <summary>
+    /// The line says the window is in English, so it may stand only when that is true. Windows asks for
+    /// the code of the file beside the program here, and Polish is built in: a window in Polish because
+    /// somebody chose it would not have read that file with every right, so there is nothing to report.
+    /// A window following Windows, or one whose choice it cannot open, is in English and says why.
+    /// </summary>
+    [Fact]
+    public void A_window_in_a_language_chosen_on_the_settings_page_does_not_report_the_file_for_windows()
+    {
+        Assert.Null(Texts.BesideNotRead(elevated: true, Asked(kept: "pl"), Polish, File.Exists));
+
+        Assert.Equal(_file, Texts.BesideNotRead(elevated: true, Asked(kept: null), Polish, File.Exists));
+        Assert.Equal(_file, Texts.BesideNotRead(elevated: true, Asked(kept: "zz"), Polish, File.Exists));
+    }
+
     [Fact]
     public async Task An_administrator_window_says_which_translation_it_left_out()
     {
@@ -77,6 +92,14 @@ public sealed class BesideLanguageGuards : IDisposable
     private static Func<string, Stream?> BuiltIn => _ => new MemoryStream(Encoding.UTF8.GetBytes(@"{""a"": ""Built in""}"));
 
     private static Func<string, Stream?> None => _ => null;
+
+    /// <summary>Polish built in beside English, and nothing else - what this build ships since 2026-11-17.</summary>
+    private static Func<string, Stream?> Polish =>
+        code => code == "pl" ? new MemoryStream(Encoding.UTF8.GetBytes(@"{""a"": ""Polski""}")) : null;
+
+    /// <summary>What an administrator's session asks for when Windows asks for the file's code.</summary>
+    private static string Asked(string? kept) =>
+        Languages.Pick(pinned: null, kept, Code, ["en", "pl"]).Asked(Code);
 
     public void Dispose() => File.Delete(_file);
 }

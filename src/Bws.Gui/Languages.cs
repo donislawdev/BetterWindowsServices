@@ -31,7 +31,18 @@ internal static class Languages
     internal const string Pinned = "Bws.Gui.Texts.Language";
 
     /// <summary>What <see cref="Pick"/> decided: the code shown, the choice honoured, the choice that could not be.</summary>
-    internal sealed record LanguagePick(string Showing, string? Chosen, string? Missing);
+    internal sealed record LanguagePick(string Showing, string? Chosen, string? Missing)
+    {
+        /// <summary>
+        /// The language this session asked for before it knew what it could read: the one chosen on the
+        /// settings page when this session honours it, and the one Windows asks for otherwise.
+        ///
+        /// <b>Not simply what Windows asks for</b>, because a window in a language somebody chose would
+        /// then report the file beside the program for the language of Windows - one it would not have
+        /// read even with every right - and say it is in English while it is in the language chosen.
+        /// </summary>
+        internal string Asked(string windowsAsks) => Chosen ?? windowsAsks;
+    }
 
     /// <summary>The two-letter code of the language Windows asks this window for.</summary>
     internal static string WindowsAsks => System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;

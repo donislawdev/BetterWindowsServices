@@ -1,5 +1,5 @@
+using System.Globalization;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace Bws.Gui.Tests;
 
@@ -26,8 +26,6 @@ namespace Bws.Gui.Tests;
 /// </summary>
 public sealed class TranslationGuards
 {
-    private static readonly Regex Hole = new(@"\{(\d+)[^}]*\}", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
-
     [Fact]
     public void Every_language_built_in_says_everything_english_says_with_the_same_values()
     {
@@ -71,6 +69,8 @@ public sealed class TranslationGuards
     [InlineData("""{ "_meta": { "code": "xx" }, "a": "Zatrzymaj {0}", "b": "Plik {1} z {0}", "c": "Nikt" }""", "c is not in English")]
     [InlineData("""{ "_meta": { "code": "yy" }, "a": "Zatrzymaj {0}", "b": "Plik {1} z {0}" }""", "names itself yy")]
     [InlineData("""{ "a": "Zatrzymaj {0}", "b": "Plik {1} z {0}" }""", "names itself nothing")]
+    [InlineData("""{ "_meta": { "code": "xx" }, "a": "Zatrzymaj {{0}}", "b": "Plik {1} z {0}" }""", "a holds")]
+    [InlineData("""{ "_meta": { "code": "xx" }, "a": "Zatrzymaj {{{0}}}", "b": "Plik {1,4} z {0:N0}" }""", "")]
     public void The_comparison_names_each_kind_of_fault_it_is_written_for(string translation, string expected)
     {
         var english = new Dictionary<string, string>(StringComparer.Ordinal) { ["a"] = "Stop {0}", ["b"] = "File {0} of {1}" };
@@ -139,8 +139,37 @@ public sealed class TranslationGuards
 
     private static bool Forbidden(string text) => text.IndexOfAny([';', (char)0x2013, (char)0x2014]) >= 0;
 
-    private static string Holes(string text) =>
-        string.Join(",", Hole.Matches(text).Select(match => int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).Distinct().Order());
+    /// <summary>
+    /// The values a sentence takes, as string.Format reads it: a doubled brace is a brace on screen and
+    /// takes nothing, so "{{0}}" holds no value while "{{{0}}}" holds one between two braces.
+    /// </summary>
+    private static string Holes(string text)
+    {
+        var holes = new SortedSet<int>();
+
+        for (var at = 0; at < text.Length; at++)
+        {
+            if (text[at] != '{')
+            {
+                continue;
+            }
+
+            if (at + 1 < text.Length && text[at + 1] == '{')
+            {
+                at++;
+                continue;
+            }
+
+            var digits = new string(text[(at + 1)..].TakeWhile(char.IsAsciiDigit).ToArray());
+
+            if (digits.Length > 0)
+            {
+                holes.Add(int.Parse(digits, CultureInfo.InvariantCulture));
+            }
+        }
+
+        return string.Join(",", holes);
+    }
 
     /// <summary>The sentences of one language built in, by key - for a guard that lays them over a window.</summary>
     internal static Dictionary<string, string> Sentences(string code) => Strings(Document(code));

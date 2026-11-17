@@ -181,9 +181,10 @@
         <!--
             THE MACHINE AS A FILE, A FILE AGAINST THE MACHINE, AND WHO CHANGED WHAT - `D1` and `D2` in the
             window since 2026-10-14, `D7` since 2026-10-20. One button with a menu rather than several,
-            owner's decision (W-a): this bar is a horizontal StackPanel that cannot break a line (`docs/10`
-            trap 18), and at the narrowest window it has 17 units to spare - measured 2026-10-20, too few
-            for a fifth button. "Snapshots..." until the change history joined it, then "Audit..." (owner's
+            owner's decision (W-a), taken when this bar was one line that could not break (`docs/10` trap
+            18) with 17 units to spare at the narrowest window - measured 2026-10-20. The bar wraps since
+            2026-11-17, so room is no longer the reason, and the menu stays until the owner reopens the
+            decision. "Snapshots..." until the change history joined it, then "Audit..." (owner's
             decision J2-a): the product's own word for snapshots, comparison and the change log together,
             and a word that does not hide the history under the name of something else. On this side of the
             line because nothing any item does reaches a service.
