@@ -1,5 +1,5 @@
 {
-  "_translated_from": "1867e30d6665",
+  "_translated_from": "23a7445be497",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Lompat ke konten",
@@ -64,6 +64,7 @@
   "field.account": "akun tempat ia berjalan, seperti yang dieja manajer",
   "field.pid": "proses tempat ia berjalan",
   "field.trigger": "kondisi yang memulai atau menghentikannya",
+  "field.recovery": "apa yang dilakukan Windows saat gagal",
   "field.path": "baris perintah yang diluncurkan manajer",
   "field.file": "apakah berkas yang dijalankannya ada di disk",
   "field.signed": "apa yang dipikirkan Windows tentang tanda tangan berkas, tanpa memeriksa pencabutan",

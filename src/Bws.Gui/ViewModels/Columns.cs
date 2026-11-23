@@ -259,68 +259,8 @@ internal static partial class Columns
             Reads = entry => CellFaces.Judgement(entry.RunsAgainstItsStartType),
             Marks = entry => CellFaces.AgainstShape(entry.RunsAgainstItsStartType)
         },
-        // THE SECOND PHASE OF `ADR-13`, arriving 2026-08-18 - backlog 21. Until this slice the
-        // window read none of these and said so, which was honest and left the fields invisible.
-        //
-        // FIVE RATHER THAN THE FOUR THE BACKLOG ESTIMATED, and the difference is that the
-        // signature carries two facts: what the system thinks of it, and who signed it. The
-        // dictionary has separate names for them, so they are separate columns.
-        //
-        // ALL OFF AT THE START, and that is not the usual caution about width. Turning one on is
-        // what makes the window go and read them, and the reading measured 8.86-9.42 s of processor
-        // against 1.39-1.42 s without it, over about 810 entries. A column shown by default would
-        // spend that on every F5 for everybody.
-        new Column
-        {
-            Id = "signature",
-            LabelKey = "gui.column.signature",
-            WidthKey = "ColumnSignature",
-            Face = ColumnFace.Text,
-            ShownAtFirst = false,
-            Needs = ExtraRead.Signatures,
-            Reads = entry => CellFaces.SignatureLabel(entry.Signature),
-            Outcome = entry => entry.Signature.Outcome
-        },
-        new Column
-        {
-            Id = "publisher",
-            LabelKey = "gui.column.publisher",
-            WidthKey = "ColumnPublisher",
-            Face = ColumnFace.Text,
-            ShownAtFirst = false,
-            Needs = ExtraRead.Signatures,
-            Reads = entry => CellFaces.PublisherLabel(entry.Signature),
-            Outcome = entry => entry.Signature.Outcome
-        },
-        new Column
-        {
-            Id = "fileVersion",
-            LabelKey = "gui.column.fileVersion",
-            WidthKey = "ColumnFileVersion",
-            Face = ColumnFace.Text,
-            ShownAtFirst = false,
-            Needs = ExtraRead.Signatures,
-            Reads = entry => CellFaces.Say(entry.FileVersion, value => value),
-            Outcome = entry => entry.FileVersion.Outcome
-        },
-        new Column
-        {
-            // Monospaced, and this is the column the rule was written for: sixty-four hexadecimal
-            // characters where two different values must not be able to look the same - `docs/03`,
-            // part 4. Proportional digits make that exactly what they do.
-            Id = "binaryHash",
-            LabelKey = "gui.column.binaryHash",
-            WidthKey = "ColumnBinaryHash",
-            Face = ColumnFace.Fixed,
-            ShownAtFirst = false,
-
-            // The same family as the signature and the version beside it, because one pass fills
-            // all three - SecondPass asks for the three answers of each file together. NOT from one
-            // opening of the file, which this said until 2026-09-28: each answer opens it on its own.
-            Needs = ExtraRead.Signatures,
-            Reads = entry => CellFaces.Say(entry.BinaryHash, value => value),
-            Outcome = entry => entry.BinaryHash.Outcome
-        },
+        // The four the second pass fills, one family - Columns.Files.cs.
+        .. FileColumns(),
         new Column
         {
             // Right aligned, because it is the one column in this window somebody scans down
@@ -475,7 +415,10 @@ internal static partial class Columns
             Face = ColumnFace.Fixed,
             ShownAtFirst = false,
             Reads = entry => CellFaces.Say(entry.SecurityDescriptor, value => value)
-        }
+        },
+
+        // services.msc's recovery tab, backlog 555 - its own file, Columns.Recovery.cs.
+        .. RecoveryColumns()
     ];
 
     /// <summary>The column with this identifier, or nothing.</summary>

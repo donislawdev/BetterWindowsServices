@@ -132,6 +132,13 @@
     <DataGridLength x:Key="ColumnPrivileges">2*</DataGridLength>
     <DataGridLength x:Key="ColumnDescriptor">3*</DataGridLength>
 
+    <!-- The recovery columns, 2026-11-23 (backlog 555). The list and the two texts are free text of any length. -->
+    <DataGridLength x:Key="ColumnRecovery">3*</DataGridLength>
+    <DataGridLength x:Key="ColumnRecoveryReset">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnRecoveryNonCrash">120</DataGridLength>
+    <DataGridLength x:Key="ColumnRecoveryCommand">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnRecoveryMessage">2*</DataGridLength>
+
     <!--
         What a starred column may shrink to before it stops being worth reading. Below this the
         ellipsis is most of the cell.

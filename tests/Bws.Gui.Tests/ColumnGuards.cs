@@ -46,7 +46,8 @@ public sealed class ColumnGuards
         // Twenty seven since 2026-08-26, and that one was a debt too: `perUserRole` was in the
         // core, in `--json`, in the snapshot and in the query language, and the window could FOLD
         // by it while having nowhere to show it.
-        Assert.Equal(28, Columns.All.Count);
+        // Thirty three since 2026-11-23: the five recovery columns of the services.msc tab (backlog 555).
+        Assert.Equal(33, Columns.All.Count);
 
         var twice = Columns.All
             .GroupBy(column => column.Id, StringComparer.Ordinal)

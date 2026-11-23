@@ -77,9 +77,19 @@ internal static partial class ScmDetailReader
         var count = header->cActions;
         var reset = Reset(header->dwResetPeriod);
 
+        // The two texts are bounded like every other text in a block (ManagerBlocks.Bounded), and one that
+        // points outside is the same refusal as items that do - never a list read without them.
+        var command = ManagerBlocks.Bounded(header->lpCommand, block, length);
+        var message = ManagerBlocks.Bounded(header->lpRebootMsg, block, length);
+
+        if (command is null || message is null)
+        {
+            return Refused<RecoveryList>((int)WIN32_ERROR.ERROR_INVALID_DATA);
+        }
+
         if (count == 0)
         {
-            return Reading<RecoveryList>.Present(new RecoveryList([], reset));
+            return Reading<RecoveryList>.Present(Texts(new RecoveryList([], reset), command, message));
         }
 
         var offset = (byte*)header->lpsaActions - block;
@@ -97,7 +107,59 @@ internal static partial class ScmDetailReader
             items[index] = new RecoveryItem(Kind(item.Type), TimeSpan.FromMilliseconds(item.Delay));
         }
 
-        return Reading<RecoveryList>.Present(new RecoveryList(items, reset));
+        return Reading<RecoveryList>.Present(Texts(new RecoveryList(items, reset), command, message));
+    }
+
+    /// <summary>
+    /// The command and the message, with an empty text kept as none: the manager hands back a null pointer
+    /// and an empty string for the same thing, and sc.exe prints both as nothing.
+    /// </summary>
+    private static RecoveryList Texts(RecoveryList list, string command, string message) => list with
+    {
+        Command = command.Length == 0 ? null : command,
+        RebootMessage = message.Length == 0 ? null : message
+    };
+
+    /// <summary>
+    /// Everything the recovery tab of services.msc shows - the list, and whether it also answers a stop with
+    /// an error. For the listing (backlog 555), on the handle the configuration was read with: both levels
+    /// need SERVICE_QUERY_CONFIG and nothing more.
+    ///
+    /// <b>One reading for both halves.</b> They are asked of the same handle with the same right, so a
+    /// refusal of one is a refusal of the other in every case this project has seen, and a field that was
+    /// half read would be the half-complete answer rule 8 forbids.
+    /// </summary>
+    internal static unsafe Reading<RecoverySettings> ReadRecoverySettings(SafeHandle service)
+    {
+        var list = ReadRecovery(service);
+
+        if (!list.IsPresent)
+        {
+            return list.Outcome == ReadOutcome.Denied
+                ? Reading<RecoverySettings>.Denied(list.ErrorCode, list.Reason ?? string.Empty)
+                : Reading<RecoverySettings>.Absent();
+        }
+
+        // NOTHING SET IS ABSENT, as for the triggers and the dependencies: no item, no program and no message
+        // is an entry that has no recovery, and recovery:none asks for exactly that (the spec's example in
+        // A3). The flag and the period are left unread then, because without an item they decide nothing.
+        if (list.Value!.Items.Count == 0 && list.Value.Command is null && list.Value.RebootMessage is null)
+        {
+            return Reading<RecoverySettings>.Absent();
+        }
+
+        // SERVICE_FAILURE_ACTIONS_FLAG is one BOOL, so it is read into a four-byte local rather than adding
+        // the structure's name to NativeMethods.txt, the list docs/09 reviews as this tool's surface.
+        var flag = 0u;
+
+        if (!PInvoke.QueryServiceConfig2W(
+                service, SERVICE_CONFIG.SERVICE_CONFIG_FAILURE_ACTIONS_FLAG,
+                (byte*)&flag, sizeof(uint), out _))
+        {
+            return Refused<RecoverySettings>(Marshal.GetLastWin32Error());
+        }
+
+        return Reading<RecoverySettings>.Present(new RecoverySettings(list.Value!, flag != 0));
     }
 
     /// <summary>

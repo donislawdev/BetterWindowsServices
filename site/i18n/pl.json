@@ -1,5 +1,5 @@
 {
-  "_translated_from": "1867e30d6665",
+  "_translated_from": "23a7445be497",
   "_note": "Polska wersja chromu strony i zdan przy tabelach, ktore generator buduje z programu. Klucze musza byc dokladnie te same co w en.json - brakujacy klucz wywala budowanie, zamiast po cichu spasc do angielskiego.",
 
   "chrome.skip": "Przejdź do treści",
@@ -64,6 +64,7 @@
   "field.account": "konto, na którym działa, tak jak pisze je menedżer",
   "field.pid": "proces, w którym działa",
   "field.trigger": "warunek, który go uruchamia albo zatrzymuje",
+  "field.recovery": "co Windows robi po jego awarii",
   "field.path": "wiersz poleceń, którym uruchamia go menedżer",
   "field.file": "czy uruchamiany plik jest na dysku",
   "field.signed": "to, co Windows sądzi o podpisie pliku, bez sprawdzania unieważnienia",

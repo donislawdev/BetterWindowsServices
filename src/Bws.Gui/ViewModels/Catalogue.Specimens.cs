@@ -107,6 +107,7 @@ public static partial class Catalogue
             DependsOn = Reading<IReadOnlyList<string>>.Present(["RPCSS"]),
             RequiredBy = Reading<IReadOnlyList<string>>.NotRead(),
             Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
+            Recovery = Reading<RecoverySettings>.Absent(),
             BinaryPath = Reading<string>.Present(driver
                 ? @"\SystemRoot\System32\drivers\" + name + ".sys"
                 : @"C:\Windows\System32\svchost.exe -k netsvcs -p"),

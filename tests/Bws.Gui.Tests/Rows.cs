@@ -34,6 +34,7 @@ internal static class Rows
         DependsOn = Reading<IReadOnlyList<string>>.Absent(),
         RequiredBy = Reading<IReadOnlyList<string>>.NotRead(),
         Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
+        Recovery = Reading<RecoverySettings>.Absent(),
         BinaryPath = Reading<string>.Absent(),
         BinaryFile = Reading<string>.Absent(),
         BinaryOnDisk = Reading<bool>.Absent(),

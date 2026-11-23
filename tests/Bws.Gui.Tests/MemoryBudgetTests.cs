@@ -229,6 +229,7 @@ public sealed class MemoryBudgetTests(ITestOutputHelper output)
         DependsOn = Reading<IReadOnlyList<string>>.Present(["RPCSS", "http"]),
         RequiredBy = Reading<IReadOnlyList<string>>.NotRead(),
         Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
+        Recovery = Reading<RecoverySettings>.Absent(),
         BinaryPath = Reading<string>.Present(@"C:\WINDOWS\System32\svchost.exe -k netsvcs -p"),
         BinaryFile = Reading<string>.Present(@"C:\WINDOWS\System32\svchost.exe"),
         BinaryOnDisk = Reading<bool>.Present(true),

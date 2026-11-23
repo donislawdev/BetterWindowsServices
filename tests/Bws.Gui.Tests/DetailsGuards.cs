@@ -181,7 +181,8 @@ public sealed class DetailsGuards
         var sections = Details.Of(Triggered());
         var triggers = sections[^1];
 
-        Assert.Equal(5, sections.Count);
+        // Six since 2026-11-23: five groups, the recovery one included (backlog 555), and the triggers last.
+        Assert.Equal(6, sections.Count);
         Assert.Equal(Texts.Of("gui.details.section.triggers"), triggers.Heading);
         Assert.All(triggers.Lines, line => Assert.Equal("prose", line.Wears));
         Assert.Equal(

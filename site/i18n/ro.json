@@ -1,5 +1,5 @@
 {
-  "_translated_from": "1867e30d6665",
+  "_translated_from": "23a7445be497",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Salt la conținut",
@@ -64,6 +64,7 @@
   "field.account": "contul sub care rulează, așa cum îl scrie managerul",
   "field.pid": "procesul în care rulează",
   "field.trigger": "o condiție care o pornește sau o oprește",
+  "field.recovery": "ce face Windows când eșuează",
   "field.path": "linia de comandă pe care o lansează managerul",
   "field.file": "dacă fișierul pe care îl execută se află pe disc",
   "field.signed": "ce crede Windows despre semnătura fișierului, fără a verifica revocarea",

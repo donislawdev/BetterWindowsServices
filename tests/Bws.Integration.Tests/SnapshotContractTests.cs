@@ -124,7 +124,10 @@ public sealed class SnapshotContractTests : IDisposable
         //
         // SEVEN SINCE 2026-10-27, logic report C01: every trigger carries its subtype and its data. A six
         // against a seven compares triggers by kind and action only and says so once.
-        Assert.Equal(7, metadata.GetProperty("schemaVersion").GetInt32());
+        //
+        // EIGHT SINCE 2026-11-23, backlog 555: every entry carries its recovery. A seven against an eight
+        // does not compare recovery and says so once.
+        Assert.Equal(8, metadata.GetProperty("schemaVersion").GetInt32());
         Assert.StartsWith(
             $"{Environment.OSVersion.Version.Major}.{Environment.OSVersion.Version.Minor}.{Environment.OSVersion.Version.Build}.",
             metadata.GetProperty("operatingSystemVersion").GetString()!,

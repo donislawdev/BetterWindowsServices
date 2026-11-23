@@ -240,7 +240,10 @@ internal static partial class Specimens
         // principle differ. Measured under a restricted token on 2026-08-01: all three
         // entries that refuse the configuration handle refuse READ_CONTROL too. The
         // entry that refuses only one of them is a specimen of its own further down.
-        SecurityDescriptor = Reading<string>.Denied(Entries.AccessDenied, "access denied")
+        SecurityDescriptor = Reading<string>.Denied(Entries.AccessDenied, "access denied"),
+
+        // The configuration's handle again, so refused with it (backlog 555).
+        Recovery = Reading<RecoverySettings>.Denied(Entries.AccessDenied, "access denied")
     };
 
     /// <summary>

@@ -116,8 +116,25 @@ public readonly record struct RecoveryItem(RecoveryAction Action, TimeSpan Delay
 public sealed record RecoveryList(IReadOnlyList<RecoveryItem> Items, TimeSpan ResetPeriod)
 {
     /// <summary>
+    /// The command the manager runs for an item that runs a program - Microsoft's <c>lpCommand</c>, word for
+    /// word. Null when the entry names none.
+    ///
+    /// <b>Kept even when no item runs a program</b>, because the manager keeps it then too: measured
+    /// 2026-11-23, MSiSCSI names <c>customScript.cmd</c> and WEPHOSTSVC <c>not used</c> beside lists of two
+    /// restarts. Such a command never runs until somebody adds the item, which is what a person reading it
+    /// has to be told - and what a comparison of two snapshots has to see the day it is added.
+    /// </summary>
+    public string? Command { get; init; }
+
+    /// <summary>
+    /// The message the manager broadcasts before an item restarts the computer - <c>lpRebootMsg</c>, word for
+    /// word. Null when the entry names none.
+    /// </summary>
+    public string? RebootMessage { get; init; }
+
+    /// <summary>
     /// Whether two readings of a recovery list say the same thing - the same outcome and, when there is a
-    /// list, the same items in the same order and the same reset period.
+    /// list, the same items in the same order, the same reset period, command and message.
     ///
     /// <b>Written out rather than left to the record</b>, because the record compares its list of items by
     /// reference, and two readings of one unchanged list are two lists. Asked by the run just before it
@@ -130,10 +147,31 @@ public sealed record RecoveryList(IReadOnlyList<RecoveryItem> Items, TimeSpan Re
             return false;
         }
 
-        return !first.IsPresent
-            || (first.Value!.ResetPeriod == second.Value!.ResetPeriod && first.Value.Items.SequenceEqual(second.Value.Items));
+        return !first.IsPresent || Same(first.Value!, second.Value!);
     }
+
+    /// <summary>The same comparison for two lists that were both read.</summary>
+    public static bool Same(RecoveryList first, RecoveryList second) =>
+        first.ResetPeriod == second.ResetPeriod
+        && first.Items.SequenceEqual(second.Items)
+        && string.Equals(first.Command, second.Command, StringComparison.Ordinal)
+        && string.Equals(first.RebootMessage, second.RebootMessage, StringComparison.Ordinal);
 }
+
+/// <summary>
+/// What the recovery tab of services.msc shows for one entry: the list with its command and message, and
+/// whether the list also answers a stop with an error rather than only a crash.
+///
+/// <b>Read for the listing since 2026-11-23</b> (backlog 555, owner's decision to read everything that tab
+/// shows). The plan that ends a process reads only the list (<see cref="RecoveryList"/>), because measured on
+/// 2026-09-30 the flag decides nothing about an ending.
+/// </summary>
+/// <param name="List">The items, the reset period, the command and the message.</param>
+/// <param name="OnNonCrashFailures">
+/// Microsoft's <c>fFailureActionsOnNonCrashFailures</c> - services.msc's "Enable actions for stops with
+/// errors". False, the default, means the list answers only a process that died.
+/// </param>
+public sealed record RecoverySettings(RecoveryList List, bool OnNonCrashFailures);
 
 /// <summary>
 /// One entry that dies with an ended process, and its recovery list as the manager answered - the pair the

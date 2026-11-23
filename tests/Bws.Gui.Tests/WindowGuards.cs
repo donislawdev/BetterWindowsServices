@@ -227,7 +227,8 @@ public sealed class WindowGuards
         // (It was thirty-two from 2026-08-26 when `perUserRole` arrived, thirty-one from 08-25,
         // and twenty-four from 08-17 - backlog 190, on the owner's earlier report that the window
         // shows too few columns.)
-        Assert.Equal(5, WpfHost.On(() => menu!.Items.Count));
+        // Six since 2026-11-23: the recovery columns brought a fifth group (backlog 555).
+        Assert.Equal(6, WpfHost.On(() => menu!.Items.Count));
 
         // AND THE COUNT ABOVE NO LONGER SAYS THE THING THIS TEST IS NAMED FOR. While the list was
         // flat, "every column is in the menu" was arithmetic on one number. Nested, a column that

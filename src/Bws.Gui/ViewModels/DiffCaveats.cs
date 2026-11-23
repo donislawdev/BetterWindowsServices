@@ -32,6 +32,7 @@ internal static class DiffCaveats
             (caveats.AccountDiffers, () => files ? Texts.Of("gui.diff.files.caveat.account") : Texts.Of("gui.diff.caveat.account")),
             (caveats.FileVersionSourceDiffers, () => files ? Texts.Of("gui.diff.files.caveat.fileVersion") : Texts.Of("gui.diff.caveat.fileVersion")),
             (caveats.TriggerDetailDiffers, () => files ? Texts.Of("gui.diff.files.caveat.triggers") : Texts.Of("gui.diff.caveat.triggers")),
+            (caveats.RecoveryNotRecorded, () => files ? Texts.Of("gui.diff.files.caveat.recovery") : Texts.Of("gui.diff.caveat.recovery")),
             (caveats.NotKnown.Count > 0, () => Texts.Of("gui.diff.caveat.notKnown", string.Join(", ", caveats.NotKnown))),
             (diff.NeitherRead.Count > 0, () => Texts.Of("gui.diff.caveat.neitherRead", string.Join(", ", diff.NeitherRead.Select(DiffLines.Label)))),
             (diff.LeftOut.Any, () => LeftOut(diff.LeftOut, files)),

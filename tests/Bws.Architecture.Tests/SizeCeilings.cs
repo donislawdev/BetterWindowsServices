@@ -32,10 +32,11 @@ namespace Bws.Architecture.Tests;
 internal static class SizeCeilings
 {
     /// <summary>
-    /// 289 lines of code, Gui/ViewModels/Columns.cs - the column table of the list, 469 lines with its
-    /// reasons. PlanBuilder.cs is next at 246.
+    /// 288 lines of code, Gui/ViewModels/Catalogue.Views.cs, since 2026-11-23 - when the column table in
+    /// Columns.cs, 289 until then, gave its four file columns and the new recovery columns files of their own
+    /// (backlog 555).
     /// </summary>
-    internal const int LongestShippedFile = 289;
+    internal const int LongestShippedFile = 288;
 
     /// <summary>
     /// Seven at 203 or more: Columns, PlanBuilder, CommandLine.Reading, Program, Suggesting, QueryFields

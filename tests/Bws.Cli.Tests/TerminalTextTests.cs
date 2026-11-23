@@ -102,7 +102,7 @@ public sealed class TerminalTextTests
                 }
             ], [])],
             [], [Hostile], [new RefusedField(Hostile, [Hostile])], [new EntryPresence("Ccc", Hostile)],
-            new ComparisonCaveats(false, false, false, false, false, false, false, false, []),
+            new ComparisonCaveats(false, false, false, false, false, false, false, false, false, []),
             new InstancesLeftOut(0, 0),
             [new EntryPresence("Ddd", Hostile)]);
 

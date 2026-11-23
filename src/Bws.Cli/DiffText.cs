@@ -80,6 +80,7 @@ internal static class DiffText
             (caveats.AccountDiffers, () => Texts.Of("cli.diff.caveat.account")),
             (caveats.FileVersionSourceDiffers, () => Texts.Of("cli.diff.caveat.fileVersion")),
             (caveats.TriggerDetailDiffers, () => Texts.Of("cli.diff.caveat.triggers")),
+            (caveats.RecoveryNotRecorded, () => Texts.Of("cli.diff.caveat.recovery")),
             (caveats.NotKnown.Count > 0, () => Texts.Of("cli.diff.caveat.notKnown", string.Join(", ", caveats.NotKnown))),
             (diff.NeitherRead.Count > 0, () => Texts.Of("cli.diff.caveat.neitherRead", string.Join(", ", diff.NeitherRead))),
             (diff.LeftOut.Any, () => Texts.Of("cli.diff.caveat.instancesLeftOut", diff.LeftOut.Earlier, diff.LeftOut.Later))
@@ -222,6 +223,20 @@ internal static class DiffText
     private static IEnumerable<string> Lines(FieldDifference difference)
     {
         var key = difference.Group == DifferenceGroup.RunningState ? "cli.diff.field.state" : "cli.diff.field.configuration";
+
+        // The recovery in words, one line a side, since 2026-11-23 (backlog 555) - as JSON it is a few
+        // hundred characters of braces. A side that is not a recovery is printed as it is.
+        if (difference.Field == "recovery")
+        {
+            return
+            [
+                Texts.Of(
+                    key,
+                    difference.Field,
+                    Value(RecoveryWords.Line(difference.Before) ?? difference.Before),
+                    Value(RecoveryWords.Line(difference.After) ?? difference.After))
+            ];
+        }
 
         if (difference.Triggers is not { } change || change.Removed.Count + change.Added.Count == 0)
         {

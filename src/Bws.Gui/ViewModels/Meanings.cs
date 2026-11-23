@@ -37,6 +37,7 @@ internal static class Meanings
         new Meaning("account", "gui.suggest.field.account"),
         new Meaning("pid", "gui.suggest.field.pid"),
         new Meaning("trigger", "gui.suggest.field.trigger"),
+        new Meaning("recovery", "gui.suggest.field.recovery"),
         new Meaning("path", "gui.suggest.field.path"),
         new Meaning("file", "gui.suggest.field.file"),
         new Meaning("signed", "gui.suggest.field.signed"),

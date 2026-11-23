@@ -76,6 +76,12 @@ public sealed class SilentCatchGuards
         // 2026-09-23, UX-GUI-004 (c): a hand-over that is not JSON becomes "refused", and the
         // window says so in the status line - the failure reaches the person, not the exception.
         ["src/Bws.Gui/ViewModels/HandOver.cs"] = 1,
+
+        // 2026-11-23, backlog 555: one side of a changed recovery in a comparison that is not a recovery
+        // document is shown as the text the file holds instead of in words - the difference still reaches
+        // the person, only not reworded. One in each interface, which keeps its own words.
+        ["src/Bws.Cli/RecoveryWords.cs"] = 1,
+        ["src/Bws.Gui/ViewModels/RecoveryWords.cs"] = 1,
     };
 
     [Fact]

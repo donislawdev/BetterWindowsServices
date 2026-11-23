@@ -23,6 +23,12 @@ is not part of this repository.
   uses for startup types, states and accounts, and *Settings* switches between Polish and English.
   The command line stays in English. Where the Polish words do not fit on one line, the row of
   buttons above the list breaks onto a second one instead of running off the edge of the window.
+- What Windows does when a service fails - the *Recovery* tab of services.msc - is shown: in
+  `bws show`, in `--json`, and in the window under *When it fails*, as five columns you can turn on
+  and in the details of every service. `recovery:` finds it in a query, and `recovery:none` finds the
+  services with nothing set. A program or a restart message named there that no failure uses is
+  marked as never used. Snapshots keep it too and are written in version 8 - compared with a snapshot
+  from an earlier version, recovery is left out and the comparison says so.
 
 - Clicking the empty search box shows your last five searches above the questions to start from,
   with a clock beside each. Delete forgets the chosen one. A search is kept when you leave the box or

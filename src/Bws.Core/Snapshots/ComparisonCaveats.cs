@@ -43,6 +43,12 @@ namespace Bws.Core.Snapshots;
 /// decision that day, over the alternative of not comparing triggers at all, which is how file versions
 /// are treated beside six: there the older value is a different measurement, here it is a smaller one.
 /// </param>
+/// <param name="RecoveryNotRecorded">
+/// One side holds each entry's recovery and the other does not - schema eight against an older one
+/// (backlog 555, 2026-11-23). Recovery is then not compared on any entry, because the older file never
+/// held it and every entry would differ by format alone - 224 of 315 services have a recovery list on the
+/// machine this was written on. Decided by the schema number, so never "not known".
+/// </param>
 /// <param name="NotKnown">
 /// Metadata fields at least one of the two files does not carry, so the caveat each one feeds could
 /// not be decided either way - camelCase names, as they are written in the file. A version four
@@ -58,8 +64,18 @@ public sealed record ComparisonCaveats(
     bool AccountDiffers,
     bool FileVersionSourceDiffers,
     bool TriggerDetailDiffers,
+    bool RecoveryNotRecorded,
     IReadOnlyList<string> NotKnown)
 {
+    /// <summary>
+    /// The first schema that holds each entry's recovery - see <see cref="Snapshot.CurrentSchemaVersion"/>,
+    /// the paragraph on seven to eight.
+    /// </summary>
+    internal const int RecoverySince = 8;
+
+    /// <summary>The field left out of every entry when only one side holds it (<see cref="RecoveryNotRecorded"/>).</summary>
+    private static readonly string[] RecordedOnOneSide = ["recovery"];
+
     /// <summary>
     /// The first schema whose file versions come from the file itself - see
     /// <see cref="Snapshot.CurrentSchemaVersion"/>, the paragraph on five to six.
@@ -93,7 +109,8 @@ public sealed record ComparisonCaveats(
     internal string[] FieldsNotCompared() =>
     [
         .. LanguageDiffers ? Translated : [],
-        .. FileVersionSourceDiffers ? VersionedDifferently : []
+        .. FileVersionSourceDiffers ? VersionedDifferently : [],
+        .. RecoveryNotRecorded ? RecordedOnOneSide : []
     ];
 
     /// <summary>The field name of <see cref="SnapshotMetadata.OperatingSystemVersion"/> in the file.</summary>
@@ -134,6 +151,7 @@ public sealed record ComparisonCaveats(
             !string.Equals(before.TakenBy, after.TakenBy, StringComparison.OrdinalIgnoreCase),
             (before.SchemaVersion >= OwnFileVersionSince) != (after.SchemaVersion >= OwnFileVersionSince),
             (before.SchemaVersion >= WholeTriggersSince) != (after.SchemaVersion >= WholeTriggersSince),
+            (before.SchemaVersion >= RecoverySince) != (after.SchemaVersion >= RecoverySince),
             notKnown);
     }
 

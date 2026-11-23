@@ -203,9 +203,10 @@ internal static class Details
     /// The groups in the order the panel shows them. <b>What it runs second since 2026-09-24</b> -
     /// owner's decision at UX-GUI-012: the file and its signature are what an administrator opens
     /// the panel for, and they stood third, under the fields describing what kind of entry it is.
-    /// The groups themselves are still the picker's, only their order is the panel's.
+    /// The groups themselves are still the picker's, only their order is the panel's. <b>What happens when it
+    /// fails last since 2026-11-23</b> (backlog 555), as the recovery tab is last in services.msc.
     /// </summary>
-    private static readonly string[] Order = [Columns.Basics, Columns.Binary, Columns.About, Columns.Advanced];
+    private static readonly string[] Order = [Columns.Basics, Columns.Binary, Columns.About, Columns.Advanced, Columns.Recovery];
 
     private static IReadOnlyList<DetailSection> Build(ScmEntry entry, bool identity, ExtraRead reading = ExtraRead.None)
     {

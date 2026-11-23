@@ -1,5 +1,5 @@
 {
-  "_translated_from": "1867e30d6665",
+  "_translated_from": "23a7445be497",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "सामग्री पर जाएँ",
@@ -64,6 +64,7 @@
   "field.account": "वह खाता जिसके रूप में यह चलती है, जैसा प्रबंधक उसे लिखता है",
   "field.pid": "वह प्रक्रिया जिसमें यह चल रही है",
   "field.trigger": "एक शर्त जो इसे शुरू या बंद करती है",
+  "field.recovery": "विफल होने पर Windows क्या करता है",
   "field.path": "वह कमांड लाइन जिसे प्रबंधक लॉन्च करता है",
   "field.file": "क्या वह फ़ाइल जो यह चलाती है डिस्क पर है",
   "field.signed": "फ़ाइल के हस्ताक्षर के बारे में Windows क्या सोचता है, निरस्तीकरण जाँचे बिना",

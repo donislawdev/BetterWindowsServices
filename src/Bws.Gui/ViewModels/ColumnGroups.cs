@@ -96,13 +96,22 @@ internal static partial class Columns
         ["requiredBy"] = Advanced,
         ["triggers"] = Advanced,
         ["requiredPrivileges"] = Advanced,
-        ["securityDescriptor"] = Advanced
+        ["securityDescriptor"] = Advanced,
+
+        // A heading of its own since 2026-11-23 (backlog 555), because it is one more question somebody
+        // arrives with - "what happens when this falls over" - and it is services.msc's own tab.
+        ["recovery"] = Recovery,
+        ["recoveryReset"] = Recovery,
+        ["recoveryOnNonCrashFailures"] = Recovery,
+        ["recoveryCommand"] = Recovery,
+        ["recoveryRebootMessage"] = Recovery
     };
 
     internal const string Basics = "gui.columns.group.basics";
     internal const string About = "gui.columns.group.about";
     internal const string Binary = "gui.columns.group.binary";
     internal const string Advanced = "gui.columns.group.advanced";
+    internal const string Recovery = "gui.columns.group.recovery";
 
     /// <summary>The heading a column sits under, or null when nobody gave it one.</summary>
     internal static string? GroupOf(string id) => Groups.GetValueOrDefault(id);

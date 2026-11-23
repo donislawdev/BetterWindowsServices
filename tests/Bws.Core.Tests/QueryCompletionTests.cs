@@ -40,7 +40,8 @@ public sealed class QueryCompletionTests
 
         // Twenty-one, and the number is asserted so that a field added to the language without a
         // sentence for it is noticed here as well as by the window's guard.
-        Assert.Equal(21, QueryFields.Names.Count);
+        // Twenty two since 2026-11-23, when recovery joined (backlog 555).
+        Assert.Equal(22, QueryFields.Names.Count);
     }
 
     [Fact]

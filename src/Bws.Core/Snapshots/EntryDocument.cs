@@ -77,6 +77,56 @@ public sealed record TriggerDataDocument(string Type, IReadOnlyList<string> Valu
 public sealed record SignatureDocument(string Status, int ResultCode, string? Publisher);
 
 /// <summary>
+/// An entry's recovery as the document writes it - every number exactly as the manager keeps it, so a
+/// script can put it beside <c>sc qfailure</c> and a comparison sees any change at all.
+///
+/// <b>The reset period in seconds and the delays in milliseconds</b>, the units the manager stores them in
+/// (<c>SERVICE_FAILURE_ACTIONSW</c>) and sc.exe prints them in. <b><c>INFINITE</c> is written as
+/// 4294967295</b>, the value the manager holds for it, rather than as null: null in this document means a
+/// field that was not read, and a count that starts again only when the machine does is an answer.
+/// </summary>
+/// <param name="Actions">Every item in the order of the list, an item that does nothing included.</param>
+/// <param name="ResetPeriodSeconds">After how long without a failure the count starts from 1 again.</param>
+/// <param name="Command">The program an item that runs one starts, word for word. Null when none is named.</param>
+/// <param name="RebootMessage">The message before an item restarts the computer. Null when none is named.</param>
+/// <param name="OnNonCrashFailures">Whether the list also answers a stop with an error, not only a crash.</param>
+public sealed record RecoveryDocument(
+    IReadOnlyList<RecoveryActionDocument> Actions,
+    long ResetPeriodSeconds,
+    string? Command,
+    string? RebootMessage,
+    bool OnNonCrashFailures)
+{
+    /// <summary><c>INFINITE</c> from winbase.h, the reset period of a count that never starts again.</summary>
+    public const long NeverReset = uint.MaxValue;
+
+    /// <summary>A reading in the document's form - null for every reading that holds no value.</summary>
+    public static RecoveryDocument? Of(Reading<RecoverySettings> reading) => reading.IsPresent ? Of(reading.Value!) : null;
+
+    /// <summary>One entry's recovery in the document's form.</summary>
+    public static RecoveryDocument Of(RecoverySettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        var list = settings.List;
+
+        return new(
+            [.. list.Items.Select(item => new RecoveryActionDocument(item.Action.ToString(), (long)item.Delay.TotalMilliseconds))],
+            list.ResetPeriod == Timeout.InfiniteTimeSpan ? NeverReset : (long)list.ResetPeriod.TotalSeconds,
+            list.Command,
+            list.RebootMessage,
+            settings.OnNonCrashFailures);
+    }
+}
+
+/// <summary>
+/// One item of a recovery list: what it does, in <see cref="RecoveryAction"/>'s words, and after how many
+/// milliseconds. An undocumented kind is written as <c>Unnamed</c> without its number, so a change from one
+/// undocumented kind to another is not seen - the price of not naming what Microsoft does not describe.
+/// </summary>
+public sealed record RecoveryActionDocument(string Action, long DelayMilliseconds);
+
+/// <summary>
 /// What one process is using, in bytes, and how many entries have to share that answer.
 ///
 /// Bytes rather than megabytes, because this half of the output is for programs and a
@@ -295,6 +345,17 @@ public sealed record EntryDocument
     public required string? LoadOrderGroup { get; init; }
 
     /// <summary>
+    /// services.msc's recovery tab (backlog 555, schema eight, 2026-11-23). Null when the entry has none
+    /// set, like <see cref="Triggers"/>, when it was refused - told apart by "unreadable" - when nobody
+    /// asked, told apart by "notRead", and in a file written before schema eight, which never held it.
+    ///
+    /// <b>Not required, the second field after <see cref="Memory"/> that is not</b>, and for the reason a
+    /// required field would break: a document type demanding it could not read a snapshot of schema four
+    /// to seven back. A file of eight with a recovery that is not whole is refused (<c>Snapshot.BrokenEntries</c>).
+    /// </summary>
+    public RecoveryDocument? Recovery { get; init; }
+
+    /// <summary>
     /// What the process behind this entry is using. Null when the entry is not running,
     /// which is the ordinary case, and null as well when nobody asked - told apart by
     /// "notRead".
@@ -328,29 +389,7 @@ public sealed record EntryDocument
 
     public static EntryDocument From(ScmEntry entry)
     {
-        var unreadable = new Dictionary<string, UnreadableDocument>(StringComparer.Ordinal);
-        var notRead = new List<string>();
-
-        Note(unreadable, notRead, nameof(entry.ProcessId), entry.ProcessId);
-        Note(unreadable, notRead, nameof(entry.StartType), entry.StartType);
-        Note(unreadable, notRead, nameof(entry.DelayedAuto), entry.DelayedAuto);
-        Note(unreadable, notRead, nameof(entry.Account), entry.Account);
-        Note(unreadable, notRead, nameof(entry.DependsOn), entry.DependsOn);
-        Note(unreadable, notRead, nameof(entry.RequiredBy), entry.RequiredBy);
-        Note(unreadable, notRead, nameof(entry.Triggers), entry.Triggers);
-        Note(unreadable, notRead, nameof(entry.BinaryPath), entry.BinaryPath);
-        Note(unreadable, notRead, nameof(entry.BinaryFile), entry.BinaryFile);
-        Note(unreadable, notRead, nameof(entry.BinaryOnDisk), entry.BinaryOnDisk);
-        Note(unreadable, notRead, nameof(entry.Signature), entry.Signature);
-        Note(unreadable, notRead, nameof(entry.FileVersion), entry.FileVersion);
-        Note(unreadable, notRead, nameof(entry.BinaryHash), entry.BinaryHash);
-        Note(unreadable, notRead, nameof(entry.RequiredPrivileges), entry.RequiredPrivileges);
-        Note(unreadable, notRead, nameof(entry.SidType), entry.SidType);
-        Note(unreadable, notRead, nameof(entry.SecurityDescriptor), entry.SecurityDescriptor);
-        Note(unreadable, notRead, nameof(entry.ErrorControl), entry.ErrorControl);
-        Note(unreadable, notRead, nameof(entry.LoadOrderGroup), entry.LoadOrderGroup);
-        Note(unreadable, notRead, nameof(entry.Description), entry.Description);
-        Note(unreadable, notRead, nameof(entry.Memory), entry.Memory);
+        var (unreadable, notRead) = Gaps(entry);
 
         return new EntryDocument
         {
@@ -413,6 +452,7 @@ public sealed record EntryDocument
 
             ErrorControl = entry.ErrorControl.IsPresent ? entry.ErrorControl.Value.ToString() : null,
             LoadOrderGroup = entry.LoadOrderGroup.IsPresent ? entry.LoadOrderGroup.Value : null,
+            Recovery = RecoveryDocument.Of(entry.Recovery),
 
             Memory = entry.Memory.IsPresent
                 ? new MemoryDocument(
@@ -424,6 +464,42 @@ public sealed record EntryDocument
             Unreadable = unreadable.Count == 0 ? null : unreadable,
             NotRead = notRead.Count == 0 ? null : notRead
         };
+    }
+
+    /// <summary>
+    /// Every field that was refused, with its refusal, and every field nobody asked about - the two
+    /// states a value of null cannot say on its own. Its own method since 2026-11-23, when the recovery
+    /// field took <see cref="From"/> past its ceiling: which fields were not read is a question apart
+    /// from what the read ones hold.
+    /// </summary>
+    private static (Dictionary<string, UnreadableDocument> Unreadable, List<string> NotRead) Gaps(ScmEntry entry)
+    {
+        var unreadable = new Dictionary<string, UnreadableDocument>(StringComparer.Ordinal);
+        var notRead = new List<string>();
+
+        Note(unreadable, notRead, nameof(entry.ProcessId), entry.ProcessId);
+        Note(unreadable, notRead, nameof(entry.StartType), entry.StartType);
+        Note(unreadable, notRead, nameof(entry.DelayedAuto), entry.DelayedAuto);
+        Note(unreadable, notRead, nameof(entry.Account), entry.Account);
+        Note(unreadable, notRead, nameof(entry.DependsOn), entry.DependsOn);
+        Note(unreadable, notRead, nameof(entry.RequiredBy), entry.RequiredBy);
+        Note(unreadable, notRead, nameof(entry.Triggers), entry.Triggers);
+        Note(unreadable, notRead, nameof(entry.BinaryPath), entry.BinaryPath);
+        Note(unreadable, notRead, nameof(entry.BinaryFile), entry.BinaryFile);
+        Note(unreadable, notRead, nameof(entry.BinaryOnDisk), entry.BinaryOnDisk);
+        Note(unreadable, notRead, nameof(entry.Signature), entry.Signature);
+        Note(unreadable, notRead, nameof(entry.FileVersion), entry.FileVersion);
+        Note(unreadable, notRead, nameof(entry.BinaryHash), entry.BinaryHash);
+        Note(unreadable, notRead, nameof(entry.RequiredPrivileges), entry.RequiredPrivileges);
+        Note(unreadable, notRead, nameof(entry.SidType), entry.SidType);
+        Note(unreadable, notRead, nameof(entry.SecurityDescriptor), entry.SecurityDescriptor);
+        Note(unreadable, notRead, nameof(entry.ErrorControl), entry.ErrorControl);
+        Note(unreadable, notRead, nameof(entry.LoadOrderGroup), entry.LoadOrderGroup);
+        Note(unreadable, notRead, nameof(entry.Description), entry.Description);
+        Note(unreadable, notRead, nameof(entry.Recovery), entry.Recovery);
+        Note(unreadable, notRead, nameof(entry.Memory), entry.Memory);
+
+        return (unreadable, notRead);
     }
 
     /// <summary>

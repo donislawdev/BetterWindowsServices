@@ -50,7 +50,8 @@ internal static class DiffJson
                     diff.Caveats.AccountDiffers,
                     diff.Caveats.NotKnown,
                     diff.Caveats.FileVersionSourceDiffers,
-                    diff.Caveats.TriggerDetailDiffers),
+                    diff.Caveats.TriggerDetailDiffers,
+                    diff.Caveats.RecoveryNotRecorded),
                 [.. diff.Added.Select(Presence)],
                 [.. diff.Removed.Select(Presence)],
                 [.. diff.Uncertain.Select(Presence)],
@@ -133,6 +134,10 @@ internal static class DiffJson
     /// Added 2026-10-27 (logic report C01, schema seven) and LAST, for the same reason. True when one side
     /// is schema seven and the other older: triggers were then compared by kind and action only.
     /// </param>
+    /// <param name="RecoveryNotRecorded">
+    /// Added 2026-11-23 (backlog 555, schema eight) and LAST, for the same reason. True when one side is
+    /// schema eight and the other older: recovery was then not compared on any entry.
+    /// </param>
     private sealed record CaveatsDocument(
         bool ElevationDiffers,
         bool MachineDiffers,
@@ -142,7 +147,8 @@ internal static class DiffJson
         bool AccountDiffers,
         IReadOnlyList<string> NotKnown,
         bool FileVersionSourceDiffers,
-        bool TriggerDetailDiffers);
+        bool TriggerDetailDiffers,
+        bool RecoveryNotRecorded);
 
     private sealed record LeftOutDocument(int Earlier, int Later);
 

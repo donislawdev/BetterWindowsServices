@@ -189,17 +189,8 @@ internal static partial class PlanText
     private static string Both(IReadOnlyList<string> names) =>
         Texts.Of("cli.plan.recovery.and", string.Join(", ", names.Take(names.Count - 1)), names[^1]);
 
-    /// <summary>
-    /// A reset period in the largest unit that divides it evenly - 30 s, 15 min, 1 h, 24 h, 390 min - the
-    /// owner's decision of 2026-10-07. Periods on the owner's machine run from 30 s to 86 400 000 s, so
-    /// seconds alone would read "86400 s" for the commonest one.
-    /// </summary>
-    private static string Period(TimeSpan period) => (long)period.TotalSeconds switch
-    {
-        var seconds when seconds % 3600 == 0 => Texts.Of("cli.plan.recovery.hours", seconds / 3600),
-        var seconds when seconds % 60 == 0 => Texts.Of("cli.plan.recovery.minutes", seconds / 60),
-        var seconds => Texts.Of("cli.run.took.seconds", seconds)
-    };
+    /// <summary>The period in <see cref="RecoveryWords"/>' units, shared with <c>bws show</c> since 2026-11-23.</summary>
+    private static string Period(TimeSpan period) => RecoveryWords.Period(period);
 
     /// <summary>
     /// "60 s", or "1 s, 2 s, 4 s, 8 s or 16 s" - every delay, because which item runs depends on a count of
@@ -212,10 +203,6 @@ internal static partial class PlanText
             string.Join(", ", after.Take(after.Count - 1).Select(Seconds)),
             Seconds(after[^1]));
 
-    /// <summary>
-    /// Always in seconds, with one decimal place - the owner's decision said "after N s", and 100 ms reads
-    /// as "0.1 s" rather than switching units inside one list.
-    /// </summary>
-    private static string Seconds(TimeSpan delay) =>
-        Texts.Of("cli.run.took.seconds", delay.TotalSeconds.ToString("0.#", CultureInfo.InvariantCulture));
+    /// <summary>A delay in <see cref="RecoveryWords"/>' units, shared with <c>bws show</c> since 2026-11-23.</summary>
+    private static string Seconds(TimeSpan delay) => RecoveryWords.Seconds(delay);
 }
