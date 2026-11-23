@@ -68,7 +68,8 @@
     said true, and StartupHookGuards went red in the Debug run of the coverage gate on a runner image
     that had picked SDK 11 up. Release builds get no such file, so nothing shipped was affected, but
     a Debug build of the window would have run DOTNET_STARTUP_HOOKS again. The 10.0 SDK does not
-    know the property and ignores it.
+    know the property and ignores it. global.json pins the 10.0 SDK since the same day, so this line
+    is what still holds on the day the pin moves to 11.
   -->
   <PropertyGroup>
     <StartupHookSupport>false</StartupHookSupport>
