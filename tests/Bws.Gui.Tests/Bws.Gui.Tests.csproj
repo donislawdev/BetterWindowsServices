@@ -26,7 +26,7 @@
       the hand-over between two windows, and the files it exports for a spreadsheet.
     -->
     <PackageReference Include="CsCheck" Version="5.0.1" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
     <PackageReference Include="xunit.v3.mtp-off" Version="4.0.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" />
   </ItemGroup>
