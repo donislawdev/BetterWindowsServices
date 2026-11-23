@@ -60,9 +60,19 @@
     the environment as well, and Microsoft's own table for it has no runtimeconfig.json setting at
     all. That is why Session.RuntimeSettingsFromEnvironment exists - the tool cannot switch those
     off, so an elevated process names them instead.
+
+    AND NO HOT RELOAD FILE BESIDE A DEBUG BUILD. The .NET 11 SDK (11.0.100) writes
+    <name>.runtimeconfig.dev.json next to every Debug build, with
+    System.StartupHookProvider.IsSupported set to true for Hot Reload, and the runtime takes that
+    file over runtimeconfig.json - measured 2026-11-23: runtimeconfig.json said false, the dev file
+    said true, and StartupHookGuards went red in the Debug run of the coverage gate on a runner image
+    that had picked SDK 11 up. Release builds get no such file, so nothing shipped was affected, but
+    a Debug build of the window would have run DOTNET_STARTUP_HOOKS again. The 10.0 SDK does not
+    know the property and ignores it.
   -->
   <PropertyGroup>
     <StartupHookSupport>false</StartupHookSupport>
+    <EnableHotReloadInRuntimeConfigDevFile>false</EnableHotReloadInRuntimeConfigDevFile>
   </PropertyGroup>
 
   <!--
