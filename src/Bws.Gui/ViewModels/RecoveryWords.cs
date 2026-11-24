@@ -35,17 +35,30 @@ internal static class RecoveryWords
             : Texts.Of(settings.OnNonCrashFailures ? "gui.cell.yes" : "gui.cell.no"));
 
     /// <summary>
-    /// The program, word for word, and said never to run when no item runs a program - measured 2026-11-23
+    /// The program, word for word, and said to be unused when no item runs a program - measured 2026-11-23
     /// on a clean Windows, MSiSCSI names one beside a list of restarts.
+    ///
+    /// <b>"Not used" comes first and the command after it</b>, because that is what decides anything for the
+    /// person reading. With the command first, the cell read as a program this service runs.
+    ///
+    /// <b>No quotes around the command</b>, unlike the message: a command line carries quotes of its own, and
+    /// one more pair around <c>"C:\Tools\a.exe" /p</c> would read as two quoted halves.
     /// </summary>
     internal static string Command(Reading<RecoverySettings> reading) =>
         CellFaces.Say(reading, settings => Named(
-            settings.List.Command, settings.List, RecoveryAction.RunProgram, "gui.recovery.command.unused"));
+            settings.List.Command, settings.List, RecoveryAction.RunProgram, null, "gui.recovery.command.unused"));
 
-    /// <summary>The message before a restart of the computer, the same way as the program.</summary>
+    /// <summary>
+    /// The message before a restart of the computer, the same way as the program - and IN QUOTES, used or not.
+    ///
+    /// <b>The quotes are what keep it from reading as the window's own words.</b> It is prose somebody else
+    /// wrote: on a clean Windows Server 2025, MSiSCSI holds "See Note 3 below", and the panel showed it bare -
+    /// an instruction that seemed to come from this tool and pointed at nothing (2026-11-24, the owner).
+    /// </summary>
     internal static string RebootMessage(Reading<RecoverySettings> reading) =>
         CellFaces.Say(reading, settings => Named(
-            settings.List.RebootMessage, settings.List, RecoveryAction.RestartComputer, "gui.recovery.message.unused"));
+            settings.List.RebootMessage, settings.List, RecoveryAction.RestartComputer, "gui.recovery.message.used",
+            "gui.recovery.message.unused"));
 
     /// <summary>
     /// One side of a changed recovery in a comparison, on one line. Null for a value that is not a
@@ -131,10 +144,21 @@ internal static class RecoveryWords
         };
     }
 
-    private static string Named(string? text, RecoveryList list, RecoveryAction action, string unusedKey) =>
-        text is null
-            ? string.Empty
-            : list.Items.Any(item => item.Action == action) ? text : Texts.Of(unusedKey, text);
+    /// <param name="usedKey">How the text is said when an item uses it - null for word for word.</param>
+    private static string Named(string? text, RecoveryList list, RecoveryAction action, string? usedKey, string unusedKey)
+    {
+        if (text is null)
+        {
+            return string.Empty;
+        }
+
+        if (!list.Items.Any(item => item.Action == action))
+        {
+            return Texts.Of(unusedKey, text);
+        }
+
+        return usedKey is null ? text : Texts.Of(usedKey, text);
+    }
 
     private static RecoveryDocument? Parsed(string json)
     {

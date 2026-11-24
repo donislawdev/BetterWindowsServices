@@ -70,15 +70,22 @@ internal static class RecoveryWords
     }
 
     /// <summary>
-    /// The program, word for word - and when no item runs a program, said that it never runs. Measured
-    /// 2026-11-23 on a clean Windows: MSiSCSI names one beside a list of restarts.
+    /// The program, word for word - and when no item runs a program, "not used" first and the command after
+    /// it. Measured 2026-11-23 on a clean Windows: MSiSCSI names one beside a list of restarts. The window's
+    /// copy of this class says why the order and why no quotes: a command line carries quotes of its own.
     /// </summary>
     internal static string? Command(RecoveryDocument recovery) =>
-        Named(recovery, recovery.Command, nameof(RecoveryAction.RunProgram), "cli.recovery.command.unused");
+        Named(recovery, recovery.Command, nameof(RecoveryAction.RunProgram), null, "cli.recovery.command.unused");
 
-    /// <summary>The message before a restart of the computer, the same way as the program.</summary>
+    /// <summary>
+    /// The message before a restart of the computer, the same way as the program - and in quotes, used or
+    /// not, because it is prose somebody else wrote. MSiSCSI on a clean Windows Server 2025 holds "See Note 3
+    /// below", which printed bare reads as this tool pointing at a note that is not there.
+    /// </summary>
     internal static string? RebootMessage(RecoveryDocument recovery) =>
-        Named(recovery, recovery.RebootMessage, nameof(RecoveryAction.RestartComputer), "cli.recovery.message.unused");
+        Named(
+            recovery, recovery.RebootMessage, nameof(RecoveryAction.RestartComputer), "cli.recovery.message.used",
+            "cli.recovery.message.unused");
 
     /// <summary>Whether a stop with an error counts as a failure too. Null with no items, as for the period.</summary>
     internal static string? OnNonCrashFailures(RecoveryDocument recovery)
@@ -149,14 +156,20 @@ internal static class RecoveryWords
         };
     }
 
-    private static string? Named(RecoveryDocument recovery, string? text, string action, string unusedKey)
+    /// <param name="usedKey">How the text is said when an item uses it - null for word for word.</param>
+    private static string? Named(RecoveryDocument recovery, string? text, string action, string? usedKey, string unusedKey)
     {
         if (text is null)
         {
             return null;
         }
 
-        return recovery.Actions.Any(item => item.Action == action) ? text : Texts.Of(unusedKey, text);
+        if (!recovery.Actions.Any(item => item.Action == action))
+        {
+            return Texts.Of(unusedKey, text);
+        }
+
+        return usedKey is null ? text : Texts.Of(usedKey, text);
     }
 
     private static RecoveryDocument? Parsed(string json)

@@ -26,8 +26,8 @@ is not part of this repository.
 - What Windows does when a service fails - the *Recovery* tab of services.msc - is shown: in
   `bws show`, in `--json`, and in the window under *When it fails*, as five columns you can turn on
   and in the details of every service. `recovery:` finds it in a query, and `recovery:none` finds the
-  services with nothing set. A program or a restart message named there that no failure uses is
-  marked as never used. Snapshots keep it too and are written in version 8 - compared with a snapshot
+  services with nothing set. A program to run, or a message to show before the computer restarts,
+  that no failure uses is marked as not used. Snapshots keep it too and are written in version 8 - compared with a snapshot
   from an earlier version, recovery is left out and the comparison says so.
 
 - Clicking the empty search box shows your last five searches above the questions to start from,
