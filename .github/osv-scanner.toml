@@ -18,6 +18,11 @@
 # day, still requires mcp==1.29.0 and opentelemetry-api~=1.37.0, so pip still cannot install a fixed
 # version of either. Every date moved four weeks on, to one day, so they all come back on one
 # reminder. GHSA-mf5v-w3w3-f6cg joined the same day, found by the same red scan.
+#
+# GHSA-qx49-fqc8-xw99 AND GHSA-53pm-wgxf-c6qf JOINED ON 2026-11-23, found by the scheduled scan of
+# that day. semgrep 1.186.0, the newest on the package index that day, still requires mcp==1.29.0,
+# and requires wcmatch~=8.3 as well, which excludes the fixed wcmatch. Both took the same date as the
+# rest, so the reminder stays one.
 
 [[IgnoredVulns]]
 id = "GHSA-84m7-p3x7-pcfv"
@@ -48,3 +53,13 @@ reason = "opentelemetry-api 1.37.0 is here only because semgrep requires opentel
 id = "GHSA-mf5v-w3w3-f6cg"
 ignoreUntil = 2026-12-14
 reason = "opentelemetry-api 1.37.0 is here only because semgrep requires it, for the reason given at GHSA-xcq7-p3pf-p88h above. The advisory, found by the scan of 2026-11-16, is the same class: parsing an incoming traceparent header takes quadratic time, reached through the trace context propagator's extract in a server receiving requests. CI runs semgrep as a one-off command line scan, which receives no request. The fix is opentelemetry-api 1.45.2, which pip cannot install next to any semgrep release up to 1.185.0. Remove this entry once a semgrep release allows opentelemetry-api 1.45.2 or later."
+
+[[IgnoredVulns]]
+id = "GHSA-qx49-fqc8-xw99"
+ignoreUntil = 2026-12-14
+reason = "mcp 1.29.0 is here only because semgrep requires it, for the reason given at GHSA-84m7-p3x7-pcfv above. The advisory, published 2026-11-19, is about the MCP OAuth client sending credentials to an authorization server the MCP server names. CI runs semgrep as semgrep scan, which acts as no MCP client and holds no OAuth credential. The fix is mcp 1.30.0, which pip cannot install next to any semgrep release up to 1.186.0, the newest on 2026-11-23. Remove this entry once a semgrep release allows mcp 1.30.0 or later."
+
+[[IgnoredVulns]]
+id = "GHSA-53pm-wgxf-c6qf"
+ignoreUntil = 2026-12-14
+reason = "wcmatch 8.5.2 is here only because semgrep requires wcmatch~=8.3, which excludes every release from 9 up. The advisory, published 2026-11-20, is polynomial-time matching of untrusted names against patterns with several stars. semgrep matches the paths of the files it scans against its include and exclude patterns with wcmatch (cli/src/semgrep/target_manager.py, read 2026-11-23), so in CI the names are the paths of the checked-out tree, which a pull request chooses. The worst a crafted path can do is slow the semgrep step, and the job's 15-minute limit ends it (.github/workflows/security.yml). It reads no secret and reaches no other job. The fix is wcmatch 11.2, which pip cannot install next to any semgrep release up to 1.186.0, the newest on 2026-11-23. Remove this entry once a semgrep release allows wcmatch 11.2 or later."

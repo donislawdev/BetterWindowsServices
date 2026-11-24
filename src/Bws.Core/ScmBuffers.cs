@@ -63,7 +63,8 @@ internal readonly record struct ScmConfiguration(
     Reading<ServiceSidType> SidType,
     Reading<ErrorControl> ErrorControl,
     Reading<string> LoadOrderGroup,
-    Reading<string> Description)
+    Reading<string> Description,
+    Reading<RecoverySettings> Recovery)
 {
     /// <summary>
     /// A refusal, carrying both halves: the system's number for a script and the system's
@@ -82,7 +83,8 @@ internal readonly record struct ScmConfiguration(
         Denied<ServiceSidType>(code),
         Denied<ErrorControl>(code),
         Denied<string>(code),
-        Denied<string>(code));
+        Denied<string>(code),
+        Denied<RecoverySettings>(code));
 
     /// <summary>
     /// Which file the launch command runs, and whether it is there.

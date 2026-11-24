@@ -241,8 +241,17 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
     /// and action alone and says so once (<see cref="ComparisonCaveats.TriggerDetailDiffers"/>) - without
     /// that, every entry with a trigger would differ by format alone, 117 of 780 on the machine this was
     /// written on. And an older build refuses a seven by name rather than dropping what it cannot read.
+    ///
+    /// <b>SEVEN TO EIGHT ON 2026-11-23, AND EACH ENTRY HOLDS ITS RECOVERY</b> - backlog 555, the owner's
+    /// decision to put services.msc's recovery tab in the machine readable output and in the snapshot
+    /// (<see cref="RecoveryDocument"/>). The program a failure runs works under the service's account, so
+    /// a command added to it is a change worth catching, and Windows writes no event for it that this
+    /// project has seen (NOT MEASURED that none exists). Four to seven are still read, with recovery as
+    /// null: an eight against an older file does not compare recovery at all and says so once
+    /// (<see cref="ComparisonCaveats.RecoveryNotRecorded"/>). An older build refuses an eight by name
+    /// rather than dropping the field without a word.
     /// </summary>
-    public const int CurrentSchemaVersion = 7;
+    public const int CurrentSchemaVersion = 8;
 
     /// <summary>
     /// The oldest schema this build still reads. Four since 2026-09-30 - see the version five
@@ -369,7 +378,9 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
                 return true;
             }
 
-            if ((Contradiction(entry) ?? TriggerGap(entry, Metadata.SchemaVersion)) is { } said)
+            if ((Contradiction(entry)
+                    ?? TriggerGap(entry, Metadata.SchemaVersion)
+                    ?? RecoveryGap(entry, Metadata.SchemaVersion)) is { } said)
             {
                 failure = $"Entry {index + 1} ('{entry.ServiceName}') {said}";
 
@@ -452,6 +463,42 @@ public sealed record Snapshot(SnapshotMetadata Metadata, IReadOnlyList<EntryDocu
             ? null
             : $"has trigger {gap + 1} without its whole data list, which a version {schema} snapshot always holds.";
     }
+
+    /// <summary>
+    /// What an entry's recovery is missing, or holds that the manager could not, or nothing - since
+    /// 2026-11-23, backlog 555.
+    ///
+    /// <b>A recovery an eight writes always holds its list of actions</b>, empty or not, and every item its
+    /// kind. One without them is a file that does not hold what its schema promises - two such files would
+    /// compare as equal on what neither holds. A recovery that is null is an entry with none set, as for the
+    /// triggers. A rule of schema eight only: an older file never wrote the field. The numbers left out are
+    /// refused earlier, by the reader (<see cref="RecoveryDocument"/>).
+    ///
+    /// <b>Every delay and the period fit in the manager's 32 bits, whatever the schema</b>
+    /// (<c>SC_ACTION.Delay</c> and <c>dwResetPeriod</c> are DWORDs), so a number outside them was never read
+    /// from a service - and one past what a <see cref="TimeSpan"/> holds would end the comparison that words
+    /// it with an exception. That is a fact of Windows, not a promise of a schema.
+    /// </summary>
+    private static string? RecoveryGap(EntryDocument entry, int schema)
+    {
+        if (entry.Recovery is not { } recovery)
+        {
+            return null;
+        }
+
+        if (schema >= ComparisonCaveats.RecoverySince
+            && (recovery.Actions is null || recovery.Actions.Any(action => action?.Action is null)))
+        {
+            return $"has a recovery without its whole list of actions, which a version {schema} snapshot always holds.";
+        }
+
+        return OutsideADword(recovery.ResetPeriodSeconds)
+            || (recovery.Actions ?? []).Any(action => action is not null && OutsideADword(action.DelayMilliseconds))
+                ? "has a recovery with a delay or a reset period outside what Windows can keep (0 to 4294967295)."
+                : null;
+    }
+
+    private static bool OutsideADword(long value) => value is < 0 or > uint.MaxValue;
 
     /// <summary>A data list, and every item in it whole - see <see cref="TriggerDataDocument.IsWhole"/>.</summary>
     private static bool Whole(TriggerDocument trigger) => trigger.Data is { } data && data.All(TriggerDataDocument.IsWhole);

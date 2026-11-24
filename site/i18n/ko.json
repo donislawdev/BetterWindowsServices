@@ -1,5 +1,5 @@
 {
-  "_translated_from": "1867e30d6665",
+  "_translated_from": "23a7445be497",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "본문으로 건너뛰기",
@@ -64,6 +64,7 @@
   "field.account": "실행되는 계정으로, 서비스 관리자가 쓰는 표기",
   "field.pid": "실행 중인 프로세스",
   "field.trigger": "시작하거나 중지시키는 조건",
+  "field.recovery": "실패했을 때 Windows가 하는 일",
   "field.path": "서비스 관리자가 시작하는 명령줄",
   "field.file": "실행하는 파일이 디스크에 있는지",
   "field.signed": "해지 확인 없이, 파일의 서명에 대해 Windows가 판단하는 것",

@@ -88,16 +88,16 @@ public sealed class ComparisonCaveatTests
 
     [Theory]
     [InlineData(3)]
-    [InlineData(8)]
+    [InlineData(9)]
     public void A_schema_outside_the_range_this_build_reads_is_refused_and_the_range_is_named(int version)
     {
         var text = SnapshotJson.Render(Snapshot.Of(Specimens.All, note: null, new FakeClock()))
             .Replace($"\"schemaVersion\": {Snapshot.CurrentSchemaVersion}", $"\"schemaVersion\": {version}", StringComparison.Ordinal);
 
-        // Written as literals, like the number SnapshotContractTests pins: seven since 2026-10-27, when
-        // triggers became whole (logic report C01), and this file was the one that said so in CI.
+        // Written as literals, like the number SnapshotContractTests pins: a range read off the constants
+        // would move with them and hold nothing. Eight since 2026-11-23, when recovery joined the snapshot.
         Assert.False(SnapshotJson.TryRead(text, out _, out var failure));
-        Assert.Contains("versions 4 to 7", failure!, StringComparison.Ordinal);
+        Assert.Contains("versions 4 to 8", failure!, StringComparison.Ordinal);
     }
 
     [Fact]

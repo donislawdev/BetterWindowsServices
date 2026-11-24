@@ -198,13 +198,8 @@ internal static partial class PlanWords
     private static string Both(IReadOnlyList<string> names) =>
         Texts.Of("gui.plan.recovery.and", string.Join(", ", names.Take(names.Count - 1)), names[^1]);
 
-    /// <summary>A reset period in the largest unit that divides it evenly - 30 s, 15 min, 1 h, 24 h - the owner's decision of 2026-10-07.</summary>
-    private static string Period(TimeSpan period) => (long)period.TotalSeconds switch
-    {
-        var seconds when seconds % 3600 == 0 => Texts.Of("gui.plan.recovery.hours", seconds / 3600),
-        var seconds when seconds % 60 == 0 => Texts.Of("gui.plan.recovery.minutes", seconds / 60),
-        var seconds => Texts.Of("gui.plan.recovery.seconds", seconds)
-    };
+    /// <summary>The period in <see cref="RecoveryWords"/>' units, shared with the details panel since 2026-11-23.</summary>
+    private static string Period(TimeSpan period) => RecoveryWords.Period(period);
 
     /// <summary>
     /// "60 s", or "1 s, 2 s, 4 s, 8 s or 16 s" - every delay, because which item runs depends on a count of
@@ -217,6 +212,5 @@ internal static partial class PlanWords
             string.Join(", ", after.Take(after.Count - 1).Select(Seconds)),
             Seconds(after[^1]));
 
-    private static string Seconds(TimeSpan delay) =>
-        Texts.Of("gui.plan.recovery.seconds", delay.TotalSeconds.ToString("0.#", CultureInfo.InvariantCulture));
+    private static string Seconds(TimeSpan delay) => RecoveryWords.Seconds(delay);
 }

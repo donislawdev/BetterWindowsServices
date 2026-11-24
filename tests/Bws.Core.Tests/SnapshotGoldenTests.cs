@@ -33,7 +33,13 @@ namespace Bws.Core.Tests;
 /// </summary>
 public sealed class SnapshotGoldenTests
 {
-    private const string Kept = "snapshot-schema-7.json";
+    private const string Kept = "snapshot-schema-8.json";
+
+    /// <summary>
+    /// The copy kept before schema eight, 2026-11-23 - the same entries, with no recovery held for any of
+    /// them. Still read, and compared with an eight without looking at recovery.
+    /// </summary>
+    private const string KeptSeven = "snapshot-schema-7.json";
 
     /// <summary>
     /// The copy kept before schema seven, 2026-10-27 - the same entries, with every trigger holding its
@@ -66,7 +72,7 @@ public sealed class SnapshotGoldenTests
             return;
         }
 
-        var actual = Path.Combine(AppContext.BaseDirectory, "snapshot-schema-7.actual.json");
+        var actual = Path.Combine(AppContext.BaseDirectory, "snapshot-schema-8.actual.json");
         File.WriteAllText(actual, written, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
         Assert.Fail(
@@ -93,7 +99,7 @@ public sealed class SnapshotGoldenTests
         // an old file and calling the difference a fault. The file name carries the number so
         // the bump has to touch both.
         Assert.True(
-            Snapshot.CurrentSchemaVersion == 7,
+            Snapshot.CurrentSchemaVersion == 8,
             $"The schema is now {Snapshot.CurrentSchemaVersion}. Keep a new copy named for it beside {Kept}.");
     }
 
@@ -159,6 +165,22 @@ public sealed class SnapshotGoldenTests
     }
 
     /// <summary>
+    /// A file written before schema eight still reads, and recovery is not compared against it, said once -
+    /// backlog 555, 2026-11-23. The two kept copies hold the same entries, so nothing may differ.
+    /// </summary>
+    [Fact]
+    public void A_version_seven_file_is_read_and_recovery_is_not_compared_against_it()
+    {
+        Assert.True(SnapshotJson.TryRead(KeptText(KeptSeven), out var older, out var failure), failure);
+        Assert.True(SnapshotJson.TryRead(KeptText(Kept), out var newer, out failure), failure);
+        Assert.True(SnapshotDiff.TryBetween(older!, newer!, out var diff, out failure), failure);
+
+        Assert.True(diff.Caveats.RecoveryNotRecorded);
+        Assert.False(diff.Caveats.TriggerDetailDiffers);
+        Assert.False(diff.Drifted);
+    }
+
+    /// <summary>
     /// A file written before schema seven still reads, and its triggers are compared with a seven by kind
     /// and action alone, said once - logic report C01, the owner's decision of 2026-10-27. The two kept
     /// copies hold the same entries, so nothing may differ: without the caveat, every entry with a trigger
@@ -208,7 +230,7 @@ public sealed class SnapshotGoldenTests
         Assert.Equal("triggers", Assert.Single(changed.Differences).Field);
         Assert.False(exact.Caveats.TriggerDetailDiffers);
 
-        var labelledSix = Once(lowered, "\"schemaVersion\": 7", "\"schemaVersion\": 6");
+        var labelledSix = Once(lowered, "\"schemaVersion\": 8", "\"schemaVersion\": 6");
 
         Assert.True(SnapshotJson.TryRead(labelledSix, out var six, out failure), failure);
         Assert.True(SnapshotDiff.TryBetween(six!, newer!, out var narrowed, out failure), failure);
@@ -274,7 +296,7 @@ public sealed class SnapshotGoldenTests
         {
             Metadata = new SnapshotMetadata
             {
-                SchemaVersion = 7,
+                SchemaVersion = 8,
                 Machine = "GOLDEN",
                 OperatingSystem = "Microsoft Windows NT 10.0.26100.0",
                 TakenAt = new DateTimeOffset(2026, 9, 29, 12, 0, 0, TimeSpan.FromHours(2)),

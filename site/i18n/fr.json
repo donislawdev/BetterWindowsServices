@@ -1,5 +1,5 @@
 {
-  "_translated_from": "1867e30d6665",
+  "_translated_from": "23a7445be497",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Aller au contenu",
@@ -64,6 +64,7 @@
   "field.account": "le compte sous lequel elle s'exécute, tel que le gestionnaire l'écrit",
   "field.pid": "le processus dans lequel elle s'exécute",
   "field.trigger": "une condition qui la démarre ou l'arrête",
+  "field.recovery": "ce que fait Windows quand elle échoue",
   "field.path": "la ligne de commande que le gestionnaire lance",
   "field.file": "si le fichier qu'elle exécute est sur le disque",
   "field.signed": "ce que Windows pense de la signature du fichier, sans vérifier la révocation",

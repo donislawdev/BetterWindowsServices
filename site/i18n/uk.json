@@ -1,5 +1,5 @@
 {
-  "_translated_from": "1867e30d6665",
+  "_translated_from": "23a7445be497",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Перейти до вмісту",
@@ -64,6 +64,7 @@
   "field.account": "обліковий запис, від якого вона працює, як його пише диспетчер",
   "field.pid": "процес, у якому вона працює",
   "field.trigger": "умова, що запускає або зупиняє її",
+  "field.recovery": "що робить Windows у разі її збою",
   "field.path": "командний рядок, який запускає диспетчер",
   "field.file": "чи є файл, який вона запускає, на диску",
   "field.signed": "що Windows думає про підпис файлу, без перевірки відкликання",

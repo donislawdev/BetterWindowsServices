@@ -194,6 +194,18 @@ public sealed record ScmEntry
     public required Reading<IReadOnlyList<ServiceTrigger>> Triggers { get; init; }
 
     /// <summary>
+    /// What the manager does when the entry fails - services.msc's recovery tab, read for the listing
+    /// since 2026-11-23 (backlog 555).
+    ///
+    /// <b>Absent when nothing is set</b> - no item, no program, no message - as for <see cref="Triggers"/>
+    /// and <see cref="DependsOn"/>, so <c>recovery:none</c> finds exactly those entries. Drivers land here
+    /// on the manager's own answer, not on a rule of this tool: measured that day with sc.exe qfailure on
+    /// disk and Tcpip, success with a reset period of 0 and no items. Having none is a fact about the entry,
+    /// not a gap in the reading - the reading that was refused says so as refused.
+    /// </summary>
+    public required Reading<RecoverySettings> Recovery { get; init; }
+
+    /// <summary>
     /// The whole command the manager runs, executable and arguments together, exactly as
     /// it comes back.
     ///

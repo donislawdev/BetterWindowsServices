@@ -282,6 +282,7 @@ public sealed partial class WindowsScmCatalog(NetworkPaths networkPaths = Networ
             ErrorControl = configuration.ErrorControl,
             LoadOrderGroup = configuration.LoadOrderGroup,
             Description = configuration.Description,
+            Recovery = configuration.Recovery,
 
             // Read outside the configuration, and not because of tidiness. It needs a
             // different right on a different handle, so an entry whose configuration was
@@ -344,7 +345,10 @@ public sealed partial class WindowsScmCatalog(NetworkPaths networkPaths = Networ
             // than a convenience: the whole description family costs 212-223 ms over 819 entries,
             // which is the privileges' order of magnitude and not the signatures' twelve seconds
             // of processor.
-            Description = ScmDetailReader.ReadDescription(service)
+            Description = ScmDetailReader.ReadDescription(service),
+
+            // services.msc's recovery tab, backlog 555. Two more levels on this handle and this right.
+            Recovery = ScmDetailReader.ReadRecoverySettings(service)
         };
 
         return withOwnCalls.WithBinary(enumerated, WindowsDirectory, networkPaths);

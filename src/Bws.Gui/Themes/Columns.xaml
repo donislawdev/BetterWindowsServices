@@ -132,6 +132,15 @@
     <DataGridLength x:Key="ColumnPrivileges">2*</DataGridLength>
     <DataGridLength x:Key="ColumnDescriptor">3*</DataGridLength>
 
+    <!-- The recovery columns, 2026-11-23 (backlog 555). The list and the two texts are free text of any length. -->
+    <DataGridLength x:Key="ColumnRecovery">3*</DataGridLength>
+    <!-- Fixed, as wide as their English headings and the longest common answer ("After 24 h without a failure"),
+         because a share of the row cut both to a third on the throwaway machine's 1100 pixel window (2026-11-24). -->
+    <DataGridLength x:Key="ColumnRecoveryReset">200</DataGridLength>
+    <DataGridLength x:Key="ColumnRecoveryNonCrash">200</DataGridLength>
+    <DataGridLength x:Key="ColumnRecoveryCommand">2*</DataGridLength>
+    <DataGridLength x:Key="ColumnRecoveryMessage">2*</DataGridLength>
+
     <!--
         What a starred column may shrink to before it stops being worth reading. Below this the
         ellipsis is most of the cell.

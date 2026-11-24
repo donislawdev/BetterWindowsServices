@@ -46,6 +46,7 @@ internal static class EntryReport
     private const string About = "cli.show.group.about";
     private const string Binary = "cli.show.group.binary";
     private const string Advanced = "cli.show.group.advanced";
+    private const string Recovery = "cli.show.group.recovery";
 
     private static readonly (string Heading, Field[] Fields)[] Catalogue =
     [
@@ -94,8 +95,33 @@ internal static class EntryReport
             new Field("cli.show.triggers", entry => Say(entry.Triggers, Triggers), Lines: true),
             new Field("cli.show.requiredPrivileges", entry => Say(entry.RequiredPrivileges, List)),
             new Field("cli.show.securityDescriptor", entry => Say(entry.SecurityDescriptor, value => value))
+        ]),
+
+        // services.msc's recovery tab, backlog 555 (2026-11-23). Last, as the tab is last there, and in the
+        // window's details panel in the same order. Every part is worded from the document's form, so this
+        // reads the same as a comparison of two snapshots (RecoveryWords).
+        (Recovery,
+        [
+            new Field("cli.show.recovery.actions", entry => Part(entry, RecoveryWords.Actions), Lines: true),
+            new Field("cli.show.recovery.reset", entry => Part(entry, RecoveryWords.Reset)),
+            new Field("cli.show.recovery.onNonCrashFailures", entry => Part(entry, RecoveryWords.OnNonCrashFailures)),
+            new Field("cli.show.recovery.command", entry => Part(entry, RecoveryWords.Command)),
+            new Field("cli.show.recovery.rebootMessage", entry => Part(entry, RecoveryWords.RebootMessage))
         ])
     ];
+
+    /// <summary>
+    /// One part of the recovery reading: the reading's own state when it was not read, and absent when the
+    /// part says nothing for this entry - a program nobody named, a period of a list with no items.
+    /// </summary>
+    private static Told Part(ScmEntry entry, Func<RecoveryDocument, string?> render)
+    {
+        var told = Say(entry.Recovery, settings => render(RecoveryDocument.Of(settings)) ?? string.Empty);
+
+        return told.Outcome == ReadOutcome.Present && told.Text.Length == 0
+            ? new Told(ReadOutcome.Absent, string.Empty, 0)
+            : told;
+    }
 
     /// <summary>
     /// The report for one entry.

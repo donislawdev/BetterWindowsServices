@@ -222,6 +222,18 @@ public static class QueryFields
 
         new QueryField
         {
+            // The spec's own example since the first day - "trigger:any recovery:none" in A3 - and the
+            // data since 2026-11-23 (backlog 555). Beside trigger because the two answer one question
+            // together: what starts this, and what happens when it falls over.
+            Name = "recovery",
+            Kind = QueryFieldKind.Enumeration,
+            OutcomeOf = entry => entry.Recovery.Outcome,
+            SymbolsOf = QuerySymbols.RecoverySymbols,
+            Values = QueryValueNames.Recovery
+        },
+
+        new QueryField
+        {
             // The launch command whole, arguments and all, because that is what a person
             // sees in the listing and what they will paste a fragment of. Matching the
             // resolved file instead would answer "where did this come from" with a path

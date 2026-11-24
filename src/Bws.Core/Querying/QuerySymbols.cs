@@ -208,6 +208,30 @@ internal static class QuerySymbols
     }
 
     /// <summary>
+    /// What the entry's failures set off - every kind on its list except an item that does nothing, so an
+    /// entry whose list is empty or does nothing holds no symbol and <c>recovery:none</c> finds it (backlog
+    /// 555, the spec's example in A3). A refused or unread recovery holds Nothing, never an empty set: a
+    /// list nobody could read is not a list that does nothing.
+    /// </summary>
+    internal static FieldSymbols RecoverySymbols(ScmEntry entry)
+    {
+        if (!entry.Recovery.IsPresent)
+        {
+            return entry.Recovery.Outcome == ReadOutcome.Absent
+                ? FieldSymbols.Of()
+                : FieldSymbols.Nothing;
+        }
+
+        return FieldSymbols.Of(
+        [
+            .. entry.Recovery.Value!.List.Items
+                .Where(item => item.Action != RecoveryAction.Nothing)
+                .Select(item => QuerySpelling.Normalise(item.Action.ToString()))
+                .Distinct(StringComparer.Ordinal)
+        ]);
+    }
+
+    /// <summary>
     /// The start type, plus "delayed" when the entry carries the delay flag.
     ///
     /// An automatic entry whose delay flag could not be read reports "automatic" and admits

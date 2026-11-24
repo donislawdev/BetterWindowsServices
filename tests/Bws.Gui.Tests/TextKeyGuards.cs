@@ -155,7 +155,17 @@ public sealed class TextKeyGuards
         // and this reads the second literal of each row the way the ninth and twelfth do. The
         // first argument is not always a literal - the reserved words are the language's own
         // constants - which is why the pattern skips to the comma rather than reading it.
-        new(@"new Meaning\(\s*[^,]+,\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5))
+        new(@"new Meaning\(\s*[^,]+,\s*""(gui\.[^""]+)""", RegexOptions.Compiled, TimeSpan.FromSeconds(5)),
+
+        // A FOURTEENTH, 2026-11-24, AND IT IS THE FOURTH SHAPE THROUGH A FACTORY. The five recovery columns of
+        // 2026-11-23 (backlog 555) are made by one method in Columns.Recovery.cs, rule 8 of the window, and
+        // each call carries its heading key as the second literal - written where it is chosen, never derived.
+        // Until this line four of the five read as never said (the fifth is also asked for by name elsewhere),
+        // which went unseen because the run that would have said so was not among the narrow ones of that day.
+        new(
+            @"RecoveryColumn\(\s*""[^""]+""\s*,\s*""(gui\.[^""]+)""",
+            RegexOptions.Compiled | RegexOptions.Singleline,
+            TimeSpan.FromSeconds(5))
     ];
 
     [Fact]

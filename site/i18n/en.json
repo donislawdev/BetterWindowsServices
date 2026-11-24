@@ -63,6 +63,7 @@
   "field.account": "the account it runs as, as the manager spells it",
   "field.pid": "the process it is running in",
   "field.trigger": "a condition that starts or stops it",
+  "field.recovery": "what Windows does when it fails",
   "field.path": "the command line the manager launches",
   "field.file": "whether the file it runs is on disk",
   "field.signed": "what Windows thinks of the file's signature, without checking revocation",

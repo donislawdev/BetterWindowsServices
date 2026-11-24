@@ -56,6 +56,7 @@ internal static class Entries
         // own and has a specimen of its own - starting every fixture there would make the
         // ordinary case the rare one and quietly invert what the catalogue represents.
         Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
+        Recovery = Reading<RecoverySettings>.Absent(),
 
         // Spooler's own values, read off the machine with the tool. Present rather than
         // missing because that is the ordinary case: five entries of 810 name a file that is

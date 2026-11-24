@@ -189,7 +189,7 @@ public sealed class PanelBesideTheListGuards
         var headings = Details.Shown(Rows.Entry("Spooler")).Select(section => section.Heading);
 
         Assert.Equal(
-            [Texts.Of(Columns.Basics), Texts.Of(Columns.Binary), Texts.Of(Columns.About), Texts.Of(Columns.Advanced)],
+            [Texts.Of(Columns.Basics), Texts.Of(Columns.Binary), Texts.Of(Columns.About), Texts.Of(Columns.Advanced), Texts.Of(Columns.Recovery)],
             headings);
     }
 

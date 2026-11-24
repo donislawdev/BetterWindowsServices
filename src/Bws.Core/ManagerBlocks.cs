@@ -288,7 +288,10 @@ internal static partial class ManagerBlocks
 
                 // Most entries belong to no group, which is a fact about them rather than
                 // something we failed to read.
-                LoadOrderGroup: Field(loadOrderGroup, blank: string.IsNullOrEmpty(loadOrderGroup)));
+                LoadOrderGroup: Field(loadOrderGroup, blank: string.IsNullOrEmpty(loadOrderGroup)),
+
+                // Two more levels of the same call, filled in by their own calls like the triggers.
+                Recovery: Reading<RecoverySettings>.NotRead());
         }
     }
 

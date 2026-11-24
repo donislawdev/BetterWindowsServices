@@ -150,6 +150,16 @@ internal static class DiffLines
     /// </summary>
     private static IEnumerable<ChangedRow> Rows(FieldDifference difference)
     {
+        // The recovery in words, one row, since 2026-11-23 (backlog 555) - as JSON it is a few hundred
+        // characters of braces. A side that is not a recovery is shown as it is, and so are both when the
+        // words would read the same.
+        if (difference.Field == "recovery")
+        {
+            var (before, after) = RecoveryWords.Sides(difference.Before, difference.After);
+
+            return [new ChangedRow(difference, Value(before ?? difference.Before), Value(after ?? difference.After))];
+        }
+
         if (difference.Triggers is not { } change || change.Removed.Count + change.Added.Count == 0)
         {
             return [new ChangedRow(difference, Value(difference.Before), Value(difference.After))];

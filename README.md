@@ -420,6 +420,7 @@ display name, the account and the launch path. A field narrows it:
 | `publisher` | who signed the file - proven only by a `trusted` signature | text |
 | `mismatch` | configuration and state that disagree | `stopped` (should run, does not), `running` (disabled, runs anyway) |
 | `trigger` | starts on a condition | `network`, `device`, `ip`, `domain`, `firewall`, `policy`, and the actions `start`, `stop` |
+| `recovery` | what Windows does when it fails | `restart`, `program`, `reboot`, `unknown` - and `recovery:none` finds the ones with nothing set |
 | `peruser` | per-user service family | `yes`, `no`, `template`, `instance` |
 | `requiredby` | what breaks if this stops | a service name |
 | `dependson` | what this needs | a service name |
@@ -464,8 +465,9 @@ A tool that quietly fails to cover something is worse than one that says what it
   by script from the commands the diff shows you.
 - **No creating, deleting or repointing a service.** The launch path is read and reported, and it
   is not edited.
-- **No recovery actions in the list.** They are read before a process is ended, so a plan can warn
-  that Windows will start a service again, and they are not shown, searchable or editable.
+- **Recovery actions are shown, not changed.** What the *Recovery* tab of services.msc holds is in
+  `bws show`, in `--json`, in a snapshot and under *When it fails* in the window, and `recovery:`
+  finds it in a query. Nothing here edits it.
 
 **By design:**
 
@@ -560,7 +562,7 @@ to put it, and into the current directory when you do not.
 
 ## Building from source
 
-.NET 10 SDK, on Windows.
+.NET 10 SDK, version 10.0.404 or a later 10.0 release, on Windows. `global.json` keeps the build on the 10.0 line: the newest 10.0 SDK on the machine is used, and a .NET 11 or preview SDK is not.
 
 ```
 git clone https://github.com/donislawdev/BetterWindowsServices

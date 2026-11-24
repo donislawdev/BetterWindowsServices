@@ -11,8 +11,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.collector" Version="10.1.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="coverlet.collector" Version="10.1.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
     <PackageReference Include="xunit.v3.mtp-off" Version="4.0.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1" />
 
@@ -53,6 +53,7 @@
     <EmbeddedResource Include="Golden\snapshot-schema-5.json" LogicalName="snapshot-schema-5.json" />
     <EmbeddedResource Include="Golden\snapshot-schema-6.json" LogicalName="snapshot-schema-6.json" />
     <EmbeddedResource Include="Golden\snapshot-schema-7.json" LogicalName="snapshot-schema-7.json" />
+    <EmbeddedResource Include="Golden\snapshot-schema-8.json" LogicalName="snapshot-schema-8.json" />
   </ItemGroup>
 
   <ItemGroup>

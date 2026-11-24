@@ -219,5 +219,38 @@ public sealed class EntryReportTests
         Assert.Contains("  a<U+000A>b", report, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// <b>The message before a restart is quoted, used or not, and a program or message no failure uses says
+    /// "not used" BEFORE the text</b> - 2026-11-24, the owner, from a picture of MSiSCSI on a clean Windows
+    /// Server 2025. Printed bare, its message "See Note 3 below" read as this tool pointing at a note that is
+    /// not there, and "customScript.cmd (never runs ...)" read as a program the service runs. The command is
+    /// never quoted, because a command line carries quotes of its own.
+    /// </summary>
+    [Fact]
+    public void A_restart_message_is_quoted_and_what_no_failure_uses_says_not_used_first()
+    {
+        var unused = EntryReport.Render(Entry with { Recovery = Recovery(RecoveryAction.RestartService) }, full: false);
+        var used = EntryReport.Render(
+            Entry with { Recovery = Recovery(RecoveryAction.RunProgram, RecoveryAction.RestartComputer) }, full: false);
+
+        Assert.Contains("not used - no failure runs a program. Set to: customScript.cmd", unused, StringComparison.Ordinal);
+        Assert.Contains(
+            "not used - no failure restarts the computer. Set to: \"See Note 3 below\"", unused, StringComparison.Ordinal);
+
+        Assert.DoesNotContain("not used - no failure", used, StringComparison.Ordinal);
+        Assert.Contains("\"See Note 3 below\"", used, StringComparison.Ordinal);
+        Assert.Contains("customScript.cmd", used, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"customScript.cmd\"", used, StringComparison.Ordinal);
+    }
+
+    private static Reading<RecoverySettings> Recovery(params RecoveryAction[] actions) =>
+        Reading<RecoverySettings>.Present(new RecoverySettings(
+            new RecoveryList([.. actions.Select(action => new RecoveryItem(action, TimeSpan.FromMinutes(1)))], TimeSpan.FromDays(1))
+            {
+                Command = "customScript.cmd",
+                RebootMessage = "See Note 3 below"
+            },
+            OnNonCrashFailures: false));
+
     private static ScmEntry Entry => Entries.Full;
 }

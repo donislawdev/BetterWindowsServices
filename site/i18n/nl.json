@@ -1,5 +1,5 @@
 {
-  "_translated_from": "1867e30d6665",
+  "_translated_from": "23a7445be497",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Naar de inhoud",
@@ -64,6 +64,7 @@
   "field.account": "het account waaronder het draait, zoals de beheerder het spelt",
   "field.pid": "het proces waarin het draait",
   "field.trigger": "een voorwaarde die het start of stopt",
+  "field.recovery": "wat Windows doet als het faalt",
   "field.path": "de opdrachtregel die de beheerder start",
   "field.file": "of het bestand dat het uitvoert op schijf staat",
   "field.signed": "wat Windows van de handtekening van het bestand vindt, zonder intrekking te controleren",

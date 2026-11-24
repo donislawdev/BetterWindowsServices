@@ -44,7 +44,8 @@ public sealed class ColumnPickerGuards
         // FOUR GROUPS AND THE WAY BACK, WHICH IS THE POINT OF THE SHAPE. The flat list was 32
         // items against a menu capped at 420 units, and counted from outside on 2026-09-05 that
         // showed thirteen and hid nineteen - see ColumnGroup.
-        Assert.Equal(5, bar.Entries.Count);
+        // Five groups and the way back since 2026-11-23, when the recovery group joined (backlog 555).
+        Assert.Equal(6, bar.Entries.Count);
         Assert.IsType<ColumnGroup>(bar.Entries[0]);
 
         // LAST, because it is about the whole list rather than about one column. A restore in the

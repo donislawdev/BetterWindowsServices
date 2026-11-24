@@ -1271,8 +1271,8 @@ $mutations = @(
     @{
         Name = 'details: what it runs comes second'
         File = 'src\Bws.Gui\ViewModels\Details.cs'
-        From = 'private static readonly string[] Order = [Columns.Basics, Columns.Binary, Columns.About, Columns.Advanced];'
-        To = 'private static readonly string[] Order = [Columns.Basics, Columns.About, Columns.Binary, Columns.Advanced];'
+        From = 'private static readonly string[] Order = [Columns.Basics, Columns.Binary, Columns.About, Columns.Advanced, Columns.Recovery];'
+        To = 'private static readonly string[] Order = [Columns.Basics, Columns.About, Columns.Binary, Columns.Advanced, Columns.Recovery];'
         Test = 'PanelBesideTheListGuards.What_it_runs_comes_before_what_kind_of_entry_it_is'
     },
     @{
@@ -5142,8 +5142,8 @@ $mutations = @(
         Name = 'details: the panel is the column catalogue applied to one entry'
         File = 'src\Bws.Gui\ViewModels\Details.cs'
         # Re-anchored 2026-09-24: the order is a named array since What it runs moved second.
-        From = 'private static readonly string[] Order = [Columns.Basics, Columns.Binary, Columns.About, Columns.Advanced];'
-        To = 'private static readonly string[] Order = [Columns.Basics, Columns.About, Columns.Advanced];'
+        From = 'private static readonly string[] Order = [Columns.Basics, Columns.Binary, Columns.About, Columns.Advanced, Columns.Recovery];'
+        To = 'private static readonly string[] Order = [Columns.Basics, Columns.About, Columns.Advanced, Columns.Recovery];'
         Test = 'DetailsGuards.The_fields_this_panel_once_apologised_for_carry_values_now'
     },
     @{
@@ -6311,8 +6311,8 @@ $mutations = @(
         # RE-ANCHORED 2026-09-30: schema five, stability report D-5, package E.
         # RE-ANCHORED 2026-10-06: schema six, package SB - the source of fileVersion.
         # RE-ANCHORED 2026-10-27: schema seven, logic report C01 - whole triggers.
-        From = 'public const int CurrentSchemaVersion = 7;'
-        To = 'public const int CurrentSchemaVersion = 8;'
+        From = 'public const int CurrentSchemaVersion = 8;'
+        To = 'public const int CurrentSchemaVersion = 9;'
         Test = 'SnapshotContractTests.The_file_says_what_it_needs_to_be_compared_later'
     },
     @{
@@ -8430,7 +8430,7 @@ $mutations = @(
         # A column needing a family without an outcome draws its "not read" as an answer. One of
         # the six loses it; the guard must name it.
         Name = 'details: every second-phase column says how its reading went'
-        File = 'src\Bws.Gui\ViewModels\Columns.cs'
+        File = 'src\Bws.Gui\ViewModels\Columns.Files.cs'
         From = '            Reads = entry => CellFaces.Say(entry.FileVersion, value => value),' + [char]10 + '            Outcome = entry => entry.FileVersion.Outcome'
         To = '            Reads = entry => CellFaces.Say(entry.FileVersion, value => value)'
         Test = 'ColumnFamilyGuards.Every_column_fed_by_the_second_phase_says_how_its_reading_went'
@@ -10856,6 +10856,25 @@ $mutations = @(
         Test = 'RecoveryContractTests.The_recovery_list_of_RpcSs_reads_as_sc_exe_prints_it'
     },
     @{
+        # Backlog 555, 2026-11-24: the listing asks for the flag with a call of its own, and this integration
+        # test is the only one holding it against the real manager. The entries it compares are chosen from
+        # the registry as well, so a reader that loses the flag still meets an entry that has it.
+        Name = 'recovery: the flag for a stop with an error is read'
+        File = 'src\Bws.Core\ScmDetailReader.Recovery.cs'
+        From = 'return Reading<RecoverySettings>.Present(new RecoverySettings(list.Value!, flag != 0));'
+        To = 'return Reading<RecoverySettings>.Present(new RecoverySettings(list.Value!, false));'
+        Test = 'RecoveryListingContractTests.Recovery_in_the_listing_reads_as_sc_exe_prints_it'
+    },
+    @{
+        # Backlog 555, 2026-11-24: the program a failure runs - the half a person persisting on a machine
+        # would write - against sc.exe on the real manager.
+        Name = 'recovery: the program of the list is kept'
+        File = 'src\Bws.Core\ScmDetailReader.Recovery.cs'
+        From = 'Command = command.Length == 0 ? null : command,'
+        To = 'Command = null,'
+        Test = 'RecoveryListingContractTests.Recovery_in_the_listing_reads_as_sc_exe_prints_it'
+    },
+    @{
         Name = 'aftermath: every delay of a restart is said once'
         File = 'src\Bws.Core\Planning\Aftermath.cs'
         From = '.Select(item => item.Delay).Distinct()'
@@ -10959,7 +10978,7 @@ $mutations = @(
     },
     @{
         Name = 'recovery words: a reset period is said in the largest unit'
-        File = 'src\Bws.Cli\PlanText.Aftermath.cs'
+        File = 'src\Bws.Cli\RecoveryWords.cs'
         From = 'var seconds when seconds % 3600 == 0 => Texts.Of("cli.plan.recovery.hours", seconds / 3600),'
         To = 'var seconds when seconds % 3600 == 1 => Texts.Of("cli.plan.recovery.hours", seconds / 3600),'
         Test = 'ComingBackTextTests.A_reset_period_is_said_in_the_largest_unit_that_divides_it'
@@ -14504,8 +14523,8 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # Two readings of one unchanged list are two lists - by reference every ending on a real machine is refused.
         Name = 'ending: recovery lists are compared by value'
         File = 'src\Bws.Core\EndingFacts.cs'
-        From = 'first.Value.Items.SequenceEqual(second.Value.Items)'
-        To = 'ReferenceEquals(first.Value.Items, second.Value.Items)'
+        From = '&& first.Items.SequenceEqual(second.Items)'
+        To = '&& ReferenceEquals(first.Items, second.Items)'
         Test = 'SecondLookTests.An_ending_whose_recovery_list_is_what_the_preview_read_goes_ahead'
     }
     @{
@@ -15093,8 +15112,8 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # C01, review of PR #97: a seven whose trigger has no data list is refused when read.
         Name = 'snapshot: a seven whose trigger is not whole is refused'
         File = 'src\Bws.Core\Snapshots\Snapshot.cs'
-        From = '(Contradiction(entry) ?? TriggerGap(entry, Metadata.SchemaVersion))'
-        To = '(Contradiction(entry))'
+        From = '?? TriggerGap(entry, Metadata.SchemaVersion)'
+        To = '?? RecoveryGap(entry, Metadata.SchemaVersion)'
         Test = 'SnapshotGoldenTests.A_version_seven_trigger_without_its_data_list_is_refused_and_a_six_is_not'
     }
     @{

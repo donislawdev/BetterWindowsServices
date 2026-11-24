@@ -120,6 +120,19 @@ internal static class QueryValueNames
         new QueryValueName("stop", "stop")
     ];
 
+    /// <summary>
+    /// The spellings <c>recovery:</c> accepts (backlog 555, 2026-11-23) - one for each thing a failure can
+    /// set off. An item that does nothing is not a value: <c>recovery:none</c> already asks for an entry
+    /// whose failures set off nothing, the spec's own example (A3).
+    /// </summary>
+    internal static IReadOnlyList<QueryValueName> Recovery { get; } =
+    [
+        new QueryValueName("restart", "restartservice"),
+        new QueryValueName("program", "runprogram"),
+        new QueryValueName("reboot", "restartcomputer"),
+        new QueryValueName("unknown", "unnamed")
+    ];
+
     /// <summary>The spellings <c>file:</c> accepts.</summary>
     internal static IReadOnlyList<QueryValueName> File { get; } =
     [

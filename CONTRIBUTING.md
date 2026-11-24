@@ -122,7 +122,7 @@ These are the promises, and a change that breaks one is refused whatever else it
 
 ## Building and checking
 
-You need the .NET 10 SDK, on Windows. There is nothing else to install.
+You need the .NET 10 SDK, version 10.0.404 or a later 10.0 release, on Windows. There is nothing else to install. `global.json` keeps the build on the 10.0 line: the newest 10.0 SDK on the machine is used, and a .NET 11 or preview SDK is not, so moving to a new SDK line is a change of its own.
 
 ```
 dotnet build BetterWindowsServices.slnx -c Release
