@@ -45,8 +45,11 @@ internal static class RecoveryWords
     /// one more pair around <c>"C:\Tools\a.exe" /p</c> would read as two quoted halves.
     /// </summary>
     internal static string Command(Reading<RecoverySettings> reading) =>
-        CellFaces.Say(reading, settings => Named(
-            settings.List.Command, settings.List, RecoveryAction.RunProgram, null, "gui.recovery.command.unused"));
+        CellFaces.Say(reading, settings => settings.List.Command is not { } command
+            ? string.Empty
+            : Uses(settings.List, RecoveryAction.RunProgram)
+                ? command
+                : Texts.Of("gui.recovery.command.unused", command));
 
     /// <summary>
     /// The message before a restart of the computer, the same way as the program - and IN QUOTES, used or not.
@@ -56,9 +59,11 @@ internal static class RecoveryWords
     /// an instruction that seemed to come from this tool and pointed at nothing (2026-11-24, the owner).
     /// </summary>
     internal static string RebootMessage(Reading<RecoverySettings> reading) =>
-        CellFaces.Say(reading, settings => Named(
-            settings.List.RebootMessage, settings.List, RecoveryAction.RestartComputer, "gui.recovery.message.used",
-            "gui.recovery.message.unused"));
+        CellFaces.Say(reading, settings => settings.List.RebootMessage is not { } message
+            ? string.Empty
+            : Uses(settings.List, RecoveryAction.RestartComputer)
+                ? Texts.Of("gui.recovery.message.used", message)
+                : Texts.Of("gui.recovery.message.unused", message));
 
     /// <summary>
     /// One side of a changed recovery in a comparison, on one line. Null for a value that is not a
@@ -144,21 +149,12 @@ internal static class RecoveryWords
         };
     }
 
-    /// <param name="usedKey">How the text is said when an item uses it - null for word for word.</param>
-    private static string Named(string? text, RecoveryList list, RecoveryAction action, string? usedKey, string unusedKey)
-    {
-        if (text is null)
-        {
-            return string.Empty;
-        }
-
-        if (!list.Items.Any(item => item.Action == action))
-        {
-            return Texts.Of(unusedKey, text);
-        }
-
-        return usedKey is null ? text : Texts.Of(usedKey, text);
-    }
+    /// <summary>
+    /// Whether some item of the list does this - the question behind "not used". Each key stays written
+    /// inside its own Texts.Of at the caller, where TextKeyGuards can see it: a key handed to a helper as an
+    /// argument is one nothing reading the source finds (2026-11-24, three keys went unseen that way).
+    /// </summary>
+    private static bool Uses(RecoveryList list, RecoveryAction action) => list.Items.Any(item => item.Action == action);
 
     private static RecoveryDocument? Parsed(string json)
     {
