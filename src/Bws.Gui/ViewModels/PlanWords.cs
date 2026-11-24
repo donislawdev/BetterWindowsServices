@@ -382,6 +382,7 @@ internal static partial class PlanWords
         StepOperation.Start => Texts.Of("gui.plan.operation.start"),
         StepOperation.SetStartType => Texts.Of("gui.plan.operation.setStartType"),
         StepOperation.Terminate => Texts.Of("gui.plan.operation.terminate"),
+        StepOperation.SetRecovery => Texts.Of("gui.plan.operation.setRecovery"),
         _ => throw new ArgumentOutOfRangeException(
             nameof(operation), operation, Bws.Core.Planning.EquivalentCommand.Unhandled)
     };

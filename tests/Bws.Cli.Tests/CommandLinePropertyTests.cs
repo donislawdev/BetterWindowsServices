@@ -75,7 +75,8 @@ public sealed class CommandLinePropertyTests
         read.NothingWrong
         && read.Kind != CommandKind.None
         && (!read.IsWrite || read.ServiceName.Length > 0)
-        && (!WriteCommands.NeedsAStartType(read.Kind) || WriteCommands.Named(read.Setting.Word) is not null);
+        && (!WriteCommands.NeedsAStartType(read.Kind) || WriteCommands.Named(read.Setting.Word) is not null)
+        && (read.Kind != CommandKind.SetRecovery || RecoveryAsks.Change(read.Recovery) is not null);
 
     private static bool WithTheConsoleCaught(Func<StringWriter, StringWriter, bool> check)
     {
@@ -98,7 +99,7 @@ public sealed class CommandLinePropertyTests
     }
 
     private static readonly string[] Verbs =
-        ["list", "show", "stop", "start", "restart", "start-type", "kill", "history", "license", "snapshot", "tool"];
+        ["list", "show", "stop", "start", "restart", "start-type", "recovery", "kill", "history", "license", "snapshot", "tool"];
 
     private static readonly Gen<string> Cased = Gen.OneOf(Verbs).SelectMany(verb =>
         Gen.OneOf(verb, verb.ToUpperInvariant(), char.ToUpperInvariant(verb[0]) + verb[1..]));
@@ -107,12 +108,14 @@ public sealed class CommandLinePropertyTests
         (3, Gen.OneOf([.. Enum.GetValues<StartSetting>().Select(setting => StartTypeWords.Of(setting) ?? "none")])),
         (3, Gen.OneOf("5", "0", "-1", "600", "601", "99999999999", "1.5", "abc", "", " ", "\t")),
         (2, Gen.OneOf("status:running", "!!!", "name:\"x", "\"\"", "name:spool*", "pid:>4")),
-        (2, Gen.OneOf("Spooler", "AMD Crash Defender Service", "MSSQL$SQLEXPRESS", "-leading", "a.json", "create", "diff", "restore", "fix", "printer", "prnter")));
+        (2, Gen.OneOf("Spooler", "AMD Crash Defender Service", "MSSQL$SQLEXPRESS", "-leading", "a.json", "create", "diff", "restore", "fix", "printer", "prnter")),
+        (2, Gen.OneOf("restart:1m", "restart", "nothing", "nothing:5s", "none", "reboot:0", "program:99999999999d", "never", "1d", "yes", "maybe")));
 
     private static readonly Gen<string> Switch = Gen.Frequency(
         (8, Gen.OneOf([.. OptionSurface.Surface.Select(entry => entry.Option)])),
         (2, Gen.OneOf("--help", "-h", "--version", "--", "-", "--=", "-json", (char)0x2014 + "json", "--JSON")),
-        (2, Gen.OneOf("--query=", "--note=", "--timeout=").SelectMany(option => Value.Select(value => option + value))),
+        (2, Gen.OneOf("--query=", "--note=", "--timeout=", "--reset=", "--program=", "--on-error-stops=")
+            .SelectMany(option => Value.Select(value => option + value))),
         (1, Gen.OneOf([.. OptionSurface.Surface.Select(entry => entry.Option)]).Select(option => option[..^1])));
 
     private static readonly Gen<string> Word = Gen.Frequency(

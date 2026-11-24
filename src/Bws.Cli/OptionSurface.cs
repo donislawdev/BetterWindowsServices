@@ -63,6 +63,15 @@ internal enum CommandKind
     SetStartType,
 
     /// <summary>
+    /// Write what the manager does when an entry fails - <c>bws recovery NAME restart:1m --reset 1d</c>.
+    ///
+    /// <b>The field's own name as the verb</b>, the word the JSON and the query language already use, frozen in
+    /// `docs/02` on 2026-11-24 (backlog 555 part a2). The bare words after the name are the list, failure 1
+    /// first, and four switches carry the rest of the Recovery tab - every part left out stays as it is.
+    /// </summary>
+    SetRecovery,
+
+    /// <summary>
     /// Stop it, and end the process behind it if that does not work.
     ///
     /// <b>Spelled the way `E1` of the specification wrote it from the start - <c>bws kill NAME</c> -
@@ -236,6 +245,13 @@ internal static class OptionSurface
         // guess - and adding it later is an addition, where taking it back would not be.
         ("--stop", [CommandKind.SetStartType]),
 
+        // The rest of the Recovery tab, on the verb that writes it and nowhere else - frozen in docs/02 on
+        // 2026-11-24. The list itself is bare words after the name, because it is ordered and there is one of it.
+        ("--reset", [CommandKind.SetRecovery]),
+        ("--program", [CommandKind.SetRecovery]),
+        ("--message", [CommandKind.SetRecovery]),
+        ("--on-error-stops", [CommandKind.SetRecovery]),
+
         // Only where there is a field that can be empty rather than merely unread. It says
         // "print the ones that are genuinely absent as well", which every other verb here either
         // has no fields for or prints in full anyway.
@@ -249,7 +265,7 @@ internal static class OptionSurface
         // taken for an oversight. They are read by people, and a JSON shape of the catalogue would be a
         // second public contract nobody has asked for yet. Adding it later is additive - taking it back
         // would not be.
-        ("--json", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill, CommandKind.History, CommandKind.Fix]),
+        ("--json", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SetRecovery, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill, CommandKind.History, CommandKind.Fix]),
 
         // Only where there is a snapshot to annotate. A note is the thing that makes a file
         // from three weeks ago mean something, so it belongs to the verb that writes one.
@@ -267,10 +283,10 @@ internal static class OptionSurface
         // applies to every command. It used to be accepted everywhere and only honoured for
         // the listing, which is the same silence from the other side. history reads the System log
         // instead of the manager, and says how long that took.
-        ("--timing", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill, CommandKind.History, CommandKind.Fix]),
+        ("--timing", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SetRecovery, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill, CommandKind.History, CommandKind.Fix]),
 
         ("--dry-run", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType,
-            CommandKind.Kill, CommandKind.Fix]),
+            CommandKind.SetRecovery, CommandKind.Kill, CommandKind.Fix]),
 
         // Not on start, and this one was missed the first time round. Starting is not the
         // mirror of stopping: the manager brings up whatever the entry needs by itself, and
@@ -353,6 +369,7 @@ internal static class OptionSurface
         // in the sentence telling somebody where a switch DOES work, so the answer to "then where"
         // would be a word that does not exist.
         CommandKind.SetStartType => "start-type",
+        CommandKind.SetRecovery => "recovery",
 
         // Two kinds with one spelling would make "--dry-run does not apply to tool fix. It works with:
         // ..., tool fix" - a sentence refusing a command and then naming it. So the one that runs a fix
@@ -393,7 +410,7 @@ internal static class OptionSurface
     /// is last: a word typed in a hurry was far likelier meant for anything above it.
     /// </remarks>
     internal static IReadOnlyList<string> Verbs =>
-        ["list", "show", "stop", "start", "restart", "start-type", "kill", "snapshot", "history", "tool", "license"];
+        ["list", "show", "stop", "start", "restart", "start-type", "recovery", "kill", "snapshot", "history", "tool", "license"];
 
     /// <summary>
     /// Whether the command is about ONE entry somebody named, rather than about whatever a query
@@ -439,6 +456,7 @@ internal static class OptionSurface
     {
         CommandKind.List => "cli.takes.query",
         CommandKind.SetStartType => "cli.takes.nameAndStartType",
+        CommandKind.SetRecovery => "cli.takes.nameAndRecovery",
         CommandKind.SnapshotCreate => "cli.takes.oneFile",
         CommandKind.SnapshotDiff => "cli.takes.twoFiles",
 

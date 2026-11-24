@@ -239,13 +239,29 @@ SERVICE_DESCRIPTIONW
 
 // What the manager does when an entry's process dies without saying it stopped - restart it, run a
 // program, restart the computer - at yet another level of the same call. Read for the plan that ends
-// a process and for nothing else since 2026-09-30 (stability report W-3, package B2): ending the
-// process is exactly the death that sets these off, measured on the throwaway machine that day. The
-// flag level beside it is deliberately NOT read - it only widens the actions to polite stops that
-// report an error, and it changed nothing about an ending in ten measured endings.
+// a process since 2026-09-30 (stability report W-3, package B2): ending the process is exactly the
+// death that sets these off, measured on the throwaway machine that day. Read for the listing as well
+// since 2026-11-23 (backlog 555), together with the flag level beside it, which only widens the
+// actions to polite stops that report an error - it changed nothing about an ending in ten measured
+// endings, so the plan that ends a process still does not ask it.
 SERVICE_FAILURE_ACTIONSW
 SC_ACTION
 SC_ACTION_TYPE
+
+// WRITING that list, since 2026-11-24 (backlog 555 part a2, spec C7, the owner's decisions of that day). The
+// write goes through ChangeServiceConfig2 above at the same two levels the reading uses, so nothing new reaches
+// the manager. What IS new is the token: a list that restarts the computer is refused unless the caller has
+// the privilege to shut the system down switched ON - and refused with 5, the number of a refusal of access
+// (measured on the throwaway machine that day). These switch that one privilege on for the one call and put it
+// back. They cannot add a privilege the token does not hold, only switch one it holds, and the process's own
+// token is the only one opened. A token without it is refused before anything is written.
+GetCurrentProcess
+OpenProcessToken
+LookupPrivilegeValue
+AdjustTokenPrivileges
+TOKEN_PRIVILEGES
+TOKEN_ACCESS_MASK
+SE_SHUTDOWN_NAME
 
 // The language the service manager names things in, for the snapshot's metadata since
 // 2026-09-30 (stability report D-5, package E). NOT the caller's language: measured that day

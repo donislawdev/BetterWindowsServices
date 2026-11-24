@@ -103,6 +103,27 @@ public interface IScmControl
     ControlAnswer Configure(string serviceName, StartSetting wanted);
 
     /// <summary>
+    /// Write the parts of an entry's recovery a change names, and leave every other part as it is.
+    ///
+    /// <b>Done when it returns, like <see cref="Configure"/>, and up to two writes like it</b>: the list, its
+    /// period, the program and the message are one call, the flag another, so the answer says which half is on
+    /// the machine when the second is refused after the first landed. Backlog 555 part (a2), 2026-11-24.
+    ///
+    /// <b>The two rights Windows asks of a list beyond the right to change configuration are asked only when
+    /// the list needs them</b>: to start the service, when an item restarts it, and the privilege to shut the
+    /// system down, turned on for the write and off again, when an item restarts the computer - Microsoft's page
+    /// on <c>SERVICE_FAILURE_ACTIONSW</c>, and measured on the throwaway machine that day.
+    /// </summary>
+    ControlAnswer ConfigureRecovery(string serviceName, RecoveryChange change);
+
+    /// <summary>
+    /// The whole recovery of one entry now, flag included - asked by a run just before it writes recovery, so a
+    /// list somebody changed after the preview is refused rather than written over. A reading rather than an
+    /// exception on failure, for the reason <see cref="ReadStatuses"/> gives.
+    /// </summary>
+    Reading<RecoverySettings> ReadRecovery(string serviceName);
+
+    /// <summary>
     /// End a process, without asking anything whether it minds.
     ///
     /// <b>THE ONLY METHOD ON THIS INTERFACE THAT DOES NOT TOUCH THE SERVICE CONTROL MANAGER, and it

@@ -332,6 +332,7 @@ internal static partial class PlanText
     {
         StepOperation.SetStartType => Texts.Of("cli.plan.operation.setStartType", Spelled(step.To!.Value)),
         StepOperation.Terminate => Texts.Of("cli.plan.operation.terminate", step.ProcessId!.Value),
+        StepOperation.SetRecovery => Written(step.Recovering!.Change),
         _ => Texts.Of($"cli.plan.operation.{Camel(step.Operation)}")
     };
 

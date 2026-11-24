@@ -28,8 +28,8 @@ internal static partial class PlanText
             Count("cli.plan.warning.recoveryUnnamed", warning),
             warning.ServiceName, warning.Related.Count, Join(warning.Related)),
 
-        _ => throw new ArgumentOutOfRangeException(
-            nameof(warning), warning.Kind, EquivalentCommand.Unhandled)
+        // What a recovery write says, and the refusal for a kind with no sentence, since 2026-11-24.
+        _ => Recovering(warning)
     };
 
     /// <summary>
@@ -93,8 +93,8 @@ internal static partial class PlanText
                     : "cli.plan.problem.neighboursUnreadable.many",
             problem.ServiceName, Join(problem.Related)),
 
-        _ => throw new ArgumentOutOfRangeException(
-            nameof(problem), problem.Kind, EquivalentCommand.Unhandled)
+        // What a recovery write refuses, and the refusal for a kind with no sentence, since 2026-11-24.
+        _ => Recovering(problem)
     };
 
     /// <summary>

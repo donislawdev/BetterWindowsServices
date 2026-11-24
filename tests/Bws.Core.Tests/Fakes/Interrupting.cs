@@ -36,6 +36,11 @@ internal sealed class Interrupting(
 
     public ControlAnswer Configure(string serviceName, StartSetting wanted) => inner.Configure(serviceName, wanted);
 
+    public ControlAnswer ConfigureRecovery(string serviceName, RecoveryChange change) =>
+        inner.ConfigureRecovery(serviceName, change);
+
+    public Reading<RecoverySettings> ReadRecovery(string serviceName) => inner.ReadRecovery(serviceName);
+
     public ControlAnswer Terminate(int processId, long? createdAt) => inner.Terminate(processId, createdAt);
 
     public ControlAnswer Read(string serviceName) => inner.Read(serviceName);

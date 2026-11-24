@@ -113,8 +113,30 @@ internal static class Graphs
             IncludeDependents: includes,
             To: kind == ActionKind.SetStartType ? to : null,
             Immediate: immediate,
-            AlsoStop: alsoStop);
+            AlsoStop: alsoStop,
+            Recovery: kind == ActionKind.SetRecovery ? Recovering(dice.Flags) : null);
     }
+
+    /// <summary>
+    /// A recovery change the dice pick - one part, two, or the whole list - so every shape of the ask a person can
+    /// make reaches the builder and the runner, never the empty one they throw over.
+    /// </summary>
+    private static RecoveryChange Recovering(int flags) => new(
+        (flags % 3) switch
+        {
+            0 => RecoveryParts.Actions,
+            1 => RecoveryParts.Command | RecoveryParts.OnNonCrashFailures,
+            _ => RecoveryParts.Actions | RecoveryParts.ResetPeriod | RecoveryParts.RebootMessage
+        },
+        new RecoverySettings(
+            new RecoveryList(
+                (flags & 4) == 0 ? [] : [new RecoveryItem(RecoveryAction.RestartService, TimeSpan.FromMinutes(1))],
+                TimeSpan.FromHours(1))
+            {
+                Command = "C:\\fix.cmd",
+                RebootMessage = null
+            },
+            (flags & 1) != 0));
 
     /// <summary>A reading the machine refused, in the words the other doubles use.</summary>
     internal static Reading<T> Refused<T>() => Reading<T>.Denied(Entries.AccessDenied, "access denied");

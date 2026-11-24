@@ -119,7 +119,15 @@ public static class EquivalentCommand
             var word = StartTypeWords.Of(action.To)
                 ?? throw new ArgumentOutOfRangeException(nameof(action), action.To, NoWordForThatType);
 
-            return Line(Verb(action.Kind), action.ServiceName, word, action.AlsoStop ? [AlsoStop] : []);
+            return Line(Verb(action.Kind), action.ServiceName, [word], action.AlsoStop ? [AlsoStop] : []);
+        }
+
+        if (action.Kind == ActionKind.SetRecovery)
+        {
+            // Unreachable without words through For(BulkPlan), which filters on Renders, for the reason the
+            // start type above gives.
+            return Recovery(action.ServiceName, action.Recovery
+                ?? throw new ArgumentOutOfRangeException(nameof(action), action.Kind, NoWordsForThatRecovery));
         }
 
         // ONLY WHERE THE TOOL TAKES IT, AND LEAVING THAT OUT WAS A REAL FAULT CAUGHT BY WRITING THE
@@ -168,7 +176,42 @@ public static class EquivalentCommand
             switches.Add(Force);
         }
 
-        return Line(Verb(action.Kind), action.ServiceName, value: null, switches);
+        return Line(Verb(action.Kind), action.ServiceName, [], switches);
+    }
+
+    /// <summary>
+    /// The recovery line: the items after the name, then each switch with its value - the program and the
+    /// message quoted the way a name is (<see cref="Typed"/>), and one that begins with a dash joined to its
+    /// switch by <c>=</c>, so the command line does not read it as a switch nobody has.
+    /// </summary>
+    private static string Recovery(string serviceName, RecoveryChange change)
+    {
+        var words = RecoveryCommandWords.Words(change)
+            ?? throw new ArgumentOutOfRangeException(nameof(change), change, NoWordsForThatRecovery);
+
+        var items = words.TakeWhile(word => !word.Word.StartsWith("--", StringComparison.Ordinal))
+            .Select(word => word.Word)
+            .ToList();
+
+        var switches = new List<string>();
+
+        foreach (var (word, isValue) in words.Skip(items.Count))
+        {
+            if (!isValue)
+            {
+                switches.Add(word);
+            }
+            else if (word.StartsWith('-'))
+            {
+                switches[^1] = string.Concat(switches[^1], "=", Typed(word));
+            }
+            else
+            {
+                switches.Add(Typed(word));
+            }
+        }
+
+        return Line(Verb(ActionKind.SetRecovery), serviceName, items, switches);
     }
 
     /// <summary>
@@ -232,9 +275,9 @@ public static class EquivalentCommand
     /// word after <c>--</c> is a name to it, so a switch left at the end would arrive as one more name
     /// and the line would be refused.
     /// </summary>
-    private static string Line(string verb, string serviceName, string? value, IReadOnlyList<string> switches)
+    private static string Line(string verb, string serviceName, IReadOnlyList<string> values, IReadOnlyList<string> switches)
     {
-        string[] words = value is null ? [Typed(serviceName)] : [Typed(serviceName), value];
+        string[] words = [Typed(serviceName), .. values];
 
         string[] parts = serviceName.StartsWith('-')
             ? [Tool, verb, .. switches, EndOfSwitches, .. words]
@@ -269,7 +312,9 @@ public static class EquivalentCommand
         ArgumentNullException.ThrowIfNull(action);
 
         return HasAVerb(action.Kind)
-            && (action.Kind != ActionKind.SetStartType || StartTypeWords.Of(action.To) is not null);
+            && (action.Kind != ActionKind.SetStartType || StartTypeWords.Of(action.To) is not null)
+            && (action.Kind != ActionKind.SetRecovery
+                || (action.Recovery is { } recovery && RecoveryCommandWords.Words(recovery) is not null));
     }
 
     /// <summary>
@@ -301,7 +346,7 @@ public static class EquivalentCommand
     /// </summary>
     public static bool HasAVerb(ActionKind kind) =>
         kind is ActionKind.Stop or ActionKind.Start or ActionKind.Restart or ActionKind.SetStartType
-            or ActionKind.ForceStop or ActionKind.ForceRestart;
+            or ActionKind.ForceStop or ActionKind.ForceRestart or ActionKind.SetRecovery;
 
     /// <summary>
     /// What somebody would type to put one entry back where a run found it.
@@ -322,11 +367,18 @@ public static class EquivalentCommand
     {
         ArgumentNullException.ThrowIfNull(step);
 
+        // A recovery way back is the same line as a recovery ask, with what the entry had before.
+        if (step.Operation == StepOperation.SetRecovery)
+        {
+            return Recovery(step.ServiceName, step.Recovery
+                ?? throw new ArgumentOutOfRangeException(nameof(step), step.Operation, NoWordsForThatRecovery));
+        }
+
         // Asked as "is there a word" rather than "is this that operation", so that the two answers
         // cannot disagree. NetEffect refuses to build a start type step without a type, so the two
         // conditions mean the same thing today - and if they ever stop meaning the same thing, this
         // one is the one that keeps an unnameable type out of a line that names it.
-        return Line(Verb(step.Operation), step.ServiceName, StartTypeWords.Of(step.To), []);
+        return Line(Verb(step.Operation), step.ServiceName, StartTypeWords.Of(step.To) is { } word ? [word] : [], []);
     }
 
     /// <summary>
@@ -362,6 +414,9 @@ public static class EquivalentCommand
         // ends up with eight of them - and because what the two share is the dangerous half.
         ActionKind.ForceStop => "kill",
         ActionKind.ForceRestart => "kill",
+
+        // The field's own name, as the JSON and the query language spell it - frozen in `docs/02`, 2026-11-24.
+        ActionKind.SetRecovery => "recovery",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No command verb for this action.")
     };
 
@@ -377,6 +432,7 @@ public static class EquivalentCommand
         StepOperation.Stop => "stop",
         StepOperation.Start => "start",
         StepOperation.SetStartType => "start-type",
+        StepOperation.SetRecovery => "recovery",
 
         // A STEP THAT ENDS A PROCESS HAS NO LINE OF ITS OWN, and this is the same distinction
         // restart makes one method up: a person asks to force a stop, they never ask for the
@@ -403,6 +459,10 @@ public static class EquivalentCommand
     private const string NoLineForATerminate =
         "There is no command line for a step that ends a process on its own. What somebody types is "
         + "the ask - bws kill NAME - and the steps are what this tool makes of it.";
+
+    private const string NoWordsForThatRecovery =
+        "There is no command line for this recovery change - it names no part, or holds an item of a type with "
+        + "no word. Neither interface builds one, and the plan refuses to touch a list holding such an item.";
 
     private const string NoWordForThatType =
         "There is no command line word for this start type, so there is no line to hand anybody. "

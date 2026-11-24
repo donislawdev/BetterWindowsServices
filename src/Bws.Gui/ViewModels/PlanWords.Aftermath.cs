@@ -28,6 +28,16 @@ internal static partial class PlanWords
             ? Texts.Of("gui.plan.warning.recoveryUnnamed.one", warning.ServiceName, warning.Related.Count, Listed(warning.Related))
             : Texts.Of("gui.plan.warning.recoveryUnnamed.many", warning.ServiceName, warning.Related.Count, Listed(warning.Related)),
 
+        // What a recovery write says, since 2026-11-24 - the terminal's PlanText.Recovery says the same.
+        PlanWarningKind.RestartsComputerOnFailure =>
+            Texts.Of("gui.plan.warning.restartsComputerOnFailure", warning.ServiceName),
+
+        PlanWarningKind.ProgramRunsAs => warning.Related.Count == 0
+            ? Texts.Of("gui.plan.warning.programRunsAs.unread", warning.ServiceName)
+            : Texts.Of("gui.plan.warning.programRunsAs", warning.ServiceName, warning.Related[0]),
+
+        PlanWarningKind.CriticalRecovery => Texts.Of("gui.plan.warning.criticalRecovery", warning.ServiceName),
+
         _ => throw new ArgumentOutOfRangeException(
             nameof(warning), warning.Kind, EquivalentCommand.Unhandled)
     };
@@ -90,6 +100,11 @@ internal static partial class PlanWords
         PlanProblemKind.NeighboursUnreadable => problem.Related.Count == 1
             ? Texts.Of("gui.plan.problem.neighboursUnreadable.one", problem.ServiceName, Listed(problem.Related))
             : Texts.Of("gui.plan.problem.neighboursUnreadable.many", problem.ServiceName, Listed(problem.Related)),
+
+        // The three refusals of a recovery write, since 2026-11-24.
+        PlanProblemKind.RecoveryUnreadable => Texts.Of("gui.plan.problem.recoveryUnreadable", problem.ServiceName),
+        PlanProblemKind.RecoveryUnnamed => Texts.Of("gui.plan.problem.recoveryUnnamed", problem.ServiceName),
+        PlanProblemKind.NoActionsToReset => Texts.Of("gui.plan.problem.noActionsToReset", problem.ServiceName),
 
         _ => throw new ArgumentOutOfRangeException(
             nameof(problem), problem.Kind, EquivalentCommand.Unhandled)

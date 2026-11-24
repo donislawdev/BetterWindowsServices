@@ -29,6 +29,12 @@ is not part of this repository.
   services with nothing set. A program to run, or a message to show before the computer restarts,
   that no failure uses is marked as not used. Snapshots keep it too and are written in version 8 - compared with a snapshot
   from an earlier version, recovery is left out and the comparison says so.
+- `bws recovery NAME` sets what Windows does when a service fails. The words after the name are the
+  actions, one per failure - `restart:1m`, `program:30s`, `reboot:5m`, `nothing` - and `--reset`,
+  `--program`, `--message` and `--on-error-stops` set the rest of the *Recovery* tab. Whatever you leave
+  out stays as it is. Like every change, it shows the plan first with `--dry-run`, and after it runs it
+  prints the line that puts the service back the way it was. A list that restarts the computer is
+  allowed and the plan says so.
 
 - Clicking the empty search box shows your last five searches above the questions to start from,
   with a clock beside each. Delete forgets the chosen one. A search is kept when you leave the box or

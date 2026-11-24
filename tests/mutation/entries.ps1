@@ -1636,12 +1636,15 @@ $mutations = @(
         # RE-ANCHORED 2026-09-29 (S-7): the ordering asks through the build's own DependentsAskedOnce,
         # passed in as `asking`, rather than through the catalogue field. The swap it makes is unchanged.
         From = @'
-        action.Kind is ActionKind.Start || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
+        action.Kind is ActionKind.Start or ActionKind.SetRecovery
+            || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
             ? asked
             : DependentsFirst.Order(asking, asked);
 '@
+        # RE-ANCHORED 2026-11-24, when a recovery write joined the unordered side (backlog 555 part a2).
         To = @'
-        action.Kind is ActionKind.Start || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
+        action.Kind is ActionKind.Start or ActionKind.SetRecovery
+            || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
             ? DependentsFirst.Order(asking, asked)
             : asked;
 '@
@@ -1669,8 +1672,9 @@ $mutations = @(
     @{
         Name = 'bulk: the plans share the answers the ordering already got'
         File = 'src\Bws.Core\Planning\BulkPlanBuilder.cs'
-        From = 'var builder = new PlanBuilder(entries, asking, processes);'
-        To = 'var builder = new PlanBuilder(entries, catalog, processes);'
+        # RE-ANCHORED 2026-11-24 - the builder takes the recovery reader as well (backlog 555 part a2).
+        From = 'var builder = new PlanBuilder(entries, asking, processes, recovery);'
+        To = 'var builder = new PlanBuilder(entries, catalog, processes, recovery);'
         Test = 'BulkPlanTests.A_bulk_plan_asks_who_depends_on_each_name_once'
     },
     @{
@@ -5615,8 +5619,9 @@ $mutations = @(
         # RE-ANCHORED 2026-09-24, when the line learned to carry --stop, and again 2026-10-05, when
         # the name learned to be quoted and the line moved into Line (W-12). The word is dropped by a
         # comparison that is never true, so `word` stays read and the mutant compiles.
-        From = 'return Line(Verb(action.Kind), action.ServiceName, word, action.AlsoStop ? [AlsoStop] : []);'
-        To = 'return Line(Verb(action.Kind), action.ServiceName, word.Length < 0 ? word : null, action.AlsoStop ? [AlsoStop] : []);'
+        # RE-ANCHORED 2026-11-24 - Line takes a list of words since the recovery line (backlog 555 part a2).
+        From = 'return Line(Verb(action.Kind), action.ServiceName, [word], action.AlsoStop ? [AlsoStop] : []);'
+        To = 'return Line(Verb(action.Kind), action.ServiceName, word.Length < 0 ? [word] : [], action.AlsoStop ? [AlsoStop] : []);'
         Test = 'EquivalentCommandBridgeGuards.The_start_type_the_core_writes_is_one_this_tool_reads_back'
     },
     @{
@@ -9204,9 +9209,10 @@ $mutations = @(
     @{
         Name = 'also stop: the line to paste carries --stop'
         File = 'src\Bws.Core\Planning\EquivalentCommand.cs'
-        # RE-ANCHORED 2026-10-05 - the line moved into Line (stability report W-12).
-        From = 'return Line(Verb(action.Kind), action.ServiceName, word, action.AlsoStop ? [AlsoStop] : []);'
-        To = 'return Line(Verb(action.Kind), action.ServiceName, word, action.AlsoStop && false ? [AlsoStop] : []);'
+        # RE-ANCHORED 2026-10-05 - the line moved into Line (stability report W-12) - and 2026-11-24, when Line
+        # took a list of words (backlog 555 part a2).
+        From = 'return Line(Verb(action.Kind), action.ServiceName, [word], action.AlsoStop ? [AlsoStop] : []);'
+        To = 'return Line(Verb(action.Kind), action.ServiceName, [word], action.AlsoStop && false ? [AlsoStop] : []);'
         Test = 'StartSettingTests.The_line_for_the_offer_carries_the_stop'
     },
     @{
@@ -9219,8 +9225,9 @@ $mutations = @(
     @{
         Name = 'also stop: the stop reaches every entry of a selection'
         File = 'src\Bws.Core\Planning\BulkPlanBuilder.cs'
-        From = 'action.Kind, name, action.IncludeDependents, action.To, AlsoStop: action.AlsoStop));'
-        To = 'action.Kind, name, action.IncludeDependents, action.To, AlsoStop: false));'
+        # RE-ANCHORED 2026-11-24 - the ask carries the recovery change as well (backlog 555 part a2).
+        From = 'action.Kind, name, action.IncludeDependents, action.To, AlsoStop: action.AlsoStop, Recovery: action.Recovery));'
+        To = 'action.Kind, name, action.IncludeDependents, action.To, AlsoStop: false, Recovery: action.Recovery));'
         Test = 'AlsoStopGuards.Taking_the_offer_rebuilds_the_sheet_with_the_stop_after_the_setting'
     },
     @{
@@ -10861,8 +10868,9 @@ $mutations = @(
         # the registry as well, so a reader that loses the flag still meets an entry that has it.
         Name = 'recovery: the flag for a stop with an error is read'
         File = 'src\Bws.Core\ScmDetailReader.Recovery.cs'
-        From = 'return Reading<RecoverySettings>.Present(new RecoverySettings(list.Value!, flag != 0));'
-        To = 'return Reading<RecoverySettings>.Present(new RecoverySettings(list.Value!, false));'
+        # RE-ANCHORED 2026-11-24 - the flag is read by WithFlag, shared with the whole reading a recovery write takes.
+        From = 'return Reading<RecoverySettings>.Present(new RecoverySettings(list, flag != 0));'
+        To = 'return Reading<RecoverySettings>.Present(new RecoverySettings(list, false));'
         Test = 'RecoveryListingContractTests.Recovery_in_the_listing_reads_as_sc_exe_prints_it'
     },
     @{
@@ -15401,6 +15409,30 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = '        ViewModels.RecentQueries.Render(tree, RecentQueries);'
         To = ''
         Test = 'RecentQueriesTests.The_searches_go_into_the_layout_file_and_come_back_out'
+    }
+    @{
+        # 2026-11-24, backlog 555 part (a2), the recovery write. Rule 28 (b): a write over the person's own
+        # configuration, and the line the product tells them puts it back. Three entries, the limit for one
+        # piece of work - the round trip through the shell is a test of its own and needs no mutation.
+        Name = 'recovery write: a list changed after the preview is not written over'
+        File = 'src\Bws.Core\Planning\PlanRunner.Recovery.cs'
+        From = '? write.Change.Agrees(from, now.Value!) ? null : ControlAnswer.Refused(0, RecoveryChangedSince)'
+        To = '? null'
+        Test = 'RecoveryPlanTests.A_list_somebody_changed_after_the_preview_is_not_written_over'
+    }
+    @{
+        Name = 'recovery write: the way back puts back what the entry had'
+        File = 'src\Bws.Core\Planning\RecoveryChange.cs'
+        From = 'return Agrees(before, To) ? null : this with { To = before };'
+        To = 'return Agrees(before, To) ? null : this;'
+        Test = 'RecoveryPlanTests.A_list_alone_keeps_the_period_the_entry_has_and_puts_both_back_afterwards'
+    }
+    @{
+        Name = 'recovery write: the half of the list nobody named is read off the entry'
+        File = 'src\Bws.Core\Planning\RecoveryPlan.cs'
+        From = ': from!.List.ResetPeriod;'
+        To = ': asked.To.List.ResetPeriod;'
+        Test = 'RecoveryPlanTests.A_list_alone_keeps_the_period_the_entry_has_and_puts_both_back_afterwards'
     }
 )
 

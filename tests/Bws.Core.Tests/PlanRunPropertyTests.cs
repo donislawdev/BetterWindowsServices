@@ -379,6 +379,14 @@ internal sealed class Watched(IScmControl inner) : IScmControl
         return inner.Configure(serviceName, wanted);
     }
 
+    public ControlAnswer ConfigureRecovery(string serviceName, RecoveryChange change)
+    {
+        Writes.Add(new Write(Position, StepOperation.SetRecovery, serviceName));
+        return inner.ConfigureRecovery(serviceName, change);
+    }
+
+    public Reading<RecoverySettings> ReadRecovery(string serviceName) => inner.ReadRecovery(serviceName);
+
     public ControlAnswer Terminate(int processId, long? createdAt)
     {
         Writes.Add(new Write(Position, StepOperation.Terminate, processId.ToString(CultureInfo.InvariantCulture)));

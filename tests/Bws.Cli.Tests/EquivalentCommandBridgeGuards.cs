@@ -1,3 +1,4 @@
+using Bws.Core;
 using Bws.Core.Planning;
 
 namespace Bws.Cli.Tests;
@@ -27,7 +28,29 @@ public sealed class EquivalentCommandBridgeGuards
 {
     private static readonly CommandKind[] WriteVerbs =
         [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType,
-            CommandKind.Kill];
+            CommandKind.SetRecovery, CommandKind.Kill];
+
+    /// <summary>
+    /// A recovery change naming every part, with the values that are hardest to carry through a shell: a
+    /// program with its own quotes, a dollar and <c>%1%</c>, a message removed, and every item kind.
+    /// </summary>
+    private static readonly RecoveryChange EveryPart = new(
+        RecoveryParts.Actions | RecoveryParts.ResetPeriod | RecoveryParts.Command
+            | RecoveryParts.RebootMessage | RecoveryParts.OnNonCrashFailures,
+        new RecoverySettings(
+            new RecoveryList(
+                [
+                    new RecoveryItem(RecoveryAction.RestartService, TimeSpan.FromMinutes(2)),
+                    new RecoveryItem(RecoveryAction.RunProgram, TimeSpan.FromMilliseconds(1500)),
+                    new RecoveryItem(RecoveryAction.RestartComputer, TimeSpan.FromDays(1)),
+                    new RecoveryItem(RecoveryAction.Nothing, TimeSpan.FromSeconds(90))
+                ],
+                Timeout.InfiniteTimeSpan)
+            {
+                Command = "\"C:\\Program Files\\fix.cmd\" $env %1% -x",
+                RebootMessage = null
+            },
+            true));
 
     /// <summary>
     /// Every ask the core has a verb for, with the value the fourth one needs.
@@ -37,7 +60,8 @@ public sealed class EquivalentCommandBridgeGuards
     /// to render at all.
     /// </summary>
     private static ServiceAction Asking(ActionKind kind, bool withDependents = false) =>
-        new(kind, "Spooler", withDependents, kind == ActionKind.SetStartType ? StartSetting.Manual : null);
+        new(kind, "Spooler", withDependents, kind == ActionKind.SetStartType ? StartSetting.Manual : null,
+            Recovery: kind == ActionKind.SetRecovery ? EveryPart : null);
 
     private static ActionKind[] Rendered =>
         [.. Enum.GetValues<ActionKind>().Where(EquivalentCommand.HasAVerb)];
@@ -182,11 +206,49 @@ public sealed class EquivalentCommandBridgeGuards
         }
     }
 
+    /// <summary>
+    /// The recovery line the core writes - for an ask and for a way back alike, one renderer - is read back by
+    /// this tool as the same change, part for part and value for value. Backlog 555 part (a2), 2026-11-24.
+    ///
+    /// <b>The bridge the way back stands on</b>: a line that pastes and reads back as a different list puts
+    /// back something nobody had. Cut the way PowerShell cuts it, as the quoting test above does, and with a
+    /// name that begins with a dash, so the items after <c>--</c> are checked too.
+    /// </summary>
+    [Theory]
+    [InlineData("Spooler")]
+    [InlineData("-leading $and space")]
+    public void The_recovery_the_core_writes_is_the_recovery_this_tool_reads_back(string name)
+    {
+        RecoveryChange[] changes =
+        [
+            EveryPart,
+            EveryPart with { Parts = RecoveryParts.Actions | RecoveryParts.ResetPeriod, To = EveryPart.To with { List = new RecoveryList([], TimeSpan.Zero) } },
+            EveryPart with { Parts = RecoveryParts.Command | RecoveryParts.RebootMessage, To = EveryPart.To with { List = EveryPart.To.List with { Command = "-dash", RebootMessage = "it's \"done\"" } } },
+            EveryPart with { Parts = RecoveryParts.OnNonCrashFailures, To = EveryPart.To with { OnNonCrashFailures = false } }
+        ];
+
+        foreach (var change in changes)
+        {
+            var line = EquivalentCommand.For(new ServiceAction(ActionKind.SetRecovery, name, Recovery: change));
+            var read = CommandLine.Read([.. new PowerShellWords().Of(line).Skip(1)]);
+            var back = RecoveryAsks.Change(read.Recovery);
+
+            Assert.True(read.Kind == CommandKind.SetRecovery && read.ServiceName == name, $"'{line}' read as {read.Kind} {read.ServiceName}.");
+            Assert.True(read.NothingWrong, $"'{line}' left something this tool refuses.");
+            Assert.True(back is not null, $"'{line}' did not read back as a change.");
+
+            // The reader names only the parts on the line - the empty list writes its period of zero by itself.
+            Assert.Equal(change.Parts & ~(change.To.List.Items.Count == 0 ? RecoveryParts.ResetPeriod : RecoveryParts.None), back!.Parts);
+            Assert.True(change.Agrees(change.To, back.To), $"'{line}' read back other values.");
+        }
+    }
+
     private static CommandKind Verb(ActionKind kind) => kind switch
     {
         ActionKind.Stop => CommandKind.Stop,
         ActionKind.Start => CommandKind.Start,
         ActionKind.SetStartType => CommandKind.SetStartType,
+        ActionKind.SetRecovery => CommandKind.SetRecovery,
 
         // BOTH FORCING ASKS ARE ONE VERB, and the discard is why this had to be written out.
         // It read "anything else is a restart", so the first ask that was neither a stop, a

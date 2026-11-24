@@ -209,7 +209,35 @@ public enum PlanWarningKind
     /// before the change: <c>bws restart AxInstSV --dry-run</c> on a stopped entry of this machine showed a
     /// stop and a start "put back" and said nothing about the entry not running.
     /// </summary>
-    RestartOnlyStarts
+    RestartOnlyStarts,
+
+    /// <summary>
+    /// The recovery list this plan writes restarts the COMPUTER on some failure.
+    ///
+    /// <b>Allowed and said, on the owner's decision of 2026-11-24</b> (backlog 555 part a2): without it the
+    /// way back from a change on the seven entries of the owner's machine that already carry one could not be
+    /// written. To write it this tool turns on the privilege to shut the system down for the one call and
+    /// turns it off again - Windows refuses the write without it, with the same number as a refusal of access
+    /// (measured on the throwaway machine that day).
+    /// </summary>
+    RestartsComputerOnFailure,
+
+    /// <summary>
+    /// After this plan a failure of the entry runs a program, and Windows runs it on the entry's own account
+    /// - <see cref="PlanWarning.Related"/> names that account when it was read, and is empty when it was not.
+    ///
+    /// <b>Said because the account is usually LocalSystem</b>, and a program run after a failure is a known
+    /// way to keep a foothold on a machine: Windows records no event when recovery changes (measured on the
+    /// throwaway machine 2026-11-24), so a snapshot compared later is the only witness.
+    /// </summary>
+    ProgramRunsAs,
+
+    /// <summary>
+    /// The plan changes the recovery of an entry the machine does not work without. Those carry "restart the
+    /// computer" on the owner's machine, and taking it away leaves a machine that has lost one of them running
+    /// on without it.
+    /// </summary>
+    CriticalRecovery
 }
 
 /// <summary>

@@ -59,6 +59,9 @@ try
         ? WriteCommands.Named(options.Setting.Word)
         : null;
 
+    // The same for the recovery verb: Refusals has turned back an ask that does not read, so this is a change.
+    var recovering = options.Kind == CommandKind.SetRecovery ? RecoveryAsks.Change(options.Recovery) : null;
+
     // Read the query before touching the system. A typo costs nothing this way, and the
     // alternative is enumerating hundreds of entries in order to throw them away.
     var parsed = QueryParser.Parse(options.Query);
@@ -351,9 +354,10 @@ try
     {
         // Never null here: the only command that leaves it unbuilt is the file comparison,
         // which is not a write and never reaches this branch.
-        var plan = new PlanBuilder(entries, catalog!, new WindowsEndingFactsReader())
+        var plan = new PlanBuilder(entries, catalog!, new WindowsEndingFactsReader(), new WindowsRecoveryReader())
             .Build(new ServiceAction(
-                options.Action, options.ServiceName, options.Dependents, wanted, options.Force, options.Setting.AlsoStop));
+                options.Action, options.ServiceName, options.Dependents, wanted, options.Force, options.Setting.AlsoStop,
+                recovering));
 
         // The admissions follow the refusal here too, since 2026-10-05 (stability report C-3): a
         // plan refused because a process cannot be ended is very often a session without the rights
