@@ -92,6 +92,54 @@ public sealed class RecoveryTests
     }
 
     /// <summary>
+    /// A number of a recovery left out of the file, or one no service could hold, is refused when read
+    /// (review of PR #133). Left out it would read as 0 or false, a value the file never held, and past a
+    /// TimeSpan it would end the comparison that words it with an exception. The untouched file reads first,
+    /// so a refusal is the change and not the specimen.
+    /// </summary>
+    [Theory]
+    [InlineData("delayMilliseconds", null)]
+    [InlineData("resetPeriodSeconds", null)]
+    [InlineData("onNonCrashFailures", null)]
+    [InlineData("delayMilliseconds", "9223372036854775807")]
+    [InlineData("delayMilliseconds", "4294967296")]
+    [InlineData("resetPeriodSeconds", "-1")]
+    public void A_recovery_number_left_out_or_beyond_what_windows_keeps_is_refused(string member, string? value)
+    {
+        var tree = JsonNode.Parse(SnapshotJson.Render(Snapshot.Of([Specimens.RecoveryOfEveryKind], note: null, new FakeClock())))!;
+        var recovery = tree["entries"]![0]!["recovery"]!.AsObject();
+        var holder = member == "delayMilliseconds" ? recovery["actions"]![0]!.AsObject() : recovery;
+
+        Assert.True(SnapshotJson.TryRead(tree.ToJsonString(), out _, out var failure), failure);
+
+        holder.Remove(member);
+
+        if (value is not null)
+        {
+            holder[member] = JsonNode.Parse(value);
+        }
+
+        Assert.False(SnapshotJson.TryRead(tree.ToJsonString(), out _, out failure));
+        Assert.False(string.IsNullOrWhiteSpace(failure));
+    }
+
+    /// <summary>
+    /// The range is a fact of Windows, not a promise of schema eight: a seven that holds a recovery it never
+    /// wrote is held to it too, before a comparison of two such files words it.
+    /// </summary>
+    [Fact]
+    public void A_delay_no_service_could_hold_is_refused_in_a_seven_too()
+    {
+        var tree = JsonNode.Parse(SnapshotJson.Render(Snapshot.Of([Specimens.RecoveryOfEveryKind], note: null, new FakeClock())))!;
+
+        tree["metadata"]!["schemaVersion"] = 7;
+        tree["entries"]![0]!["recovery"]!["actions"]![0]!["delayMilliseconds"] = long.MaxValue;
+
+        Assert.False(SnapshotJson.TryRead(tree.ToJsonString(), out _, out var failure));
+        Assert.Contains("4294967295", failure, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// <c>recovery:none</c> is the spec's own example (A3): an entry with nothing set. A refused recovery is
     /// not "none" - nobody could tell - and a value names what a failure sets off, never an item that does
     /// nothing.

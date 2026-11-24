@@ -90,12 +90,17 @@ public sealed record SignatureDocument(string Status, int ResultCode, string? Pu
 /// <param name="Command">The program an item that runs one starts, word for word. Null when none is named.</param>
 /// <param name="RebootMessage">The message before an item restarts the computer. Null when none is named.</param>
 /// <param name="OnNonCrashFailures">Whether the list also answers a stop with an error, not only a crash.</param>
+/// <remarks>
+/// <b>The period and the flag are required when read</b>, like the delay of every item: a number left out of
+/// a file would otherwise read as 0 or false, a value the file never held, and a comparison would report it
+/// as the entry's. The program and the message may be absent, because absent is what none named means.
+/// </remarks>
 public sealed record RecoveryDocument(
     IReadOnlyList<RecoveryActionDocument> Actions,
-    long ResetPeriodSeconds,
+    [property: JsonRequired] long ResetPeriodSeconds,
     string? Command,
     string? RebootMessage,
-    bool OnNonCrashFailures)
+    [property: JsonRequired] bool OnNonCrashFailures)
 {
     /// <summary><c>INFINITE</c> from winbase.h, the reset period of a count that never starts again.</summary>
     public const long NeverReset = uint.MaxValue;
@@ -124,7 +129,7 @@ public sealed record RecoveryDocument(
 /// milliseconds. An undocumented kind is written as <c>Unnamed</c> without its number, so a change from one
 /// undocumented kind to another is not seen - the price of not naming what Microsoft does not describe.
 /// </summary>
-public sealed record RecoveryActionDocument(string Action, long DelayMilliseconds);
+public sealed record RecoveryActionDocument(string Action, [property: JsonRequired] long DelayMilliseconds);
 
 /// <summary>
 /// What one process is using, in bytes, and how many entries have to share that answer.

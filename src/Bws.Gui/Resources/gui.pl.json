@@ -51,6 +51,8 @@
   "gui.recovery.message.unused": "Nieużywany - żadna awaria nie restartuje komputera. Ustawiony: „{0}”",
   "gui.recovery.line.command": "program uruchamiany po awarii {0}",
   "gui.recovery.line.message": "komunikat o restarcie komputera „{0}”",
+  "gui.recovery.line.command.unused": "program uruchamiany po awarii, nieużywany: {0}",
+  "gui.recovery.line.message.unused": "komunikat o restarcie komputera, nieużywany: „{0}”",
   "gui.recovery.line.nonCrash": "także przy zatrzymaniu z błędem",
 
   "gui.action.stop": "Zatrzymaj...",

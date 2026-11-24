@@ -281,6 +281,8 @@
   "cli.recovery.message.unused": "not used - no failure restarts the computer. Set to: \"{0}\"",
   "cli.recovery.line.command": "program run on failure {0}",
   "cli.recovery.line.message": "message before computer restart \"{0}\"",
+  "cli.recovery.line.command.unused": "program run on failure, not used: {0}",
+  "cli.recovery.line.message.unused": "message before computer restart, not used: \"{0}\"",
   "cli.recovery.line.nonCrash": "also on stops with errors",
   "cli.show.noSuchEntry": "There is no entry called {0}.",
   "cli.history.log.reaches": "The System log reaches back to {0}.",

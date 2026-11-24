@@ -51,6 +51,8 @@
   "gui.recovery.message.unused": "Not used - no failure restarts the computer. Set to: \"{0}\"",
   "gui.recovery.line.command": "program run on failure {0}",
   "gui.recovery.line.message": "message before computer restart \"{0}\"",
+  "gui.recovery.line.command.unused": "program run on failure, not used: {0}",
+  "gui.recovery.line.message.unused": "message before computer restart, not used: \"{0}\"",
   "gui.recovery.line.nonCrash": "also on stops with errors",
 
   "gui.action.stop": "Stop...",

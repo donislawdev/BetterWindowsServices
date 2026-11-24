@@ -229,7 +229,20 @@ public sealed class MemoryBudgetTests(ITestOutputHelper output)
         DependsOn = Reading<IReadOnlyList<string>>.Present(["RPCSS", "http"]),
         RequiredBy = Reading<IReadOnlyList<string>>.NotRead(),
         Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
-        Recovery = Reading<RecoverySettings>.Absent(),
+        // The commonest list on Windows, restart twice and then nothing, counted again after a day - held by
+        // every entry rather than the third or so that carry one, so the ceiling covers what a listing keeps of
+        // a recovery (review of PR #133). Measured 2026-11-24, five runs each, identical every time: the
+        // entries layer went from 1 053 088 to 1 195 648 bytes with it, 176 bytes an entry, and the whole
+        // listing to 1 770 424-1 795 000 bytes under the same ceiling.
+        Recovery = Reading<RecoverySettings>.Present(new RecoverySettings(
+            new RecoveryList(
+                [
+                    new RecoveryItem(RecoveryAction.RestartService, TimeSpan.FromMinutes(1)),
+                    new RecoveryItem(RecoveryAction.RestartService, TimeSpan.FromMinutes(1)),
+                    new RecoveryItem(RecoveryAction.Nothing, TimeSpan.Zero)
+                ],
+                TimeSpan.FromDays(1)),
+            OnNonCrashFailures: false)),
         BinaryPath = Reading<string>.Present(@"C:\WINDOWS\System32\svchost.exe -k netsvcs -p"),
         BinaryFile = Reading<string>.Present(@"C:\WINDOWS\System32\svchost.exe"),
         BinaryOnDisk = Reading<bool>.Present(true),

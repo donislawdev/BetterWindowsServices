@@ -71,7 +71,7 @@ internal static class RecoveryWords
     /// </summary>
     internal static string? Line(string? json)
     {
-        if (json is null || Parsed(json) is not { } recovery || recovery.Actions is null)
+        if (json is null || Parsed(json) is not { } recovery || recovery.Actions is null || recovery.Actions.Any(action => action is null))
         {
             return null;
         }
@@ -80,12 +80,29 @@ internal static class RecoveryWords
         [
             Actions(recovery),
             Reset(recovery),
-            recovery.Command is { } command ? Texts.Of("gui.recovery.line.command", command) : null,
-            recovery.RebootMessage is { } message ? Texts.Of("gui.recovery.line.message", message) : null,
+            recovery.Command is not { } command ? null
+                : Uses(recovery, nameof(RecoveryAction.RunProgram)) ? Texts.Of("gui.recovery.line.command", command)
+                : Texts.Of("gui.recovery.line.command.unused", command),
+            recovery.RebootMessage is not { } message ? null
+                : Uses(recovery, nameof(RecoveryAction.RestartComputer)) ? Texts.Of("gui.recovery.line.message", message)
+                : Texts.Of("gui.recovery.line.message.unused", message),
             recovery.Actions.Count > 0 && recovery.OnNonCrashFailures ? Texts.Of("gui.recovery.line.nonCrash") : null
         ];
 
         return string.Join(", ", parts.OfType<string>());
+    }
+
+    /// <summary>
+    /// Both sides of a changed recovery in words when the words tell them apart, and neither when they do
+    /// not - the caller then shows the two values as they are. The words leave out what decides nothing,
+    /// such as the period of an empty list, so two values the comparison found different can read the same,
+    /// and a difference must never be shown as two equal sides.
+    /// </summary>
+    internal static (string? Before, string? After) Sides(string? before, string? after)
+    {
+        var (worded, otherWorded) = (Line(before), Line(after));
+
+        return worded == otherWorded ? (null, null) : (worded, otherWorded);
     }
 
     /// <summary>A reset period in the largest unit that divides it evenly - 30 s, 15 min, 1 h, 24 h - the owner's decision of 2026-10-07.</summary>
@@ -155,6 +172,9 @@ internal static class RecoveryWords
     /// argument is one nothing reading the source finds (2026-11-24, three keys went unseen that way).
     /// </summary>
     private static bool Uses(RecoveryList list, RecoveryAction action) => list.Items.Any(item => item.Action == action);
+
+    /// <summary>The same question of a recovery as a comparison holds it, with the kind in its written word.</summary>
+    private static bool Uses(RecoveryDocument recovery, string action) => recovery.Actions.Any(item => item.Action == action);
 
     private static RecoveryDocument? Parsed(string json)
     {
