@@ -6,12 +6,11 @@ using Windows.Win32.System.Services;
 namespace Bws.Core;
 
 /// <summary>
-/// What the manager does when an entry's process dies - the one level of the configuration call read
-/// for a single plan rather than for the listing.
+/// What the manager does when an entry's process dies - the recovery list the plan that ends a process
+/// reads, and the rest of the Recovery tab of services.msc, which the listing reads on top of that list.
 ///
-/// <b>Its own file since 2026-09-30</b> (stability report W-3, package B2), because the rest of this
-/// class feeds the listing and this feeds only the plan that ends a process. The size ceiling asked for
-/// the seam as well - the file beside it holds 172 lines of code against a line of 202.
+/// <b>A file of its own</b> (stability report W-3, package B2), because the size ceiling asked for the
+/// seam - the rest of this class reads the configuration the listing is built from.
 /// </summary>
 internal static partial class ScmDetailReader
 {
@@ -25,7 +24,7 @@ internal static partial class ScmDetailReader
     /// out, so it could decide nothing. That argument was right about the count and wrong about the
     /// sentence: Spooler's list restarts it on its first two failures only, and the reset period is what
     /// says when the count starts again - the plan said "Windows starts Spooler again" over a third failure
-    /// that left it stopped. Phase 2 reads the rest for a person.
+    /// that left it stopped. ReadRecoverySettings reads the rest for a person.
     ///
     /// <b>An entry with no recovery at all answers a structure with no items</b> - measured over 312
     /// services on 2026-09-30, the sizing call never came back empty - so this is an empty list rather

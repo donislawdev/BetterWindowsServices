@@ -75,13 +75,16 @@ public sealed class RecoveryContractTests
                 : ((long)ours.Value.ResetPeriod.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
-    private static string Kind(string line)
+    /// <summary>
+    /// The kind of one action line - shared with RecoveryListingContractTests, which reads the same lines.
+    /// </summary>
+    internal static string Kind(string line)
     {
         var before = line[..line.IndexOf("--", StringComparison.Ordinal)];
         return before[(before.LastIndexOf(':') + 1)..].Trim();
     }
 
-    private static string Delay(string line)
+    internal static string Delay(string line)
     {
         var after = line[(line.IndexOf('=', StringComparison.Ordinal) + 1)..].TrimStart();
         return new string([.. after.TakeWhile(char.IsAsciiDigit)]);

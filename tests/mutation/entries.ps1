@@ -10856,6 +10856,25 @@ $mutations = @(
         Test = 'RecoveryContractTests.The_recovery_list_of_RpcSs_reads_as_sc_exe_prints_it'
     },
     @{
+        # Backlog 555, 2026-11-24: the listing asks for the flag with a call of its own, and this integration
+        # test is the only one holding it against the real manager. The entries it compares are chosen from
+        # the registry as well, so a reader that loses the flag still meets an entry that has it.
+        Name = 'recovery: the flag for a stop with an error is read'
+        File = 'src\Bws.Core\ScmDetailReader.Recovery.cs'
+        From = 'return Reading<RecoverySettings>.Present(new RecoverySettings(list.Value!, flag != 0));'
+        To = 'return Reading<RecoverySettings>.Present(new RecoverySettings(list.Value!, false));'
+        Test = 'RecoveryListingContractTests.Recovery_in_the_listing_reads_as_sc_exe_prints_it'
+    },
+    @{
+        # Backlog 555, 2026-11-24: the program a failure runs - the half a person persisting on a machine
+        # would write - against sc.exe on the real manager.
+        Name = 'recovery: the program of the list is kept'
+        File = 'src\Bws.Core\ScmDetailReader.Recovery.cs'
+        From = 'Command = command.Length == 0 ? null : command,'
+        To = 'Command = null,'
+        Test = 'RecoveryListingContractTests.Recovery_in_the_listing_reads_as_sc_exe_prints_it'
+    },
+    @{
         Name = 'aftermath: every delay of a restart is said once'
         File = 'src\Bws.Core\Planning\Aftermath.cs'
         From = '.Select(item => item.Delay).Distinct()'
