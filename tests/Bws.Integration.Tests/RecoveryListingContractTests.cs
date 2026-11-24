@@ -22,8 +22,9 @@ namespace Bws.Integration.Tests;
 ///
 /// <b>Every Windows looked at has entries of both rare kinds</b> (2026-11-24): the Windows 11 machine this was
 /// written on, 10 with the flag and 2 with a program or a message, and the throwaway Windows Server 2025, 8
-/// and 3 - MSiSCSI carries all three on both. So a run that compared neither is a reading asleep, not a quiet
-/// machine.
+/// and 3 - MSiSCSI carries all three on both. So a run that compared none of them is a reading asleep, not a
+/// quiet machine, and it fails rather than skips: an entry is chosen from the registry as well as from our
+/// reading, so a host where both find nothing is one this class was never meant to run on.
 ///
 /// Read-only.
 /// </summary>
@@ -46,10 +47,14 @@ public sealed class RecoveryListingContractTests
             Assert.Equal(theirs, ours);
         }
 
-        // The two halves nothing else compares, each seen at least once - the summary says why that holds.
+        // The three halves nothing else compares, each seen at least once - the summary says why that holds.
+        // A text sc.exe printed in another code page was not compared, so it does not count as seen.
         Assert.Contains(compared, pair => pair.Theirs.Flag == "TRUE");
-        Assert.Contains(compared, pair => pair.Theirs.Command.Length > 0 || pair.Theirs.Message.Length > 0);
+        Assert.Contains(compared, pair => Compared(pair.Theirs.Command));
+        Assert.Contains(compared, pair => Compared(pair.Theirs.Message));
     }
+
+    private static bool Compared(string text) => text.Length > 0 && text != NotAscii;
 
     [Fact]
     public void An_entry_we_say_has_no_recovery_has_none_according_to_sc()

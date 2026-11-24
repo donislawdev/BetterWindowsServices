@@ -104,7 +104,7 @@ internal static class RecoveryWords
     /// </summary>
     internal static string? Line(string? json)
     {
-        if (json is null || Parsed(json) is not { } recovery || recovery.Actions is null)
+        if (json is null || Parsed(json) is not { } recovery || recovery.Actions is null || recovery.Actions.Any(action => action is null))
         {
             return null;
         }
@@ -113,12 +113,29 @@ internal static class RecoveryWords
         [
             Actions(recovery).Replace('\n', ' '),
             Reset(recovery),
-            recovery.Command is { } command ? Texts.Of("cli.recovery.line.command", command) : null,
-            recovery.RebootMessage is { } message ? Texts.Of("cli.recovery.line.message", message) : null,
+            recovery.Command is not { } command ? null
+                : Uses(recovery, nameof(RecoveryAction.RunProgram)) ? Texts.Of("cli.recovery.line.command", command)
+                : Texts.Of("cli.recovery.line.command.unused", command),
+            recovery.RebootMessage is not { } message ? null
+                : Uses(recovery, nameof(RecoveryAction.RestartComputer)) ? Texts.Of("cli.recovery.line.message", message)
+                : Texts.Of("cli.recovery.line.message.unused", message),
             recovery.Actions.Count > 0 && recovery.OnNonCrashFailures ? Texts.Of("cli.recovery.line.nonCrash") : null
         ];
 
         return string.Join(", ", parts.OfType<string>());
+    }
+
+    /// <summary>
+    /// Both sides of a changed recovery in words when the words tell them apart, and neither when they do
+    /// not - the caller then prints the two values as they are. The words leave out what decides nothing,
+    /// such as the period of an empty list, so two values the comparison found different can read the same,
+    /// and a difference must never be printed as two equal lines.
+    /// </summary>
+    internal static (string? Before, string? After) Sides(string? before, string? after)
+    {
+        var (worded, otherWorded) = (Line(before), Line(after));
+
+        return worded == otherWorded ? (null, null) : (worded, otherWorded);
     }
 
     /// <summary>
@@ -164,13 +181,16 @@ internal static class RecoveryWords
             return null;
         }
 
-        if (!recovery.Actions.Any(item => item.Action == action))
+        if (!Uses(recovery, action))
         {
             return Texts.Of(unusedKey, text);
         }
 
         return usedKey is null ? text : Texts.Of(usedKey, text);
     }
+
+    /// <summary>Whether some item of the list does this - the question behind "not used".</summary>
+    private static bool Uses(RecoveryDocument recovery, string action) => recovery.Actions.Any(item => item.Action == action);
 
     private static RecoveryDocument? Parsed(string json)
     {

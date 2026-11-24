@@ -225,17 +225,13 @@ internal static class DiffText
         var key = difference.Group == DifferenceGroup.RunningState ? "cli.diff.field.state" : "cli.diff.field.configuration";
 
         // The recovery in words, one line a side, since 2026-11-23 (backlog 555) - as JSON it is a few
-        // hundred characters of braces. A side that is not a recovery is printed as it is.
+        // hundred characters of braces. A side that is not a recovery is printed as it is, and so are both
+        // when the words would read the same.
         if (difference.Field == "recovery")
         {
-            return
-            [
-                Texts.Of(
-                    key,
-                    difference.Field,
-                    Value(RecoveryWords.Line(difference.Before) ?? difference.Before),
-                    Value(RecoveryWords.Line(difference.After) ?? difference.After))
-            ];
+            var (before, after) = RecoveryWords.Sides(difference.Before, difference.After);
+
+            return [Texts.Of(key, difference.Field, Value(before ?? difference.Before), Value(after ?? difference.After))];
         }
 
         if (difference.Triggers is not { } change || change.Removed.Count + change.Added.Count == 0)

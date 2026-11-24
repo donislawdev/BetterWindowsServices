@@ -272,6 +272,37 @@ public sealed class DiffOutputTests
         Assert.Contains("    triggers: nothing -> []" + Environment.NewLine, text, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A changed recovery the words cannot tell apart - an empty list whose flag moved, which the words leave
+    /// out because it decides nothing - says its two values as they are (review of PR #133). Two equal lines
+    /// under a difference would be silence.
+    /// </summary>
+    [Fact]
+    public void A_recovery_difference_the_words_cannot_tell_apart_says_its_two_values()
+    {
+        const string Before = """{"actions":[],"command":null,"onNonCrashFailures":false,"rebootMessage":null,"resetPeriodSeconds":0}""";
+        var after = Before.Replace("false", "true", StringComparison.Ordinal);
+
+        var text = DiffText.Render(Of(changed: [Recovered(Before, after)]));
+
+        Assert.Contains($"{Before} -> {after}", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_recovery_line_says_a_program_no_failure_runs_is_not_used()
+    {
+        const string Before =
+            """{"actions":[{"action":"RestartService","delayMilliseconds":60000}],"command":"C:\\fix.cmd","onNonCrashFailures":false,"rebootMessage":null,"resetPeriodSeconds":86400}""";
+
+        var text = DiffText.Render(Of(changed: [Recovered(Before, Before.Replace("RestartService", "RunProgram", StringComparison.Ordinal))]));
+
+        Assert.Contains(Texts.Of("cli.recovery.line.command.unused", @"C:\fix.cmd") + " -> ", text, StringComparison.Ordinal);
+        Assert.Contains(Texts.Of("cli.recovery.line.command", @"C:\fix.cmd") + Environment.NewLine, text, StringComparison.Ordinal);
+    }
+
+    private static ChangedEntry Recovered(string before, string after) =>
+        new("Spooler", "Print Spooler", [new FieldDifference("recovery", DifferenceGroup.Configuration, before, after)], []);
+
     private static SnapshotDiff Of(IReadOnlyList<ChangedEntry> changed, InstancesLeftOut? leftOut = null) =>
         new(
             [], [], changed, [], [], [], [],

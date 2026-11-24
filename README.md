@@ -562,7 +562,7 @@ to put it, and into the current directory when you do not.
 
 ## Building from source
 
-.NET 10 SDK, on Windows.
+.NET 10 SDK, version 10.0.404 or a later 10.0 release, on Windows. `global.json` keeps the build on the 10.0 line: the newest 10.0 SDK on the machine is used, and a .NET 11 or preview SDK is not.
 
 ```
 git clone https://github.com/donislawdev/BetterWindowsServices
