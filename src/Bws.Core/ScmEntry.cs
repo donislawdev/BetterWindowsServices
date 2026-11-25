@@ -71,10 +71,10 @@ public sealed record ScmEntry
     /// afterwards, which is the one thing a preview exists to do.
     ///
     /// <b>One bit rather than the whole accepted-controls mask, and that is the same decision
-    /// <see cref="DelayedAuto"/> writes down.</b> The mask also carries pause, continue,
-    /// shutdown and more, and this tool sends none of them. A bit nobody sends is a bit no test
-    /// can check and no reader can trust - the day a pause arrives it gets a field of its own,
-    /// read at the same moment and costing the same nothing.
+    /// <see cref="DelayedAuto"/> writes down.</b> The mask also carries shutdown and more, and
+    /// this tool sends none of them. A bit nobody sends is a bit no test can check and no reader
+    /// can trust - which is why pausing, when it arrived, got a field of its own,
+    /// <see cref="AcceptsPause"/>, read at the same moment and costing the same nothing.
     ///
     /// <b>Absent means the entry is stopped, and the distinction is load bearing.</b> The
     /// manager reports an empty mask for anything not running, so a plain false here would read
@@ -86,6 +86,18 @@ public sealed record ScmEntry
     /// repeating what <see cref="Status"/> already said, as drift nobody caused.
     /// </summary>
     public required Reading<bool> AcceptsStop { get; init; }
+
+    /// <summary>
+    /// Whether the entry will take a pause and a resume, as the manager reports it right now - the one
+    /// bit both share in the accepted-controls mask. Here since 2026-11-25, spec C1, for the same reason
+    /// as <see cref="AcceptsStop"/>: a pause plan says beforehand what the manager would answer after.
+    ///
+    /// <b>Absent for a stopped entry, exactly like <see cref="AcceptsStop"/></b> - measured on the
+    /// throwaway machine that day with tools/vm-service/pause-probe.ps1: the mask of a stopped service
+    /// is 0 whatever it would accept once running, and 7 both while running and while paused. So a
+    /// stopped entry is not "an entry that refuses pauses", and a plan for one says it is not running.
+    /// </summary>
+    public required Reading<bool> AcceptsPause { get; init; }
 
     /// <summary>Comes from the configuration query, which can be refused.</summary>
     public required Reading<StartType> StartType { get; init; }

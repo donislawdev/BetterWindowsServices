@@ -62,6 +62,8 @@ public sealed partial class PlanRunner
         StepOperation.Terminate => EntryStatus.Stopped,
 
         StepOperation.Start => EntryStatus.Running,
+        StepOperation.Resume => EntryStatus.Running,
+        StepOperation.Pause => EntryStatus.Paused,
         _ => throw new ArgumentOutOfRangeException(
             nameof(operation), operation, EquivalentCommand.Unhandled)
     };
@@ -85,6 +87,11 @@ public sealed partial class PlanRunner
     /// watched until it leaves that state, and the step then goes on as though it had just found it
     /// there. One that never leaves it is a failure with nothing sent, in our own words, because the
     /// way back must not count as a move something this tool never asked for.
+    ///
+    /// <b>Pausing and resuming count as heading somewhere since 2026-11-25</b>, the owner's decision on
+    /// a measurement that day: a stop sent to an entry in PausePending was taken by the manager and lost,
+    /// and the entry ended up Paused. So a stop now waits for a pause or a resume to finish, as it has
+    /// waited for a start since 2026-09-30.
     /// </summary>
     private StepResult? Settle(
         PlanStep step, EntryStatus target, ControlAnswer before, TimeSpan timeout, TimeSpan started, Halt halt)
@@ -92,9 +99,9 @@ public sealed partial class PlanRunner
         var status = before.Progress!.Value.Status;
         bool Unasked() => halt.Unasked(step.Reason);
 
-        if (status != Leaving(target))
+        if (!HeadingAway(step.Operation, status))
         {
-            return OnItsWay(target, status) ? WaitFor(step, target, timeout, started, Unasked, asked: false) : null;
+            return OnItsWay(step.Operation, status) ? WaitFor(step, target, timeout, started, Unasked, asked: false) : null;
         }
 
         var watched = Watch(step.ServiceName, now => now != status, timeout, Unasked);
@@ -106,13 +113,13 @@ public sealed partial class PlanRunner
             Settled.Over when Where(seen) == target =>
                 Result(step, StepOutcome.Succeeded, target, Holding(seen), Elapsed(started)) with { ArrivedUnasked = true },
 
-            Settled.Over when OnItsWay(target, Where(seen)) =>
+            Settled.Over when OnItsWay(step.Operation, Where(seen)) =>
                 WaitFor(step, target, timeout, started, Unasked, asked: false),
 
             Settled.Over => null,
             Settled.Unreadable => Refused(step, watched.Last, Where(seen), Holding(seen), started),
             Settled.Halted => Skipped(step, SkipReason.Cancelled, Where(seen), Holding(seen), Elapsed(started)),
-            _ => Refused(step, ControlAnswer.Refused(0, NeverAsked(target)), Where(seen), Holding(seen), started)
+            _ => Refused(step, ControlAnswer.Refused(0, NeverAsked(step.Operation, status)), Where(seen), Holding(seen), started)
         };
     }
 
@@ -139,9 +146,19 @@ public sealed partial class PlanRunner
     private StepResult WaitFor(
         PlanStep step, EntryStatus target, TimeSpan timeout, TimeSpan started, Func<bool> halted, bool asked)
     {
+        // Whether the entry has been seen on its way, which is what makes going back a refusal rather than
+        // a service that has not begun yet - see FellBack.
+        var begun = false;
+
+        bool Over(EntryStatus now)
+        {
+            begun |= now == Pending(step.Operation);
+            return now == target || FellBack(step.Operation, now, begun);
+        }
+
         var watched = Watch(
             step.ServiceName,
-            now => now == target || FellBack(target, now),
+            Over,
             timeout,
             halted,
             ended: step.Operation == StepOperation.Terminate ? step.ProcessId : null);
@@ -166,7 +183,8 @@ public sealed partial class PlanRunner
                 Refused(step, ControlAnswer.Refused(0, CameBack), Where(seen), Holding(seen), started)
                     with { StartedAgain = true },
 
-            Settled.Over => StoppedAgain(step, seen, started),
+            Settled.Over when step.Operation == StepOperation.Start => StoppedAgain(step, seen, started),
+            Settled.Over => TurnedDown(step, seen, started),
             Settled.Halted when !asked =>
                 Skipped(step, SkipReason.Cancelled, Where(seen), Holding(seen), Elapsed(started)),
 
@@ -175,7 +193,7 @@ public sealed partial class PlanRunner
             // this tool sent it, and NetEffect counts it as the run's own move - so a housemate somebody
             // else was stopping, watched and given up on, was STARTED by the step putting it back, although
             // this tool never asked it to stop. The same rule as NeverAsked above, in the other direction.
-            _ when !asked => Refused(step, ControlAnswer.Refused(0, NeverArrived(target)), Where(seen), Holding(seen), started),
+            _ when !asked => Refused(step, ControlAnswer.Refused(0, NeverArrived(step.Operation)), Where(seen), Holding(seen), started),
 
             _ => Result(step, StepOutcome.TimedOut, Where(seen), Holding(seen), Elapsed(started))
         };
@@ -259,21 +277,6 @@ public sealed partial class PlanRunner
         }
     }
 
-    /// <summary>The state that means the entry is on its way somewhere else than the step wants it.</summary>
-    private static EntryStatus Leaving(EntryStatus target) =>
-        target == EntryStatus.Running ? EntryStatus.StopPending : EntryStatus.StartPending;
-
-    /// <summary>
-    /// Whether the entry is already heading where the step wants it. Continue pending is a paused
-    /// service being resumed, which ends in Running.
-    /// </summary>
-    private static bool OnItsWay(EntryStatus target, EntryStatus status) => target == EntryStatus.Running
-        ? status is EntryStatus.StartPending or EntryStatus.ContinuePending
-        : status == EntryStatus.StopPending;
-
-    private static bool FellBack(EntryStatus target, EntryStatus status) =>
-        target == EntryStatus.Running && status == EntryStatus.Stopped;
-
     /// <summary>
     /// Held by a process, and not the one ended. Zero is the manager saying none - in the two traces printed
     /// on 2026-09-30 a restarting entry sat in StartPending with no process for 31 and 45 ms while the
@@ -309,27 +312,6 @@ public sealed partial class PlanRunner
 
     /// <summary>ERROR_SERVICE_SPECIFIC_ERROR - the service's own number is in the second field.</summary>
     private const int ServiceSpecific = 1066;
-
-    /// <summary>
-    /// Said in the plainest words available, because it is a refusal of ours rather than the system's -
-    /// the same shape as <see cref="ProcessMoved"/>. Nothing was sent, and the sentence says so.
-    /// </summary>
-    private static string NeverAsked(EntryStatus target) => target == EntryStatus.Running
-        ? "It was still stopping when the waiting ran out, so it was never asked to start. "
-            + "Ask again once it has stopped."
-        : "It was still starting when the waiting ran out, so it was never asked to stop. "
-            + "Ask again once it has started.";
-
-    /// <summary>
-    /// The other half of <see cref="NeverAsked"/>: the entry was already heading where the step wanted
-    /// it, was only watched, and did not get there in time. Said in our words because the manager said
-    /// nothing - nobody asked it anything.
-    /// </summary>
-    private static string NeverArrived(EntryStatus target) => target == EntryStatus.Running
-        ? "It was already starting when its turn came, and the waiting ran out before it started. "
-            + "It was never asked to start, so nothing here counts it as started."
-        : "It was already stopping when its turn came, and the waiting ran out before it stopped. "
-            + "It was never asked to stop, so nothing here starts it again.";
 
     /// <summary>How one watch ended.</summary>
     private enum Settled

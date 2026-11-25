@@ -119,6 +119,8 @@ internal static class FinishedRun
             ? Texts.Of("gui.plan.notice.done.setAndStopped.one", named, PlanWords.SetTo(plan))
             : Texts.Of("gui.plan.notice.done.set.one", named, PlanWords.SetTo(plan)),
         ActionKind.SetRecovery => Texts.Of("gui.plan.notice.done.recovery.one", named),
+        ActionKind.Pause => Texts.Of("gui.plan.notice.done.paused.one", named),
+        ActionKind.Resume => Texts.Of("gui.plan.notice.done.running.one", named),
         _ => throw new ArgumentOutOfRangeException(nameof(plan), plan.Action.Kind, EquivalentCommand.Unhandled)
     };
 
@@ -131,6 +133,8 @@ internal static class FinishedRun
             ? Texts.Of("gui.plan.notice.done.setAndStopped.many", entries, PlanWords.SetTo(plan))
             : Texts.Of("gui.plan.notice.done.set.many", entries, PlanWords.SetTo(plan)),
         ActionKind.SetRecovery => Texts.Of("gui.plan.notice.done.recovery.many", entries),
+        ActionKind.Pause => Texts.Of("gui.plan.notice.done.paused.many", entries),
+        ActionKind.Resume => Texts.Of("gui.plan.notice.done.running.many", entries),
         _ => throw new ArgumentOutOfRangeException(nameof(plan), plan.Action.Kind, EquivalentCommand.Unhandled)
     };
 }

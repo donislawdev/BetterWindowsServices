@@ -101,6 +101,7 @@ public static partial class Catalogue
             Status = status,
             ProcessId = running && !driver ? Reading<int>.Present(4812) : Reading<int>.Absent(),
             AcceptsStop = running && !driver ? Reading<bool>.Present(true) : Reading<bool>.Absent(),
+            AcceptsPause = running && !driver ? Reading<bool>.Present(false) : Reading<bool>.Absent(),
             StartType = Reading<StartType>.Present(start),
             DelayedAuto = Reading<bool>.Present(false),
             Account = driver ? Reading<string>.Absent() : Reading<string>.Present(account!),

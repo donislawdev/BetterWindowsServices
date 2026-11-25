@@ -269,6 +269,11 @@ public sealed partial class WindowsScmCatalog(NetworkPaths networkPaths = Networ
                 ? Reading<bool>.Absent()
                 : Reading<bool>.Present(enumerated.AcceptsStop),
 
+            // The same empty mask for a stopped entry, so the same absence.
+            AcceptsPause = enumerated.Status == EntryStatus.Stopped
+                ? Reading<bool>.Absent()
+                : Reading<bool>.Present(enumerated.AcceptsPause),
+
             StartType = configuration.StartType,
             DelayedAuto = configuration.DelayedAuto,
             Account = configuration.Account,

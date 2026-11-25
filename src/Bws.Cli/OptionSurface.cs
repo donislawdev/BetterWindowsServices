@@ -72,6 +72,17 @@ internal enum CommandKind
     SetRecovery,
 
     /// <summary>
+    /// Pause a running entry, and resume a paused one - <c>bws pause NAME</c>, <c>bws resume NAME</c>. Spec C1,
+    /// backlog 555 part (b): the words services.msc and PowerShell use, the owner's decision of 2026-11-25,
+    /// frozen in `docs/02`. Two verbs rather than one with a switch, like stop and start, because each is
+    /// the other's way back.
+    /// </summary>
+    Pause,
+
+    /// <summary>The way back from <see cref="Pause"/>.</summary>
+    Resume,
+
+    /// <summary>
     /// Stop it, and end the process behind it if that does not work.
     ///
     /// <b>Spelled the way `E1` of the specification wrote it from the start - <c>bws kill NAME</c> -
@@ -265,7 +276,7 @@ internal static class OptionSurface
         // taken for an oversight. They are read by people, and a JSON shape of the catalogue would be a
         // second public contract nobody has asked for yet. Adding it later is additive - taking it back
         // would not be.
-        ("--json", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SetRecovery, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill, CommandKind.History, CommandKind.Fix]),
+        ("--json", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SetRecovery, CommandKind.Pause, CommandKind.Resume, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill, CommandKind.History, CommandKind.Fix]),
 
         // Only where there is a snapshot to annotate. A note is the thing that makes a file
         // from three weeks ago mean something, so it belongs to the verb that writes one.
@@ -283,10 +294,10 @@ internal static class OptionSurface
         // applies to every command. It used to be accepted everywhere and only honoured for
         // the listing, which is the same silence from the other side. history reads the System log
         // instead of the manager, and says how long that took.
-        ("--timing", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SetRecovery, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill, CommandKind.History, CommandKind.Fix]),
+        ("--timing", [CommandKind.List, CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType, CommandKind.SetRecovery, CommandKind.Pause, CommandKind.Resume, CommandKind.SnapshotCreate, CommandKind.SnapshotDiff, CommandKind.Kill, CommandKind.History, CommandKind.Fix]),
 
         ("--dry-run", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType,
-            CommandKind.SetRecovery, CommandKind.Kill, CommandKind.Fix]),
+            CommandKind.SetRecovery, CommandKind.Pause, CommandKind.Resume, CommandKind.Kill, CommandKind.Fix]),
 
         // Not on start, and this one was missed the first time round. Starting is not the
         // mirror of stopping: the manager brings up whatever the entry needs by itself, and
@@ -306,7 +317,8 @@ internal static class OptionSurface
         // A fix is a restart, so it waits the way a restart does. --dependents is NOT here and must not be:
         // a fix always takes its dependants along, and accepting the word would make it a switch that
         // does nothing - the silence this table was built to end.
-        ("--timeout", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.Kill, CommandKind.Fix]),
+        // A pause and a resume are watched to where they go the way a stop is, so they wait the same way.
+        ("--timeout", [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.Pause, CommandKind.Resume, CommandKind.Kill, CommandKind.Fix]),
 
         // The only verb with anything to say about components, and NOT accepted anywhere else
         // even though a listing could be imagined to carry one. It turns the notice into the
@@ -416,9 +428,12 @@ internal static class OptionSurface
     ///
     /// <b>tool sits after history and before license</b> since 2026-10-20, for the second reason license
     /// is last: a word typed in a hurry was far likelier meant for anything above it.
+    ///
+    /// <b>pause and resume sit after restart</b> since 2026-11-25, where the usage text puts their line -
+    /// right under the three that move an entry, which is what they do too.
     /// </remarks>
     internal static IReadOnlyList<string> Verbs =>
-        ["list", "show", "stop", "start", "restart", "start-type", "recovery", "kill", "snapshot", "history", "tool", "license"];
+        ["list", "show", "stop", "start", "restart", "pause", "resume", "start-type", "recovery", "kill", "snapshot", "history", "tool", "license"];
 
     /// <summary>
     /// Whether the command is about ONE entry somebody named, rather than about whatever a query
@@ -483,14 +498,22 @@ internal static class OptionSurface
         CommandKind.Tool => "cli.takes.oneTool",
         CommandKind.Fixes or CommandKind.Fix => "cli.takes.oneFix",
 
-        // Show, stop, start and restart. Not a default arm that guesses, for the reason For gives
-        // in the window: a fifth shape must fail here loudly rather than quietly claim to take one
-        // name when it does not.
-        CommandKind.Show or CommandKind.Stop or CommandKind.Start or CommandKind.Restart
-            or CommandKind.Kill =>
-            "cli.takes.oneName",
+        // The verbs that take one name, LISTED in OneName rather than guessed: a new shape must fail
+        // here loudly rather than quietly claim to take one name when it does not.
+        _ when OneName.Contains(kind) => "cli.takes.oneName",
 
         _ => throw new ArgumentOutOfRangeException(
             nameof(kind), kind, "This is not a command, so there is nothing it takes.")
     };
+
+    /// <summary>
+    /// The verbs that take exactly one name and nothing else. A set rather than an arm of alternatives since
+    /// 2026-11-25, when pause and resume took that arm to the length the shape guard calls close to its
+    /// ceiling - it is still a list somebody writes, never worked out from the verb.
+    /// </summary>
+    private static readonly HashSet<CommandKind> OneName =
+    [
+        CommandKind.Show, CommandKind.Stop, CommandKind.Start, CommandKind.Restart,
+        CommandKind.Pause, CommandKind.Resume, CommandKind.Kill
+    ];
 }

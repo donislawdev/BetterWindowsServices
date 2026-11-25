@@ -27,7 +27,8 @@ internal static class WriteCommands
     /// </remarks>
     internal static bool Writes(CommandKind kind) =>
         kind is CommandKind.Stop or CommandKind.Start or CommandKind.Restart
-            or CommandKind.SetStartType or CommandKind.SetRecovery or CommandKind.Kill or CommandKind.Fix;
+            or CommandKind.SetStartType or CommandKind.SetRecovery or CommandKind.Kill or CommandKind.Fix
+            or CommandKind.Pause or CommandKind.Resume;
 
     /// <summary>
     /// Which ask a write command is. Read only where <see cref="Writes"/> is already true.
@@ -59,6 +60,8 @@ internal static class WriteCommands
         CommandKind.Fix => ActionKind.Restart,
         CommandKind.SetStartType => ActionKind.SetStartType,
         CommandKind.SetRecovery => ActionKind.SetRecovery,
+        CommandKind.Pause => ActionKind.Pause,
+        CommandKind.Resume => ActionKind.Resume,
         _ => throw new InvalidOperationException(
             "This command does not change anything, so it has no action. Writes says which do.")
     };

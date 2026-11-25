@@ -194,8 +194,8 @@ internal sealed partial class FakeScmControl(IClock? clock = null) : IScmControl
     /// <summary>
     /// An entry already on its way somewhere when the run begins - somebody else asked - that gets
     /// there <paramref name="after"/> from now, and until then says <paramref name="meanwhile"/>. Where
-    /// it is going follows from the pending state it is in: stopping ends in Stopped, anything else in
-    /// Running.
+    /// it is going follows from the pending state it is in: stopping ends in Stopped, pausing in Paused
+    /// (since 2026-11-25), anything else in Running.
     ///
     /// <b>Added 2026-09-30 for stability report W-1 and W-7.</b> Until then every entry here moved only
     /// when this tool asked it to, so the one shape the report was about - a step meeting an entry
@@ -210,7 +210,12 @@ internal sealed partial class FakeScmControl(IClock? clock = null) : IScmControl
         entry.Arrival = new Arrival(ruler, after, meanwhile);
         entry.Moving = true;
         entry.AskedAt = ruler.Elapsed;
-        entry.Heading = meanwhile.Status == EntryStatus.StopPending ? EntryStatus.Stopped : EntryStatus.Running;
+        entry.Heading = meanwhile.Status switch
+        {
+            EntryStatus.StopPending => EntryStatus.Stopped,
+            EntryStatus.PausePending => EntryStatus.Paused,
+            _ => EntryStatus.Running
+        };
         entry.Status = meanwhile.Status;
         return this;
     }
@@ -294,7 +299,7 @@ internal sealed partial class FakeScmControl(IClock? clock = null) : IScmControl
         if (entry.Arrival is { } arrival)
         {
             entry.AskedAt = arrival.Clock.Elapsed;
-            entry.Heading = operation == StepOperation.Stop ? EntryStatus.Stopped : EntryStatus.Running;
+            entry.Heading = Destination(operation);
 
             return ControlAnswer.Done();
         }
@@ -303,11 +308,19 @@ internal sealed partial class FakeScmControl(IClock? clock = null) : IScmControl
         // services do and what most of these tests are not about.
         if (entry.AfterRequest is null)
         {
-            entry.Status = operation == StepOperation.Stop ? EntryStatus.Stopped : EntryStatus.Running;
+            entry.Status = Destination(operation);
         }
 
         return ControlAnswer.Done();
     }
+
+    /// <summary>Where a request sends an entry - a pause to Paused since 2026-11-25, a resume to Running.</summary>
+    private static EntryStatus Destination(StepOperation operation) => operation switch
+    {
+        StepOperation.Stop => EntryStatus.Stopped,
+        StepOperation.Pause => EntryStatus.Paused,
+        _ => EntryStatus.Running
+    };
 
     /// <summary>
     /// What the manager says no to before anything moves: an entry told to refuse, and - since

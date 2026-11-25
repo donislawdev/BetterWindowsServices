@@ -347,6 +347,12 @@ public static class NetEffect
         // report was being written - after the machine had already been changed.
         StepOperation.Terminate => true,
         StepOperation.Start => false,
+
+        // A PAUSE AND A RESUME MOVE AN ENTRY BETWEEN RUNNING AND PAUSED, since 2026-11-25, and "running"
+        // answers them as it answers a stop and a start: a pause found it running, a resume found it
+        // not. No plan both pauses and stops one entry, so the two kinds never meet in one tally.
+        StepOperation.Pause => true,
+        StepOperation.Resume => false,
         _ => throw new ArgumentOutOfRangeException(
             nameof(first), first, EquivalentCommand.Unhandled)
     };
@@ -357,6 +363,8 @@ public static class NetEffect
         StepOperation.Stop => StepOperation.Start,
         StepOperation.Terminate => StepOperation.Start,
         StepOperation.Start => StepOperation.Stop,
+        StepOperation.Pause => StepOperation.Resume,
+        StepOperation.Resume => StepOperation.Pause,
         _ => throw new ArgumentOutOfRangeException(
             nameof(last), last, EquivalentCommand.Unhandled)
     };
@@ -367,6 +375,8 @@ public static class NetEffect
         StepOperation.Start => true,
         StepOperation.Stop => false,
         StepOperation.Terminate => false,
+        StepOperation.Pause => false,
+        StepOperation.Resume => true,
         _ => throw new ArgumentOutOfRangeException(
             nameof(last), last, EquivalentCommand.Unhandled)
     };

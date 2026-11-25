@@ -24,7 +24,10 @@ internal static partial class PlanText
             EquivalentCommand.For(new ServiceAction(
                 ActionKind.SetStartType, warning.ServiceName, To: StartSetting.Manual))),
 
-        PlanWarningKind.PausedCannotStart => Texts.Of("cli.plan.warning.pausedCannotStart", warning.ServiceName),
+        // The way to resume it is this tool's own since 2026-11-25 - it pointed at sc.exe continue until then.
+        PlanWarningKind.PausedCannotStart => Texts.Of(
+            "cli.plan.warning.pausedCannotStart", warning.ServiceName,
+            EquivalentCommand.For(new ServiceAction(ActionKind.Resume, warning.ServiceName))),
 
         PlanWarningKind.RestartOnlyStarts => Texts.Of("cli.plan.warning.restartOnlyStarts", warning.ServiceName),
 

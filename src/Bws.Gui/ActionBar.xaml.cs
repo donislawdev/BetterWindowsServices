@@ -199,6 +199,8 @@ public partial class ActionBar : UserControl
         Set(StopButton, anything, anything ? Texts.Of("gui.action.stop.hint") : off);
         Set(StartButton, anything, anything ? Texts.Of("gui.action.start.hint") : off);
         Set(RestartButton, anything, anything ? Texts.Of("gui.action.restart.hint") : off);
+        Set(PauseButton, anything, anything ? Texts.Of("gui.action.pause.hint") : off);
+        Set(ResumeButton, anything, anything ? Texts.Of("gui.action.resume.hint") : off);
         Set(StartTypeButton, anything, anything ? Texts.Of("gui.action.startType.hint") : off);
         Set(RecoveryButton, anything, anything ? Texts.Of("gui.action.recovery.hint") : off);
 
@@ -232,6 +234,12 @@ public partial class ActionBar : UserControl
 
     /// <inheritdoc cref="Stop"/>
     internal Button Restart => RestartButton;
+
+    /// <inheritdoc cref="Stop"/>
+    internal Button Pause => PauseButton;
+
+    /// <inheritdoc cref="Stop"/>
+    internal Button Resume => ResumeButton;
 
     /// <inheritdoc cref="Stop"/>
     internal Button ForceStop => ForceStopButton;
@@ -278,6 +286,12 @@ public partial class ActionBar : UserControl
 
     private void RestartAsked(object sender, RoutedEventArgs e) =>
         PreviewRequest?.Invoke(this, new PreviewAsked(ActionKind.Restart));
+
+    private void PauseAsked(object sender, RoutedEventArgs e) =>
+        PreviewRequest?.Invoke(this, new PreviewAsked(ActionKind.Pause));
+
+    private void ResumeAsked(object sender, RoutedEventArgs e) =>
+        PreviewRequest?.Invoke(this, new PreviewAsked(ActionKind.Resume));
 
     private void ForceStopAsked(object sender, RoutedEventArgs e) =>
         PreviewRequest?.Invoke(this, new PreviewAsked(ActionKind.ForceStop));

@@ -208,14 +208,20 @@ SERVICE_START
 SERVICE_STOP
 SERVICE_CONTROL_STOP
 
+// Pause and resume (spec C1, 2026-11-25): one right for both, and the two controls it sends.
+SERVICE_PAUSE_CONTINUE
+SERVICE_CONTROL_PAUSE
+SERVICE_CONTROL_CONTINUE
+
 // Whether the entry will even take a stop, read from a field of the status structure the
 // enumeration already fills in. Nothing new is called for it and nothing new can be done with
 // it - this is the difference between asking a service to stop and finding out afterwards that
-// it was never going to accept one.
+// it was never going to accept one. The pause bit beside it since 2026-11-25, for the same reason.
 //
 // Named rather than written as 1, which is the argument the two enumerations below make about
 // themselves: a bit tested against a bare number is a bit nobody can check later.
 SERVICE_ACCEPT_STOP
+SERVICE_ACCEPT_PAUSE_CONTINUE
 
 SC_STATUS_TYPE
 ENUM_SERVICE_TYPE

@@ -99,7 +99,7 @@ public sealed class CommandLinePropertyTests
     }
 
     private static readonly string[] Verbs =
-        ["list", "show", "stop", "start", "restart", "start-type", "recovery", "kill", "history", "license", "snapshot", "tool"];
+        ["list", "show", "stop", "start", "restart", "pause", "resume", "start-type", "recovery", "kill", "history", "license", "snapshot", "tool"];
 
     private static readonly Gen<string> Cased = Gen.OneOf(Verbs).SelectMany(verb =>
         Gen.OneOf(verb, verb.ToUpperInvariant(), char.ToUpperInvariant(verb[0]) + verb[1..]));

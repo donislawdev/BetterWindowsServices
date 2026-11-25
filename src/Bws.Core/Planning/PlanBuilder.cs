@@ -216,9 +216,10 @@ public sealed class PlanBuilder(
             return Refuse(action, PlanProblemKind.CannotStartLate, [target.LoadOrderGroup.Value!]);
         }
 
+        // A pause and a resume have nothing in their way either, since 2026-11-25 - PausePlan says why.
         return action.Kind == ActionKind.SetRecovery
             ? RecoveryPlan.Planned(action, target, recovery ?? NoRecoveryReader.Instance)
-            : null;
+            : PausePlan.Asks(action.Kind) ? PausePlan.Planned(action, target, entries, catalog) : null;
     }
 
     /// <summary>

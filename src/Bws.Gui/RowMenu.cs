@@ -136,6 +136,11 @@ internal static class RowMenu
             new RowMenuEntry("gui.action.start", null, () => window.Preview(ActionKind.Start)),
             new RowMenuEntry("gui.action.restart", null, () => window.Preview(ActionKind.Restart)),
 
+            // Pause and resume, 2026-11-25 - in the order services.msc's own row menu has them, and the
+            // same order as the action bar.
+            new RowMenuEntry("gui.action.pause", null, () => window.Preview(ActionKind.Pause)),
+            new RowMenuEntry("gui.action.resume", null, () => window.Preview(ActionKind.Resume)),
+
             // THE TWO VERBS THAT CAN END A PROCESS, 2026-09-16 - backlog 374, the same order
             // as the action bar. The same plan as `bws kill` builds. They stay live over any
             // selection, because the reason the bar puts on its button has nowhere to stand on

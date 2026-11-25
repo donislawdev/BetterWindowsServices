@@ -223,6 +223,7 @@ internal static partial class ManagerBlocks
                     // is why it stays out of the snapshot: two snapshots differing here would be
                     // saying what the status field already said.
                     AcceptsStop: (status.dwControlsAccepted & PInvoke.SERVICE_ACCEPT_STOP) != 0,
+                    AcceptsPause: (status.dwControlsAccepted & PInvoke.SERVICE_ACCEPT_PAUSE_CONTINUE) != 0,
                     RecognizerDriver: ManagerTerms.IsRecognizerDriver(status.dwServiceType)));
             }
         }

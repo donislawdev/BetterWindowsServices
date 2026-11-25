@@ -105,10 +105,11 @@ public sealed class BulkPlanBuilder(
     /// entry still running and the manager refuses it.
     ///
     /// <b>A recovery write is on the unordered side from its first day (2026-11-24)</b>, for the reason a
-    /// start type without a stop is: it takes nothing down.
+    /// start type without a stop is: it takes nothing down. <b>So are a pause and a resume (2026-11-25)</b> -
+    /// a paused entry keeps its dependants running, measured, so no order of two of them can be refused.
     /// </summary>
     private static List<string> InTheOrderTheyMustHappen(BulkAction action, List<string> asked, IScmCatalog asking) =>
-        action.Kind is ActionKind.Start or ActionKind.SetRecovery
+        action.Kind is ActionKind.Start or ActionKind.SetRecovery or ActionKind.Pause or ActionKind.Resume
             || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
             ? asked
             : DependentsFirst.Order(asking, asked);

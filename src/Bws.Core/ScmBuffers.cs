@@ -25,6 +25,9 @@ namespace Bws.Core;
 /// <paramref name="Status"/> beside it. The four states are put on it one layer up, where a
 /// stopped entry becomes an absence rather than a no.
 /// </param>
+/// <param name="AcceptsPause">
+/// The pause and resume bit of the same mask, with the same caveat as <paramref name="AcceptsStop"/>.
+/// </param>
 /// <param name="RecognizerDriver">
 /// A driver <see cref="EntryType"/> has no kind for - see <see cref="ManagerTerms.IsRecognizerDriver"/>.
 /// Last and defaulted, so every reading built before 2026-10-05 still means what it meant.
@@ -37,6 +40,7 @@ internal readonly record struct EnumeratedEntry(
     EntryStatus Status,
     uint ProcessId,
     bool AcceptsStop,
+    bool AcceptsPause,
     bool RecognizerDriver = false)
 {
     internal bool IsDriver =>

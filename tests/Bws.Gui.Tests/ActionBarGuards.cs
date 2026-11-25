@@ -374,9 +374,10 @@ public sealed class ActionBarGuards
         // Eleven is what this build has - seven until 2026-09-16, when the two forcing verbs arrived
         // and the floor was raised to fit them, nine until 2026-10-14, when "Snapshots..." arrived
         // (W-a, one button with a menu rather than two for exactly this bar), ten until 2026-11-24,
-        // when "Set recovery..." arrived (backlog 555 a2) - and asking for the exact number is
-        // deliberate: a button quietly disappearing from this bar is worth a red run of its own.
-        Assert.Equal(11, buttons);
+        // when "Set recovery..." arrived (backlog 555 a2), eleven until 2026-11-25, when "Pause..." and
+        // "Resume..." arrived (555 b) - and asking for the exact number is deliberate: a button quietly
+        // disappearing from this bar is worth a red run of its own.
+        Assert.Equal(13, buttons);
 
         Assert.True(
             worst <= edge,

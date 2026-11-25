@@ -10,6 +10,7 @@ namespace Bws.Gui.ViewModels;
 ///
 /// <b>Its own file, reached from the discard arm of the two switches beside it</b>, because the warning
 /// switch stands one fork under the complexity ceiling and three more arms would have taken it two over.
+/// What these two do not know goes on to the pause and resume ones (PlanWords.Pausing), since 2026-11-25.
 /// The terminal's PlanText is cut the same way, so the two keep one shape. Each key is written out in full
 /// inside the call, for the reason the head of the warning switch gives: a key built as an expression is
 /// one TextKeyGuards cannot find.
@@ -41,8 +42,7 @@ internal static partial class PlanWords
         PlanWarningKind.RebootMessageUnused => Texts.Of("gui.plan.warning.rebootMessageUnused", warning.ServiceName),
         PlanWarningKind.EveryFailureFirst => Texts.Of("gui.plan.warning.everyFailureFirst", warning.ServiceName),
 
-        _ => throw new ArgumentOutOfRangeException(
-            nameof(warning), warning.Kind, EquivalentCommand.Unhandled)
+        _ => Pausing(warning)
     };
 
     /// <summary>
@@ -109,8 +109,7 @@ internal static partial class PlanWords
         PlanProblemKind.RecoveryUnnamed => Texts.Of("gui.plan.problem.recoveryUnnamed", problem.ServiceName),
         PlanProblemKind.NoActionsToReset => Texts.Of("gui.plan.problem.noActionsToReset", problem.ServiceName),
 
-        _ => throw new ArgumentOutOfRangeException(
-            nameof(problem), problem.Kind, EquivalentCommand.Unhandled)
+        _ => Pausing(problem)
     };
 
     /// <summary>

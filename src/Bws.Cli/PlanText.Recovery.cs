@@ -8,8 +8,8 @@ namespace Bws.Cli;
 /// three refusals. Since 2026-11-24 (backlog 555 part a2).
 ///
 /// <b>Reached from the discard arms of the aftermath switches</b>, the way those were reached from the ones
-/// before them, so no switch here grows past the complexity ceiling. What this one does not know throws - a
-/// kind with no sentence never borrows one.
+/// before them, so no switch here grows past the complexity ceiling. What this one does not know goes on to
+/// <see cref="Pausing(PlanWarning)"/>, which throws - a kind with no sentence never borrows one.
 /// </summary>
 internal static partial class PlanText
 {
@@ -69,7 +69,7 @@ internal static partial class PlanText
         PlanWarningKind.RebootMessageUnused => Texts.Of("cli.plan.warning.rebootMessageUnused", warning.ServiceName),
         PlanWarningKind.EveryFailureFirst => Texts.Of("cli.plan.warning.everyFailureFirst", warning.ServiceName),
 
-        _ => throw new ArgumentOutOfRangeException(nameof(warning), warning.Kind, EquivalentCommand.Unhandled)
+        _ => Pausing(warning)
     };
 
     private static string Recovering(PlanProblem problem) => problem.Kind switch
@@ -77,6 +77,6 @@ internal static partial class PlanText
         PlanProblemKind.RecoveryUnreadable => Texts.Of("cli.plan.problem.recoveryUnreadable", problem.ServiceName),
         PlanProblemKind.RecoveryUnnamed => Texts.Of("cli.plan.problem.recoveryUnnamed", problem.ServiceName),
         PlanProblemKind.NoActionsToReset => Texts.Of("cli.plan.problem.noActionsToReset", problem.ServiceName),
-        _ => throw new ArgumentOutOfRangeException(nameof(problem), problem.Kind, EquivalentCommand.Unhandled)
+        _ => Pausing(problem)
     };
 }

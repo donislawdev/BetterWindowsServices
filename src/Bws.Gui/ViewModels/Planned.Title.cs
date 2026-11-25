@@ -125,6 +125,8 @@ public sealed partial class Planned
         ActionKind.ForceStop => Texts.Of("gui.plan.carryOut.forceStop.one", Named(plan)),
         ActionKind.ForceRestart => Texts.Of("gui.plan.carryOut.forceRestart.one", Named(plan)),
         ActionKind.SetRecovery => Texts.Of("gui.plan.carryOut.recovery.one", Named(plan)),
+        ActionKind.Pause => Texts.Of("gui.plan.carryOut.pause.one", Named(plan)),
+        ActionKind.Resume => Texts.Of("gui.plan.carryOut.resume.one", Named(plan)),
         _ => throw new ArgumentOutOfRangeException(nameof(plan), plan.Action.Kind, EquivalentCommand.Unhandled)
     };
 
@@ -140,6 +142,8 @@ public sealed partial class Planned
         ActionKind.ForceStop => Texts.Of("gui.plan.carryOut.forceStop.many", Asked(plan)),
         ActionKind.ForceRestart => Texts.Of("gui.plan.carryOut.forceRestart.many", Asked(plan)),
         ActionKind.SetRecovery => Texts.Of("gui.plan.carryOut.recovery.many", Asked(plan)),
+        ActionKind.Pause => Texts.Of("gui.plan.carryOut.pause.many", Asked(plan)),
+        ActionKind.Resume => Texts.Of("gui.plan.carryOut.resume.many", Asked(plan)),
         _ => throw new ArgumentOutOfRangeException(nameof(plan), plan.Action.Kind, EquivalentCommand.Unhandled)
     };
 

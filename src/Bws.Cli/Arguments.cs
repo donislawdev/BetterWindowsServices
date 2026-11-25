@@ -75,6 +75,10 @@ internal static class Arguments
             // The Recovery tab - see CommandKind.SetRecovery.
             "recovery" => CommandKind.SetRecovery,
 
+            // services.msc's Pause and Resume - see CommandKind.Pause.
+            "pause" => CommandKind.Pause,
+            "resume" => CommandKind.Resume,
+
             // The word taskkill says it replaces, and the word PowerShell aliases Stop-Process
             // to. Somebody reaching for this has typed it before somewhere else.
             "kill" => CommandKind.Kill,

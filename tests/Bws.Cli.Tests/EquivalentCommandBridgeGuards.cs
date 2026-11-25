@@ -28,7 +28,7 @@ public sealed class EquivalentCommandBridgeGuards
 {
     private static readonly CommandKind[] WriteVerbs =
         [CommandKind.Stop, CommandKind.Start, CommandKind.Restart, CommandKind.SetStartType,
-            CommandKind.SetRecovery, CommandKind.Kill];
+            CommandKind.SetRecovery, CommandKind.Pause, CommandKind.Resume, CommandKind.Kill];
 
     /// <summary>
     /// A recovery change naming every part, with the values that are hardest to carry through a shell: a
