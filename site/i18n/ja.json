@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "本文へスキップ",
@@ -43,6 +43,10 @@
   "switch.force": "<code>kill</code> では、丁寧に尋ねずにすぐにプロセスを終了します。そのため、プレビューには 2 つではなく 1 つのステップが表示されます。<code>snapshot create</code> では、すでにあるスナップショットを置き換えます。スナップショットではないファイルが置き換えられることはありません。",
   "switch.restart": "<code>kill</code> では、プロセスが消えたあとに、そのプロセスを共有していたすべてのものとともに、エントリを元に戻します。",
   "switch.stop": "<code>start-type</code> で、かつ <code>disabled</code> と組み合わせたときのみ、設定を書き込んだあとに同じプランの中でエントリを停止します。スタートアップの種類は次回の起動を変えるだけで今は何も変えないので、これがないと、disabled に設定された実行中のエントリは実行され続けます。",
+  "switch.reset": "失敗がないままどれだけ経つと Windows が最初の失敗から数え直すか - s、m、h、d を付けた整数、0、またはコンピューターの再起動まで待つ <code>never</code>。指定しなければ、エントリは今の期間を保ちます。",
+  "switch.program": "<code>program:DELAY</code> アクションが実行するプログラムで、引用符や <code>%1%</code> も含めて書いたとおりに使われます。<code>%1%</code> は失敗の回数を表します。サービスが実行されているアカウントで実行されます。空の値を指定すると削除されます。",
+  "switch.message": "<code>reboot:DELAY</code> アクションがコンピューターを再起動する前に、サインインしているユーザーに送られるメッセージ。空の値を指定すると削除されます。",
+  "switch.on-error-stops": "<code>yes</code> にすると、クラッシュしたサービスだけでなく、エラーで停止したサービスにもアクションが応答します。<code>no</code> ではクラッシュだけに応答します。",
   "switch.full": "<code>show</code> では、本当に空のフィールドも表示します。誰も読み取れなかったフィールドは、どちらの場合も表示されます。",
   "switch.components": "<code>license</code> では、通知を、この実行ファイルの中にあるすべてのコンポーネントとそのバージョン、ライセンス、出所に変えます。ダウンロードの横で公開されている部品表と同じ内容です。どちらも 1 つの台帳から生成されるためです。",
   "switch.json": "同じドキュメントを、機械可読な形で標準出力に出します。",

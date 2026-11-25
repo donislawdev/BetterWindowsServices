@@ -9,12 +9,17 @@ namespace Bws.Gui.ViewModels;
 /// an answer the entries can agree on. What the form shows while a part has no tick, and what taking a tick off
 /// puts back (<see cref="RecoveryForm"/>).
 /// </summary>
+/// <param name="Unread">
+/// Whether an entry's recovery could not be read - then nothing is agreed on, and the form says the part was not
+/// read rather than that the entries differ, which nobody knows.
+/// </param>
 internal sealed record RecoveryInCommon(
     IReadOnlyList<RecoveryItem>? Items,
     TimeSpan? Period,
     (bool Agreed, string? Value) Command,
     (bool Agreed, string? Value) Message,
-    bool? Flag)
+    bool? Flag,
+    bool Unread = false)
 {
     internal bool Agreed(RecoveryParts part) => part == RecoveryParts.Command ? Command.Agreed : Message.Agreed;
 
@@ -23,7 +28,7 @@ internal sealed record RecoveryInCommon(
     {
         if (all.Count == 0 || all.Any(one => one is null))
         {
-            return new RecoveryInCommon(null, null, (false, null), (false, null), null);
+            return new RecoveryInCommon(null, null, (false, null), (false, null), null, Unread: true);
         }
 
         var first = all[0]!;

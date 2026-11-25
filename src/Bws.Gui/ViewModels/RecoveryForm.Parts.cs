@@ -119,6 +119,7 @@ public sealed partial class RecoveryForm
     private string Note(bool ticked, bool known) =>
         ticked || known ? string.Empty
         : Entries == 1 ? Texts.Of("gui.recovery.form.unread")
+        : _kept.Unread ? Texts.Of("gui.recovery.form.unread.some")
         : Texts.Of("gui.recovery.form.differs");
 
     public override bool HasErrors => PeriodProblem.Length > 0;

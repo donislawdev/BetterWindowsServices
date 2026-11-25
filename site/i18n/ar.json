@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "انتقل إلى المحتوى",
@@ -43,6 +43,10 @@
   "switch.force": "في <code>kill</code>، أنهِ العملية فورًا دون أن تسأل بلطف، فتعرض المعاينة خطوة واحدة بدل اثنتين. وفي <code>snapshot create</code>، استبدل لقطة موجودة بالفعل، ولا يُستبدل ملف ليس لقطة أبدًا.",
   "switch.restart": "في <code>kill</code>، أعد العنصر بعد ذهاب العملية، مع كل ما كان يشاركها.",
   "switch.stop": "في <code>start-type</code>، ومع <code>disabled</code> وحده، أوقف العنصر في الخطة نفسها بعد كتابة الإعداد. فنوع بدء التشغيل يغيّر الإقلاع التالي ولا يغيّر شيئًا الآن، لذا فبدونه يظل عنصر يعمل ومضبوط على disabled يعمل.",
+  "switch.reset": "بعد كم من الوقت دون أي فشل يعود Windows إلى العدّ من الفشل الأول - عدد صحيح مع s أو m أو h أو d، أو 0، أو <code>never</code> الذي ينتظر إعادة تشغيل الكمبيوتر. وبدونه يحتفظ العنصر بالمدة التي لديه.",
+  "switch.program": "البرنامج الذي يشغّله إجراء <code>program:DELAY</code>، حرفيًا، بما في ذلك علامات الاقتباس و<code>%1%</code> - يمثّل <code>%1%</code> رقم الفشل. يعمل بالحساب الذي تعمل به الخدمة. والقيمة الفارغة تزيله.",
+  "switch.message": "الرسالة المرسلة إلى الأشخاص المسجّلين دخولهم قبل أن يعيد إجراء <code>reboot:DELAY</code> تشغيل الكمبيوتر. والقيمة الفارغة تزيلها.",
+  "switch.on-error-stops": "<code>yes</code> يجعل الإجراءات تستجيب أيضًا لخدمة تتوقف بخطأ، لا فقط لخدمة تتعطل. <code>no</code> يستجيب للأعطال فقط.",
   "switch.full": "في <code>show</code>، اطبع أيضًا الحقول الفارغة فعلًا. والحقل الذي لم يستطع أحد قراءته يُطبع في الحالتين.",
   "switch.components": "في <code>license</code>، حوّل الإشعار إلى كل مكوّن داخل هذا الملف التنفيذي مع إصداره وترخيصه ومصدره. وهي المجموعة نفسها التي تحملها قائمة المواد المنشورة بجانب التنزيل، لأن الاثنتين تُولَّدان من سجل واحد.",
   "switch.json": "المستند نفسه، مقروءًا للآلة، على الإخراج القياسي.",

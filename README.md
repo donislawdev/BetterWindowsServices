@@ -625,6 +625,10 @@ bws --version
 | `--force` | on `kill`, end the process straight away without asking politely. On `snapshot create`, replace a snapshot that is already there - a file that is not a snapshot is never replaced |
 | `--restart` | on `kill`, bring the entry back once the process is gone, with everything that shared it |
 | `--stop` | on `start-type`, and only beside `disabled`, stop the entry in the same plan once the setting is written. A startup type changes the next boot and nothing now, so without it a running entry set to disabled keeps running |
+| `--reset PERIOD` | on `recovery`, after how long without a failure Windows counts from the first failure again: a whole number with s, m, h or d, 0, or `never`, which waits for the computer to restart. Without it the entry keeps the period it has |
+| `--program TEXT` | on `recovery`, the program a `program:DELAY` action runs, word for word. `%1%` in it stands for the number of the failure, and it runs on the account the service runs as. `""` removes it |
+| `--message TEXT` | on `recovery`, the message sent to the people signed in before a `reboot:DELAY` action restarts the computer. `""` removes it |
+| `--on-error-stops yes\|no` | on `recovery`, whether the actions also answer a service that stops with an error, not only one that crashes |
 | `--exit-code` | on `snapshot diff`, end with 5 when anything differs |
 | `--live` | on `snapshot diff`, compare the file against this machine as it is now rather than against a second file |
 | `--note TEXT` | on `snapshot create`, what the snapshot was taken for, kept inside the file |

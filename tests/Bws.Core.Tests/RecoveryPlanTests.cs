@@ -65,6 +65,23 @@ public sealed class RecoveryPlanTests
     }
 
     [Fact]
+    public void Stop_pressed_while_the_run_reads_the_recovery_again_writes_nothing()
+    {
+        // The run reads the entry's recovery once more before it writes, and Stop pressed during that reading
+        // is heard after it - the step is held as one not reached (logic report R09).
+        using var interruption = new CancellationTokenSource();
+        var machine = new FakeScmControl().At("Spooler", EntryStatus.Running).WithRecovery("Spooler", Reading<RecoverySettings>.Present(SpoolersOwn));
+        var plan = Plan(machine, Change(RecoveryParts.ResetPeriod, reset: TimeSpan.FromDays(1)));
+
+        var run = new PlanRunner(new Interrupting(machine, interruption, Interrupting.Moment.WhileReadingRecovery), new FakeClock())
+            .Run(plan, TimeSpan.FromSeconds(5), interruption.Token);
+
+        Assert.Equal(SkipReason.Cancelled, Assert.Single(run.Results).SkippedBecause);
+        Assert.Empty(machine.RecoveryWrites);
+        Assert.Empty(run.Reversal);
+    }
+
+    [Fact]
     public void A_part_nobody_named_is_not_compared_before_the_write()
     {
         var machine = new FakeScmControl().At("Spooler", EntryStatus.Running).WithRecovery("Spooler", Reading<RecoverySettings>.Present(SpoolersOwn));
@@ -101,6 +118,13 @@ public sealed class RecoveryPlanTests
 
         Assert.Equal(PlanProblemKind.RecoveryUnnamed, Assert.Single(Plan(machine, Change(RecoveryParts.ResetPeriod, reset: Hour)).Problems).Kind);
         Assert.True(Plan(machine, Texted(RecoveryParts.RebootMessage, "bye")).IsRunnable);
+
+        // The window's form carries the list it read, so a ticked list can ask for that item - refused with the
+        // same reason, also over an entry whose own list could not be read.
+        var unread = new FakeScmControl().WithRecovery("Spooler", Reading<RecoverySettings>.Denied(5, "Access is denied."));
+
+        Assert.Equal(PlanProblemKind.RecoveryUnnamed, Assert.Single(Plan(machine, Change(RecoveryParts.Actions, schedule.List.Items)).Problems).Kind);
+        Assert.Equal(PlanProblemKind.RecoveryUnnamed, Assert.Single(Plan(unread, Change(RecoveryParts.Actions | RecoveryParts.ResetPeriod, schedule.List.Items, Hour)).Problems).Kind);
     }
 
     [Fact]

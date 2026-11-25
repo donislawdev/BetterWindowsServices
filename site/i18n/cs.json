@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Přeskočit na obsah",
@@ -43,6 +43,10 @@
   "switch.force": "U <code>kill</code> ukončí proces hned, bez zdvořilého ptaní - náhled pak ukazuje jeden krok místo dvou. U <code>snapshot create</code> nahradí již existující snímek - soubor, který snímkem není, se nikdy nenahradí.",
   "switch.restart": "U <code>kill</code> vrátí položku zpět, jakmile je proces pryč, spolu se vším, co ho sdílelo.",
   "switch.stop": "U <code>start-type</code> a jen vedle <code>disabled</code> zastaví položku ve stejném plánu, jakmile je nastavení zapsáno. Typ spouštění mění příští start a nic teď, takže bez tohoto přepínače běžící položka nastavená na disabled běží dál.",
+  "switch.reset": "Po jaké době bez selhání Windows počítá znovu od prvního selhání - celé číslo s s, m, h nebo d, 0, nebo <code>never</code>, které čeká na restart počítače. Bez tohoto přepínače si položka ponechá období, které má.",
+  "switch.program": "Program, který spouští akce <code>program:DELAY</code>, doslova, včetně uvozovek a <code>%1%</code> - <code>%1%</code> znamená číslo selhání. Běží pod účtem, pod kterým běží služba. Prázdná hodnota ho odstraní.",
+  "switch.message": "Zpráva odeslaná přihlášeným uživatelům předtím, než akce <code>reboot:DELAY</code> restartuje počítač. Prázdná hodnota ji odstraní.",
+  "switch.on-error-stops": "<code>yes</code> zajistí, že akce reagují i na službu, která se zastaví s chybou, nejen na službu, která spadne. <code>no</code> reaguje jen na pády.",
   "switch.full": "U <code>show</code> vypíše i pole, která jsou opravdu prázdná. Pole, které nikdo nemohl přečíst, se vypíše vždy.",
   "switch.components": "U <code>license</code> změní upozornění na každou součást uvnitř tohoto spustitelného souboru s její verzí, licencí a původem. Stejná sada, jakou nese soupis součástí zveřejněný vedle stažení, protože oba vznikají z jednoho registru.",
   "switch.json": "Stejný dokument, strojově čitelný, na standardním výstupu.",

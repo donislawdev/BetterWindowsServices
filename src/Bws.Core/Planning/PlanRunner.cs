@@ -266,7 +266,7 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock, IEndin
             // straight after the progress call the loop made.
             return halt.Unasked(step.Reason)
                 ? Skipped(step, SkipReason.Cancelled, EntryStatus.Unknown, Reading<int>.NotRead(), Elapsed(started))
-                : Configure(step, started);
+                : Configure(step, started, halt);
         }
 
         var target = Target(step.Operation);
@@ -349,11 +349,11 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock, IEndin
     /// <b>An unreadable status is not a failed step.</b> The setting was written or it was not, and
     /// that answer comes from the write rather than from a reading beside it.
     /// </summary>
-    private StepResult Configure(PlanStep step, TimeSpan started)
+    private StepResult Configure(PlanStep step, TimeSpan started, Halt halt)
     {
         if (step.Operation == StepOperation.SetRecovery)
         {
-            return ConfigureRecovery(step, started);
+            return ConfigureRecovery(step, started, halt);
         }
 
         var answer = control.Configure(step.ServiceName, step.To!.Value);

@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Lompat ke konten",
@@ -43,6 +43,10 @@
   "switch.force": "Pada <code>kill</code>, mengakhiri proses seketika tanpa bertanya dengan sopan - pratinjau lalu menampilkan satu langkah, bukan dua. Pada <code>snapshot create</code>, mengganti snapshot yang sudah ada - berkas yang bukan snapshot tidak pernah diganti.",
   "switch.restart": "Pada <code>kill</code>, mengembalikan entri setelah proses hilang, bersama semua yang berbagi proses itu.",
   "switch.stop": "Pada <code>start-type</code>, dan hanya bersama <code>disabled</code>, menghentikan entri dalam rencana yang sama setelah pengaturan ditulis. Tipe startup mengubah boot berikutnya dan tidak mengubah apa pun sekarang, jadi tanpanya entri yang sedang berjalan yang diatur ke disabled tetap berjalan.",
+  "switch.reset": "Setelah berapa lama tanpa kegagalan Windows kembali menghitung dari kegagalan pertama - bilangan bulat dengan s, m, h, atau d, 0, atau <code>never</code>, yang menunggu komputer dimulai ulang. Tanpanya, entri mempertahankan periode yang dimilikinya.",
+  "switch.program": "Program yang dijalankan oleh tindakan <code>program:DELAY</code>, persis seperti ditulis, termasuk tanda kutip dan <code>%1%</code> - <code>%1%</code> menandakan nomor kegagalan. Program berjalan dengan akun yang dipakai layanan. Nilai kosong menghapusnya.",
+  "switch.message": "Pesan yang dikirim ke orang-orang yang sedang masuk sebelum tindakan <code>reboot:DELAY</code> memulai ulang komputer. Nilai kosong menghapusnya.",
+  "switch.on-error-stops": "<code>yes</code> membuat tindakan juga merespons layanan yang berhenti dengan galat, bukan hanya layanan yang crash. <code>no</code> hanya merespons crash.",
   "switch.full": "Pada <code>show</code>, mencetak juga bidang yang benar-benar kosong. Bidang yang tidak bisa dibaca siapa pun dicetak dalam kedua kasus.",
   "switch.components": "Pada <code>license</code>, mengubah pemberitahuan menjadi setiap komponen di dalam berkas eksekusi ini beserta versi, lisensi, dan asalnya. Set yang sama dengan yang dibawa daftar bahan yang dipublikasikan di samping unduhan, karena keduanya dihasilkan dari satu register.",
   "switch.json": "Dokumen yang sama, dapat dibaca mesin, pada keluaran standar.",

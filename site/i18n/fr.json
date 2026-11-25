@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Aller au contenu",
@@ -43,6 +43,10 @@
   "switch.force": "Sur <code>kill</code>, terminer le processus tout de suite sans demander poliment - l'aperçu montre alors une étape au lieu de deux. Sur <code>snapshot create</code>, remplacer un instantané déjà présent - un fichier qui n'est pas un instantané n'est jamais remplacé.",
   "switch.restart": "Sur <code>kill</code>, remettre l'entrée en route une fois le processus disparu, avec tout ce qui le partageait.",
   "switch.stop": "Sur <code>start-type</code>, et seulement à côté de <code>disabled</code>, arrêter l'entrée dans le même plan une fois le réglage écrit. Un type de démarrage change le prochain démarrage et rien maintenant, donc sans cette option une entrée en marche réglée sur désactivé continue de tourner.",
+  "switch.reset": "Au bout de combien de temps sans défaillance Windows recompte à partir de la première - un nombre entier suivi de s, m, h ou d, 0, ou <code>never</code>, qui attend le redémarrage de l'ordinateur. Sans cette option, l'entrée garde la période qu'elle a.",
+  "switch.program": "Le programme qu'une action <code>program:DELAY</code> exécute, mot pour mot, guillemets et <code>%1%</code> compris - <code>%1%</code> désigne le numéro de la défaillance. Il s'exécute sous le compte du service. Une valeur vide le supprime.",
+  "switch.message": "Le message envoyé aux personnes connectées avant qu'une action <code>reboot:DELAY</code> redémarre l'ordinateur. Une valeur vide le supprime.",
+  "switch.on-error-stops": "<code>yes</code> fait réagir les actions aussi à un service qui s'arrête avec une erreur, pas seulement à un service qui plante. <code>no</code> ne réagit qu'aux plantages.",
   "switch.full": "Sur <code>show</code>, afficher aussi les champs réellement vides. Un champ que personne n'a pu lire est affiché dans tous les cas.",
   "switch.components": "Sur <code>license</code>, transformer la mention en chaque composant de cet exécutable avec sa version, sa licence et son origine. Le même ensemble que porte la nomenclature publiée à côté du téléchargement, parce que les deux sont produites depuis un seul registre.",
   "switch.json": "Le même document, lisible par une machine, sur la sortie standard.",

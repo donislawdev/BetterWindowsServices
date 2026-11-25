@@ -77,6 +77,23 @@ public sealed class RecoveryCommandTests
         Assert.Contains("--program", read.Repeated);
     }
 
+    /// <summary>
+    /// A switch written with its value after an <c>=</c> is a switch, not the value of the one before it - and
+    /// a value after its own <c>=</c> is taken whatever it looks like.
+    /// </summary>
+    [Fact]
+    public void A_switch_written_with_an_equals_sign_is_not_taken_as_the_value_before_it()
+    {
+        var read = CommandLine.Read(["recovery", "Spooler", "--program", "--reset=1d"]);
+
+        Assert.Contains("--program", read.Incomplete);
+
+        var inline = RecoveryAsks.Change(CommandLine.Read(["recovery", "Spooler", "--program=--reset=1d"]).Recovery);
+
+        Assert.Equal("--reset=1d", inline!.To.List.Command);
+        Assert.Contains("--query", CommandLine.Read(["list", "--query", "--note=x"]).Incomplete);
+    }
+
     [Fact]
     public void A_recovery_switch_on_another_verb_is_misplaced_rather_than_ignored()
     {

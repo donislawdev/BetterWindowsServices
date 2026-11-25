@@ -3,30 +3,39 @@ using Bws.Core.Planning;
 namespace Bws.Core.Tests.Fakes;
 
 /// <summary>
-/// A manager during whose work somebody presses Stop - after it takes a request, or while it is being read
-/// for who lives in a process.
+/// A manager during whose work somebody presses Stop - after it takes a request, while it is being read for who
+/// lives in a process, or while an entry's recovery is read again before it is written.
 ///
 /// <b>Since 2026-10-26</b> (logic report R09). Until then the tests pressed Stop from the progress call the
 /// runner makes just before a step, and the runner sent that step's request anyway - the very thing R09
 /// closed. Pressed there, a step is held now, so the shape these tests are about - a step already asked for,
 /// which the runner promises to watch to its end - has to be made after the request instead.
 /// </summary>
-/// <param name="whileReadingStatuses">
-/// Pull the lever when the whole listing is read - just before a process is ended - rather than after the first
-/// request the manager takes.
-/// </param>
+/// <param name="when">When the lever is pulled - after the first request the manager takes unless said otherwise.</param>
 internal sealed class Interrupting(
     FakeScmControl inner,
     CancellationTokenSource lever,
-    bool whileReadingStatuses = false) : IScmControl
+    Interrupting.Moment when = Interrupting.Moment.AfterTheFirstRequest) : IScmControl
 {
+    /// <summary>The moments a test can press Stop at.</summary>
+    internal enum Moment
+    {
+        AfterTheFirstRequest,
+
+        /// <summary>When the whole listing is read - just before a process is ended.</summary>
+        WhileReadingStatuses,
+
+        /// <summary>When an entry's recovery is read again - just before it is written, since 2026-11-25.</summary>
+        WhileReadingRecovery
+    }
+
     private int _requests;
 
     public ControlAnswer Request(string serviceName, StepOperation operation)
     {
         var answer = inner.Request(serviceName, operation);
 
-        if (++_requests == 1 && !whileReadingStatuses)
+        if (++_requests == 1 && when == Moment.AfterTheFirstRequest)
         {
             lever.Cancel();
         }
@@ -39,7 +48,15 @@ internal sealed class Interrupting(
     public ControlAnswer ConfigureRecovery(string serviceName, RecoveryChange change) =>
         inner.ConfigureRecovery(serviceName, change);
 
-    public Reading<RecoverySettings> ReadRecovery(string serviceName) => inner.ReadRecovery(serviceName);
+    public Reading<RecoverySettings> ReadRecovery(string serviceName)
+    {
+        if (when == Moment.WhileReadingRecovery)
+        {
+            lever.Cancel();
+        }
+
+        return inner.ReadRecovery(serviceName);
+    }
 
     public ControlAnswer Terminate(int processId, long? createdAt) => inner.Terminate(processId, createdAt);
 
@@ -47,7 +64,7 @@ internal sealed class Interrupting(
 
     public Reading<IReadOnlyList<ScmStatus>> ReadStatuses()
     {
-        if (whileReadingStatuses)
+        if (when == Moment.WhileReadingStatuses)
         {
             lever.Cancel();
         }

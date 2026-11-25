@@ -67,6 +67,8 @@
   "gui.recovery.form.kind.program": "Run the program",
   "gui.recovery.form.kind.reboot": "Restart the computer",
   "gui.recovery.form.kind.unnamed": "A kind this tool cannot name",
+  "gui.recovery.form.kind.name": "{0} - what Windows does: {1}",
+  "gui.recovery.form.delay.name": "{0} - how long Windows waits first",
   "gui.recovery.form.after": "after",
   "gui.recovery.form.delay.hint": "How long Windows waits before it acts - a whole number with s, m, h or d, for example 30s, 5m or 2h.",
   "gui.recovery.form.delay.problem": "A delay is a whole number with s, m, h or d - for example 30s, 5m or 2h.",
@@ -84,6 +86,7 @@
   "gui.recovery.form.kept.one": "Tick a part to change it. Parts without a tick stay as they are.",
   "gui.recovery.form.kept.many": "Tick a part to change it on all {0} entries. Parts without a tick stay as they are on each.",
   "gui.recovery.form.unread": "Could not be read, so nothing is shown here. Tick it to set it.",
+  "gui.recovery.form.unread.some": "Could not be read on some of the entries you picked, so nothing is shown here. Tick it to set one value for all of them.",
   "gui.recovery.form.differs": "Not the same on all the entries you picked, so nothing is shown here. Tick it to set one value for all of them.",
 
   "gui.action.stop": "Stop...",

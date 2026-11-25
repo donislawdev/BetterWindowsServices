@@ -23,8 +23,13 @@ public sealed partial class PlanRunner
     ///
     /// <b>Nothing to compare when nothing was read for the preview</b>, and then the write goes ahead as one of
     /// a start type does - that plan already says it has no way back.
+    ///
+    /// <b>Stop is looked at once more after that reading</b>, the rule <see cref="RunStep"/> keeps before a
+    /// request (logic report R09): it looked before the reading, and Stop pressed during it would otherwise be
+    /// answered by the write. Nothing of the step has changed the machine yet, so it is held as a step not
+    /// reached. A start type reads nothing first, so the look in RunStep is already the last one there.
     /// </summary>
-    private StepResult ConfigureRecovery(PlanStep step, TimeSpan started)
+    private StepResult ConfigureRecovery(PlanStep step, TimeSpan started, Halt halt)
     {
         var write = step.Recovering!;
 
@@ -41,6 +46,11 @@ public sealed partial class PlanRunner
                 var looked = control.Read(step.ServiceName);
 
                 return Refused(step, refusal, Where(looked), Holding(looked), started);
+            }
+
+            if (halt.Unasked(step.Reason))
+            {
+                return Skipped(step, SkipReason.Cancelled, EntryStatus.Unknown, Reading<int>.NotRead(), Elapsed(started));
             }
         }
 

@@ -17,15 +17,12 @@ internal static class RecoveryPlan
     internal static OperationPlan Planned(ServiceAction action, ScmEntry target, IRecoveryReader reader)
     {
         // THE SAME KIND OF LOUD AS PlanBuilder.ThrowIfNobodyCouldAsk, and before the entry is read: an ask that
-        // names no part has nothing to write, and an item this tool has no word for is not something either
-        // interface can ask for - the way back for it could not be written. Neither has a sentence, because
-        // neither can be met.
-        if (action.Recovery is not { Parts: not RecoveryParts.None } asked
-            || asked.To.List.Items.Any(item => item.Action == RecoveryAction.Unnamed))
+        // names no part has nothing to write and no sentence, because neither interface can send one. An item
+        // this tool has no word for CAN arrive - the window's form carries the list it read, and a ticked list
+        // carries that item with it - so it is refused in Decide, with a reason.
+        if (action.Recovery is not { Parts: not RecoveryParts.None } asked)
         {
-            throw new ArgumentException(
-                "A recovery write needs at least one part to write, and only items this tool can name.",
-                nameof(action));
+            throw new ArgumentException("A recovery write needs at least one part to write.", nameof(action));
         }
 
         var (refusal, step) = Decide(target, asked, reader.ReadWhole(target.ServiceName));
@@ -71,7 +68,10 @@ internal static class RecoveryPlan
 
         if (asked.Writes(RecoveryParts.Actions) || asked.Writes(RecoveryParts.ResetPeriod))
         {
-            if (from is not null && from.List.Items.Any(item => item.Action == RecoveryAction.Unnamed))
+            // The list on the entry or the list asked for - an unnamed item in either has no word in the way back
+            // or in the line that writes it.
+            if ((from is not null && from.List.Items.Any(item => item.Action == RecoveryAction.Unnamed))
+                || (asked.Writes(RecoveryParts.Actions) && asked.To.List.Items.Any(item => item.Action == RecoveryAction.Unnamed)))
             {
                 return (PlanProblemKind.RecoveryUnnamed, null);
             }

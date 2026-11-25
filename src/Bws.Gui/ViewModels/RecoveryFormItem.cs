@@ -40,6 +40,7 @@ public sealed class RecoveryFormItem : Checked
             if (Set(ref _kind, value))
             {
                 Raise(nameof(KindText));
+                Raise(nameof(KindName));
                 Raise(nameof(HasDelay));
                 RaiseErrors(nameof(DelayText));
                 _edited();
@@ -78,8 +79,24 @@ public sealed class RecoveryFormItem : Checked
     public string Label
     {
         get => _label;
-        internal set => Set(ref _label, value);
+        internal set
+        {
+            if (Set(ref _label, value))
+            {
+                Raise(nameof(KindName));
+                Raise(nameof(DelayName));
+            }
+        }
     }
+
+    /// <summary>
+    /// The name a screen reader says for the kind button - the line AND its kind, because a name set on a button
+    /// replaces its content, and "Failure 1" alone would not say what that failure does.
+    /// </summary>
+    public string KindName => Texts.Of("gui.recovery.form.kind.name", Label, KindText);
+
+    /// <summary>The name a screen reader says for the delay box - the line and what the box holds.</summary>
+    public string DelayName => Texts.Of("gui.recovery.form.delay.name", Label);
 
     /// <summary>What is wrong with the delay, or nothing.</summary>
     public string DelayProblem => HasDelay && RecoveryCommandWords.ReadDelay(_delayText.Trim()) is null

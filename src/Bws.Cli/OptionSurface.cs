@@ -337,12 +337,20 @@ internal static class OptionSurface
     ///
     /// Help and version are here as well as in the table, because they belong to no verb and are
     /// read before one is known - and they are just as wrong as a value.
+    ///
+    /// <b>A known option with its value after an <c>=</c> is an option too</b>, since 2026-11-25.
+    /// Until then <c>bws recovery Spooler --program --reset=1d</c> set the program to the words
+    /// <c>--reset=1d</c> and dropped the period without a sentence - the 2026-08-03 silence again,
+    /// in the spelling every switch with a value also takes. <c>--program=--reset=1d</c> still sets
+    /// that program, because a value after its own <c>=</c> is never looked at here.
     /// </summary>
     internal static bool IsOption(string argument) =>
         argument.Equals("--help", StringComparison.OrdinalIgnoreCase)
         || argument.Equals("-h", StringComparison.OrdinalIgnoreCase)
         || argument.Equals("--version", StringComparison.OrdinalIgnoreCase)
-        || Surface.Any(entry => entry.Option.Equals(argument, StringComparison.OrdinalIgnoreCase));
+        || Surface.Any(entry =>
+            argument.Equals(entry.Option, StringComparison.OrdinalIgnoreCase)
+            || argument.StartsWith(entry.Option + "=", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Where an option does work, for the message that says it does not work here.</summary>
     internal static IReadOnlyList<string> Accepts(string option) =>

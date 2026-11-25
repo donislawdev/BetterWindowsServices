@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Chuyển đến nội dung",
@@ -43,6 +43,10 @@
   "switch.force": "Với <code>kill</code>, kết thúc tiến trình ngay lập tức mà không hỏi lịch sự - bản xem trước khi đó hiển thị một bước thay vì hai. Với <code>snapshot create</code>, thay thế một bản chụp đã có - một tệp không phải bản chụp không bao giờ bị thay thế.",
   "switch.restart": "Với <code>kill</code>, đưa mục trở lại khi tiến trình đã mất, cùng mọi thứ đã dùng chung nó.",
   "switch.stop": "Với <code>start-type</code>, và chỉ bên cạnh <code>disabled</code>, dừng mục trong cùng kế hoạch sau khi thiết lập được ghi. Kiểu khởi động thay đổi lần khởi động tiếp theo và không thay đổi gì ngay bây giờ, nên không có nó, một mục đang chạy được đặt thành disabled vẫn tiếp tục chạy.",
+  "switch.reset": "Sau bao lâu không có lỗi thì Windows đếm lại từ lần lỗi đầu tiên - một số nguyên kèm s, m, h hoặc d, 0, hoặc <code>never</code>, nghĩa là chờ đến khi máy tính khởi động lại. Nếu bỏ qua, mục giữ nguyên khoảng thời gian hiện có.",
+  "switch.program": "Chương trình mà hành động <code>program:DELAY</code> chạy, đúng từng chữ, kể cả dấu ngoặc kép và <code>%1%</code> - <code>%1%</code> là số thứ tự của lần lỗi. Chương trình chạy bằng tài khoản mà dịch vụ đang dùng. Giá trị rỗng sẽ xóa nó.",
+  "switch.message": "Thông báo gửi đến những người đang đăng nhập trước khi hành động <code>reboot:DELAY</code> khởi động lại máy tính. Giá trị rỗng sẽ xóa nó.",
+  "switch.on-error-stops": "<code>yes</code> khiến các hành động phản hồi cả dịch vụ dừng kèm lỗi, không chỉ dịch vụ bị sập. <code>no</code> chỉ phản hồi khi bị sập.",
   "switch.full": "Với <code>show</code>, in cả các trường thực sự trống. Một trường không ai đọc được thì được in trong cả hai trường hợp.",
   "switch.components": "Với <code>license</code>, biến thông báo thành mọi thành phần bên trong tệp thực thi này cùng phiên bản, giấy phép và nguồn gốc của nó. Cùng tập hợp mà bảng kê vật liệu phát hành bên cạnh bản tải xuống mang, vì cả hai được dựng từ một sổ đăng ký.",
   "switch.json": "Cùng tài liệu đó, máy đọc được, trên đầu ra chuẩn.",

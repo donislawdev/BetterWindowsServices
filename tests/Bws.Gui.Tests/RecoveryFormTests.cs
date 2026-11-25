@@ -57,6 +57,10 @@ public sealed class RecoveryFormTests
 
         Assert.True(form.ChangesList);
 
+        // What a screen reader says for the line follows its kind - the button's name replaces its content.
+        Assert.Equal(Texts.Of("gui.recovery.form.kind.name", "Failure 1", Texts.Of("gui.recovery.form.kind.program")), form.Items[0].KindName);
+        Assert.Equal(Texts.Of("gui.recovery.form.delay.name", "Failure 1"), form.Items[0].DelayName);
+
         form.ChangesList = false;
 
         Assert.Equal(RecoveryAction.RestartService, form.Items[0].Kind);
@@ -89,6 +93,24 @@ public sealed class RecoveryFormTests
         Assert.Equal(RecoveryParts.Command, change.Parts);
         Assert.Null(change.To.List.Command);
         Assert.Empty(form.ProgramNote);
+    }
+
+    /// <summary>
+    /// One entry of many not read says so - the values may well be the same, and "not the same on all" would be
+    /// a claim nobody checked.
+    /// </summary>
+    [Fact]
+    public void Over_entries_one_of_which_was_not_read_says_not_read_rather_than_differs()
+    {
+        var form = RecoveryForm.Of(
+        [
+            Reading<RecoverySettings>.Present(Spoolers),
+            Reading<RecoverySettings>.Denied(5, "Access is denied.")
+        ]);
+
+        Assert.Empty(form.Items);
+        Assert.Equal(Texts.Of("gui.recovery.form.unread.some"), form.ListNote);
+        Assert.Equal(Texts.Of("gui.recovery.form.unread.some"), form.ProgramNote);
     }
 
     /// <summary>A delay that does not read says so under the list, and there is no change to plan until it does.</summary>

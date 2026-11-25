@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Naar de inhoud",
@@ -43,6 +43,10 @@
   "switch.force": "Bij <code>kill</code>: beëindig het proces meteen zonder beleefd te vragen - de voorvertoning toont dan één stap in plaats van twee. Bij <code>snapshot create</code>: vervang een momentopname die er al is - een bestand dat geen momentopname is wordt nooit vervangen.",
   "switch.restart": "Bij <code>kill</code>: breng het item terug zodra het proces weg is, samen met alles wat het deelde.",
   "switch.stop": "Bij <code>start-type</code>, en alleen naast <code>disabled</code>: stop het item in hetzelfde plan zodra de instelling is geschreven. Een opstarttype verandert de volgende opstart en niets nu, dus zonder deze optie blijft een draaiend item dat op disabled is gezet gewoon draaien.",
+  "switch.reset": "Na hoeveel tijd zonder fout Windows weer vanaf de eerste fout telt - een geheel getal met s, m, h of d, 0, of <code>never</code>, dat wacht tot de computer opnieuw opstart. Zonder deze optie houdt het item de periode die het heeft.",
+  "switch.program": "Het programma dat een actie <code>program:DELAY</code> uitvoert, letterlijk, met aanhalingstekens en <code>%1%</code> - <code>%1%</code> staat voor het nummer van de fout. Het draait onder het account waaronder de service draait. Een lege waarde verwijdert het.",
+  "switch.message": "Het bericht aan de aangemelde gebruikers voordat een actie <code>reboot:DELAY</code> de computer opnieuw opstart. Een lege waarde verwijdert het.",
+  "switch.on-error-stops": "<code>yes</code> laat de acties ook reageren op een service die met een fout stopt, niet alleen op een die crasht. <code>no</code> reageert alleen op crashes.",
   "switch.full": "Bij <code>show</code>: druk ook de velden af die echt leeg zijn. Een veld dat niemand kon lezen wordt hoe dan ook afgedrukt.",
   "switch.components": "Bij <code>license</code>: verander de mededeling in elk onderdeel in dit uitvoerbare bestand met zijn versie, zijn licentie en waar het vandaan kwam. Dezelfde set die de materiaallijst naast de download bevat, omdat beide uit één register worden gemaakt.",
   "switch.json": "Hetzelfde document, machineleesbaar, op de standaarduitvoer.",

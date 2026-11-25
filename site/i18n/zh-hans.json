@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "跳到内容",
@@ -43,6 +43,10 @@
   "switch.force": "对 <code>kill</code> 而言，是不再礼貌地询问而直接结束进程：这样预览显示的是一个步骤，而不是两个。对 <code>snapshot create</code> 而言，是替换已经存在的快照：不是快照的文件绝不会被替换。",
   "switch.restart": "对 <code>kill</code> 而言，是在进程消失后，把该条目连同与它共用进程的所有内容一起带回来。",
   "switch.stop": "对 <code>start-type</code> 而言，并且只能与 <code>disabled</code> 搭配，在写入设置之后，在同一份计划中停止该条目。启动类型改变的是下一次启动，而不是现在，所以没有它时，设为 disabled 的运行中条目会继续运行。",
+  "switch.reset": "在没有失败的情况下经过多长时间后，Windows 重新从第一次失败开始计数 - 带 s、m、h 或 d 的整数、0，或 <code>never</code>（等到计算机重新启动）。省略时，该条目保留现有的时间段。",
+  "switch.program": "<code>program:DELAY</code> 操作运行的程序，按原样使用，包括引号和 <code>%1%</code> - <code>%1%</code> 表示失败的次数。它以服务运行所用的帐户运行。空值会将其删除。",
+  "switch.message": "在 <code>reboot:DELAY</code> 操作重新启动计算机之前，发送给已登录用户的消息。空值会将其删除。",
+  "switch.on-error-stops": "<code>yes</code> 让操作不仅响应崩溃的服务，也响应因错误而停止的服务。<code>no</code> 只响应崩溃。",
   "switch.full": "对 <code>show</code> 而言，是同时打印真正为空的字段。无人能读取的字段无论如何都会被打印。",
   "switch.components": "对 <code>license</code> 而言，是把通知变成这个可执行文件内部的每个组件及其版本、许可证和来源。这与随下载一同发布的物料清单所含的集合相同，因为两者都由同一份登记表生成。",
   "switch.json": "同一份文档，以机器可读的形式输出到标准输出。",

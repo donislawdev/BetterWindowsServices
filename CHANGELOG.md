@@ -83,6 +83,9 @@ is not part of this repository.
   every entry is done. The entries listed under the plan as not going to happen now count, so
   picking four rows with one refused reads "3 of 4 entries ended where you asked", and an interrupted
   run counts them the same way.
+- A switch that needs a value and is followed straight away by another switch written with `=`, such
+  as `bws list --query --note=before`, now ends with "--query needs a value after it." and code 2.
+  Before, the second switch was read as the value of the first.
 
 ## [0.5.0] - 2026-11-03
 

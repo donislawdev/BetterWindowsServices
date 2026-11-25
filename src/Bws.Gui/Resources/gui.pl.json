@@ -67,6 +67,8 @@
   "gui.recovery.form.kind.program": "Uruchom program",
   "gui.recovery.form.kind.reboot": "Uruchom ponownie komputer",
   "gui.recovery.form.kind.unnamed": "Rodzaj, którego to narzędzie nie umie nazwać",
+  "gui.recovery.form.kind.name": "{0} - co robi Windows: {1}",
+  "gui.recovery.form.delay.name": "{0} - ile Windows najpierw czeka",
   "gui.recovery.form.after": "po",
   "gui.recovery.form.delay.hint": "Ile Windows czeka, zanim zadziała - liczba całkowita z s, m, h albo d, na przykład 30s, 5m albo 2h.",
   "gui.recovery.form.delay.problem": "Opóźnienie to liczba całkowita z s, m, h albo d - na przykład 30s, 5m albo 2h.",
@@ -84,6 +86,7 @@
   "gui.recovery.form.kept.one": "Zaznacz część, żeby ją zmienić. Części bez zaznaczenia zostają bez zmian.",
   "gui.recovery.form.kept.many": "Zaznacz część, żeby ją zmienić na wszystkich wpisach ({0}). Części bez zaznaczenia zostają bez zmian na każdym z nich.",
   "gui.recovery.form.unread": "Nie udało się tego odczytać, więc nic tu nie widać. Zaznacz, żeby ustawić.",
+  "gui.recovery.form.unread.some": "Nie udało się tego odczytać na części zaznaczonych wpisów, więc nic tu nie widać. Zaznacz, żeby ustawić jedną wartość dla wszystkich.",
   "gui.recovery.form.differs": "Nie jest takie samo na wszystkich zaznaczonych wpisach, więc nic tu nie widać. Zaznacz, żeby ustawić jedną wartość dla wszystkich.",
 
   "gui.action.stop": "Zatrzymaj...",
