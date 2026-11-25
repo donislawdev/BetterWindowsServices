@@ -354,6 +354,17 @@
     <system:Double x:Key="WidthWaitingBox">56</system:Double>
 
     <!--
+        THE TWO BOXES OF THE RECOVERY FORM THAT TAKE THE COMMAND LINE'S WORDS, 2026-11-24 (backlog 555 part
+        a2). A delay is a few characters - "30s", "5m", "120m" - sized like the box of seconds above, a little
+        wider for the unit. A period is the same words plus "never", in a box wide enough to read as a field
+        rather than a number. The kind buttons have NO width here: their column is as wide as the longest kind
+        on the form in the language on screen - a fixed width cut "Uruchom usluge ponownie" on the first Polish
+        picture (GUI rule 14).
+    -->
+    <system:Double x:Key="WidthRecoveryDelay">64</system:Double>
+    <system:Double x:Key="WidthRecoveryPeriod">172</system:Double>
+
+    <!--
         THE MOST THE BUTTON AT THE FOOT OF A PLAN MAY GROW, since 2026-09-15, when it started naming
         the entry it acts on - "Stop Windows Search" rather than "Carry this out". A display name is
         translated and unbounded: "Windows Management Instrumentation" is one this machine has, and

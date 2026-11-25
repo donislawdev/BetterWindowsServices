@@ -141,6 +141,18 @@
                 <ContextMenu x:Name="StartTypeMenu" />
             </Button.ContextMenu>
         </Button>
+
+        <!--
+            WHAT WINDOWS DOES WHEN THE ENTRY FAILS - the Recovery tab of services.msc, `C7`, owner's
+            decision of 2026-11-24. Beside the startup type because both write a setting and move no
+            service. A button rather than a menu, because what is asked is a form, and the form is on the
+            sheet this opens - three dots for that sheet, as on every button here.
+        -->
+        <Button x:Name="RecoveryButton"
+                AutomationProperties.AutomationId="actionRecovery"
+                Content="{DynamicResource gui.action.recovery}"
+                Style="{StaticResource WriteAction}"
+                Click="RecoveryAsked" />
     </WrapPanel>
 
     <WrapPanel Margin="{StaticResource MarginActionGroup}">

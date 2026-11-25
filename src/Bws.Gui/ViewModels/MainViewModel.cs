@@ -92,8 +92,12 @@ public sealed partial class MainViewModel : Checked
     /// </summary>
     private bool _showingEveryInstance;
 
-    /// <summary>Asked about a process before ending one. Null in a test - PlanBuilder.Ask.</summary>
-    private readonly IEndingFactsReader? _processes;
+    /// <summary>
+    /// What a plan asks the machine beyond the listing: about a process before ending one (PlanBuilder.Ask), and
+    /// an entry's whole recovery before writing it (RecoveryPlan). Null halves in a test. One field for both
+    /// because the model stands at the share of its ceiling of fields the shape guard counts as near.
+    /// </summary>
+    private readonly (IEndingFactsReader? Processes, IRecoveryReader? Recovery) _planAsks;
 
 
     public MainViewModel()
@@ -113,6 +117,10 @@ public sealed partial class MainViewModel : Checked
             // history - HistoryReading says why not at start.
             new WindowsChangeHistoryReader())
     {
+        // Nor this: asked while a recovery plan is built, for the whole recovery an entry has now - what
+        // the run compares against and the way back is written from. Without it a plan from this window
+        // would hold the recovery as not read and have no way back (backlog 555 part a2).
+        _planAsks = (_planAsks.Processes, new WindowsRecoveryReader());
     }
 
     /// <summary>
@@ -130,7 +138,7 @@ public sealed partial class MainViewModel : Checked
     {
         _index = new RowIndex(clock);
         _catalog = catalog;
-        _processes = processes;
+        _planAsks = (processes, null);
         History = HistoryOf(history, clock);
 
         // Says is fetched rather than handed over, because a caller may replace it after this

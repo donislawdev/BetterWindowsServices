@@ -144,6 +144,72 @@ public sealed class RecoveryPlanTests
             warning => warning.Kind == PlanWarningKind.ProgramRunsAs);
     }
 
+    /// <summary>
+    /// A program no failure runs is said when this plan sets the program or changes the list - and not when it
+    /// only moves the period of a list that already did not run it, nor when it removes the program (owner's
+    /// decision P3, 2026-11-25).
+    /// </summary>
+    [Fact]
+    public void A_program_no_failure_runs_is_said_when_this_plan_leaves_it_so()
+    {
+        var unused = SpoolersOwn with { List = SpoolersOwn.List with { Command = "C:\\old.cmd" } };
+        var runsIt = new RecoveryItem(RecoveryAction.RunProgram, TimeSpan.FromMinutes(1));
+
+        bool Says(RecoverySettings had, RecoveryChange asked) =>
+            Plan(new FakeScmControl().WithRecovery("Spooler", Reading<RecoverySettings>.Present(had)), asked)
+                .Warnings.Any(warning => warning.Kind == PlanWarningKind.ProgramUnused);
+
+        Assert.True(Says(SpoolersOwn, Texted(RecoveryParts.Command, "C:\\fix.cmd")));
+        Assert.True(Says(unused, Change(RecoveryParts.Actions, [new RecoveryItem(RecoveryAction.RestartService, TimeSpan.FromMinutes(2))])));
+        Assert.False(Says(unused, Change(RecoveryParts.ResetPeriod, reset: TimeSpan.FromHours(2))));
+        Assert.False(Says(SpoolersOwn, Texted(RecoveryParts.Actions | RecoveryParts.Command, "C:\\fix.cmd", [runsIt])));
+        Assert.False(Says(unused, Change(RecoveryParts.Command)));
+    }
+
+    /// <summary>
+    /// The same for the message before a restart of the computer (owner's decision P6, 2026-11-25): said when it
+    /// is set beside a list that never restarts the computer, and not when the list does.
+    /// </summary>
+    [Fact]
+    public void A_message_no_failure_sends_is_said_when_this_plan_leaves_it_so()
+    {
+        bool Says(RecoveryChange asked) =>
+            Plan(new FakeScmControl().WithRecovery("Spooler", Reading<RecoverySettings>.Present(SpoolersOwn)), asked)
+                .Warnings.Any(warning => warning.Kind == PlanWarningKind.RebootMessageUnused);
+
+        Assert.True(Says(Texted(RecoveryParts.RebootMessage, "Restarting")));
+        Assert.False(Says(Texted(
+            RecoveryParts.Actions | RecoveryParts.RebootMessage,
+            "Restarting",
+            [new RecoveryItem(RecoveryAction.RestartComputer, TimeSpan.FromMinutes(1))])));
+        Assert.False(Says(Texted(RecoveryParts.Command, "C:\\fix.cmd")));
+    }
+
+    /// <summary>
+    /// Two items or more with a period of zero run the first item only, and the plan says so whenever it writes
+    /// the list - backlog 650, owner's decision P3 of 2026-11-25. One item at zero is not that, and a plan that
+    /// does not write the list says nothing about it.
+    /// </summary>
+    [Fact]
+    public void A_list_of_two_with_no_reset_period_is_said_to_run_its_first_item_only()
+    {
+        bool Says(RecoveryChange asked) =>
+            Plan(new FakeScmControl().WithRecovery("Spooler", Reading<RecoverySettings>.Present(SpoolersOwn)), asked)
+                .Warnings.Any(warning => warning.Kind == PlanWarningKind.EveryFailureFirst);
+
+        Assert.True(Says(Change(RecoveryParts.ResetPeriod, reset: TimeSpan.Zero)));
+        Assert.True(Says(Change(
+            RecoveryParts.Actions | RecoveryParts.ResetPeriod,
+            [new RecoveryItem(RecoveryAction.RestartService, TimeSpan.FromMinutes(1)), new RecoveryItem(RecoveryAction.RunProgram, TimeSpan.FromMinutes(1))],
+            TimeSpan.Zero)));
+        Assert.False(Says(Change(RecoveryParts.ResetPeriod, reset: Hour * 2)));
+        Assert.False(Says(Change(
+            RecoveryParts.Actions | RecoveryParts.ResetPeriod,
+            [new RecoveryItem(RecoveryAction.RestartService, TimeSpan.FromMinutes(1))],
+            TimeSpan.Zero)));
+        Assert.False(Says(Texted(RecoveryParts.Command, "C:\\fix.cmd")));
+    }
+
     private static PlanRun Run(FakeScmControl machine, OperationPlan plan) =>
         new PlanRunner(machine, new FakeClock()).Run(plan, TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
 

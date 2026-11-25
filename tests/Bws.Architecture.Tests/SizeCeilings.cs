@@ -32,18 +32,20 @@ namespace Bws.Architecture.Tests;
 internal static class SizeCeilings
 {
     /// <summary>
-    /// 288 lines of code, Gui/ViewModels/Catalogue.Views.cs, since 2026-11-23 - when the column table in
-    /// Columns.cs, 289 until then, gave its four file columns and the new recovery columns files of their own
-    /// (backlog 555).
+    /// 278 lines of code, Core/Planning/PlanBuilder.cs, since 2026-11-25 - when the plan sheet's views left
+    /// Gui/ViewModels/Catalogue.Views.cs, 288 until then, for Catalogue.Plans.cs with the recovery form
+    /// (backlog 555 part a2).
     /// </summary>
-    internal const int LongestShippedFile = 288;
+    internal const int LongestShippedFile = 278;
 
     /// <summary>
-    /// Seven at 203 or more: Columns, PlanBuilder, CommandLine.Reading, Program, Suggesting, QueryFields
-    /// and Catalogue.Views. WindowsBinaryInspector left the eight on 2026-10-06 (package SB), when the
-    /// catalogue walk moved to WindowsBinaryInspector.Catalogue.cs and the raw handle to the signature.
+    /// Fourteen at 195 or more (70% of 278 is 194.6): PlanBuilder, CommandLine.Reading, Catalogue.Views,
+    /// Suggesting, Columns, Program, QueryFields, WindowsBinaryInspector, ColumnLayout, PlanRunner, ForcedStop,
+    /// WindowsScmControl, ListColumns and QueryValueReader. Seven until 2026-11-25, when the ceiling came down
+    /// ten lines and the band followed it - no file grew, and the owner's decision that day was to count what
+    /// the band now holds (`docs/PROJEKT-LUKI-SERVICES-MSC-20261123.md` section 8, P5).
     /// </summary>
-    internal const int ShippedFilesNearLongest = 7;
+    internal const int ShippedFilesNearLongest = 14;
 
     /// <summary>
     /// 176 lines of markup, Themes/Controls.xaml, since 2026-09-29 - PlanView.xaml stood on 178 and

@@ -128,6 +128,24 @@ internal static class RecoveryPlan
             warnings.Add(new PlanWarning(PlanWarningKind.RestartsComputerOnFailure, target.ServiceName));
         }
 
+        // The list and its period are always written together, so "Actions" here is either half asked.
+        if (change.Writes(RecoveryParts.Actions)
+            && change.To.List.Items.Count > 1
+            && change.To.List.ResetPeriod == TimeSpan.Zero)
+        {
+            warnings.Add(new PlanWarning(PlanWarningKind.EveryFailureFirst, target.ServiceName));
+        }
+
+        if (LeavesUnused(write, RecoveryParts.Command, RecoveryAction.RunProgram))
+        {
+            warnings.Add(new PlanWarning(PlanWarningKind.ProgramUnused, target.ServiceName));
+        }
+
+        if (LeavesUnused(write, RecoveryParts.RebootMessage, RecoveryAction.RestartComputer))
+        {
+            warnings.Add(new PlanWarning(PlanWarningKind.RebootMessageUnused, target.ServiceName));
+        }
+
         if (RunsAProgram(change, write.From))
         {
             warnings.Add(new PlanWarning(
@@ -135,6 +153,32 @@ internal static class RecoveryPlan
                 target.ServiceName,
                 target.Account.IsPresent && !string.IsNullOrEmpty(target.Account.Value) ? [target.Account.Value!] : []));
         }
+    }
+
+    /// <summary>
+    /// Whether this write leaves a text no failure uses - a program no item runs
+    /// (<see cref="PlanWarningKind.ProgramUnused"/>) or a message no item sends
+    /// (<see cref="PlanWarningKind.RebootMessageUnused"/>).
+    ///
+    /// <b>Only when it sets that text or changes what the list holds</b>, so rewriting the period of an entry
+    /// whose program was already unused says nothing about it. <b>Only when what the entry had was read</b>:
+    /// the opposite of <see cref="RunsAProgram"/>, because this is a remark about a text that will NOT be used,
+    /// and a guess at it would be a remark about nothing.
+    /// </summary>
+    /// <param name="text">The part holding the text - the command or the message.</param>
+    /// <param name="user">The kind of item that uses it.</param>
+    private static bool LeavesUnused(RecoveryWrite write, RecoveryParts text, RecoveryAction user)
+    {
+        if (write.From is not { } from)
+        {
+            return false;
+        }
+
+        var after = write.Change.Over(from);
+        var touched = write.Change.Writes(text) || !after.List.Items.SequenceEqual(from.List.Items);
+        var held = text == RecoveryParts.Command ? after.List.Command : after.List.RebootMessage;
+
+        return touched && held is not null && after.List.Items.All(item => item.Action != user);
     }
 
     /// <summary>

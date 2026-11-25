@@ -1864,11 +1864,12 @@ $mutations = @(
         File = 'src\Bws.Gui\ViewModels\Planned.cs'
         # RE-ANCHORED 2026-09-07, when a fifth clause arrived: the name typed back, for a plan
         # that ends more than the entry somebody named. AND AGAIN 2026-09-15, when the sixth did:
-        # the box of seconds saying something that is not seconds.
+        # the box of seconds saying something that is not seconds. AND 2026-11-24, when the seventh did:
+        # a recovery form that moved since the plan under it was worked out.
         From = '        Showing && Elevated && !Busy && _run is null && _plan is { IsRunnable: true }
-        && !HasWaitingProblem && Confirmed;'
+        && !HasWaitingProblem && Confirmed && _question is not { Outdated: true };'
         To = '        Showing && Elevated && _run is null && _plan is { IsRunnable: true }
-        && !HasWaitingProblem && Confirmed;'
+        && !HasWaitingProblem && Confirmed && _question is not { Outdated: true };'
         Test = 'CarryingGuards.The_button_is_live_only_while_there_is_a_plan_nobody_has_carried_out'
     },
     @{
@@ -1942,11 +1943,11 @@ $mutations = @(
         # from the manager and somebody working out why, which is what this clause exists against.
         Name = 'plan panel: a session that cannot change anything cannot press the button'
         File = 'src\Bws.Gui\ViewModels\Planned.cs'
-        # RE-ANCHORED 2026-09-07 with the clause above, for the same reason, and again 2026-09-15.
+        # RE-ANCHORED 2026-09-07 with the clause above, for the same reason, and again 2026-09-15 and 2026-11-24.
         From = '        Showing && Elevated && !Busy && _run is null && _plan is { IsRunnable: true }
-        && !HasWaitingProblem && Confirmed;'
+        && !HasWaitingProblem && Confirmed && _question is not { Outdated: true };'
         To = '        Showing && !Busy && _run is null && _plan is { IsRunnable: true }
-        && !HasWaitingProblem && Confirmed;'
+        && !HasWaitingProblem && Confirmed && _question is not { Outdated: true };'
         Test = 'CarryingGuards.A_session_that_cannot_change_anything_says_so_before_anybody_presses'
     },
     @{
@@ -2185,8 +2186,8 @@ $mutations = @(
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Planning.cs'
         # The third argument arrived on 2026-09-08 and stale-check found this anchor the same
         # minute, which is the whole reason that script runs before this one.
-        From = '        return Task.Run(() => new BulkPlanBuilder(entries, _catalog, _processes).Build(action));'
-        To = '        return Task.FromResult(new BulkPlanBuilder(entries, _catalog, _processes).Build(action));'
+        From = '        return Task.Run(() => new BulkPlanBuilder(entries, _catalog, processes, recovery).Build(action));'
+        To = '        return Task.FromResult(new BulkPlanBuilder(entries, _catalog, processes, recovery).Build(action));'
         Test = 'PlanBuildingGuards.The_manager_is_not_asked_about_a_cascade_on_the_thread_that_draws'
     },
     @{
@@ -5774,7 +5775,7 @@ $mutations = @(
         # still opens, and the steps in it name one entry - the specification's own warning, word
         # for word: "admin kliknie stop na jednym wierszu i zatrzyma cztery uslugi".
         Name = 'folding: a plan over a folded row names every copy under it'
-        File = 'src\Bws.Gui\MainWindow.Menu.cs'
+        File = 'src\Bws.Gui\ViewModels\Picking.cs'
         From = '            names.AddRange(row.Instances.Select(instance => instance.ServiceName));'
         To = ''
         Test = 'FoldingGuards.A_plan_over_a_folded_row_names_the_template_and_every_copy_under_it'
@@ -5784,7 +5785,7 @@ $mutations = @(
         # WRONG. Leaving the template out is a change that evaporates at the next logon: the copies
         # that exist are set and the pattern the next one is made from is not.
         Name = 'folding: a plan over a folded row names the template as well as its copies'
-        File = 'src\Bws.Gui\MainWindow.Menu.cs'
+        File = 'src\Bws.Gui\ViewModels\Picking.cs'
         From = '            names.Add(row.ServiceName);'
         To = '            if (row.Instances.Count == 0) { names.Add(row.ServiceName); }'
         Test = 'FoldingGuards.A_plan_over_a_folded_row_names_the_template_and_every_copy_under_it'
@@ -7559,8 +7560,8 @@ $mutations = @(
         # number the box does not hold - the screen and the machine disagreeing.
         Name = 'waiting: a wrong box greys the button'
         File = 'src\Bws.Gui\ViewModels\Planned.cs'
-        From = '        && !HasWaitingProblem && Confirmed;'
-        To = '        && Confirmed;'
+        From = '        && !HasWaitingProblem && Confirmed && _question is not { Outdated: true };'
+        To = '        && Confirmed && _question is not { Outdated: true };'
         Test = 'Bws.Gui.Tests.WaitingGuards.A_wrong_box_stops_the_press_before_any_run_is_given_a_number'
     }
     @{
@@ -8656,7 +8657,7 @@ $mutations = @(
         # behind the press is a plan over all twenty-four.
         Name = 'forcing verbs: the bar is told entries rather than rows'
         File = 'src\Bws.Gui\MainWindow.Menu.cs'
-        From = 'private int PickedEntries() => Everything(PickedRows()).Count;'
+        From = 'private int PickedEntries() => Picking.Names(PickedRows()).Count;'
         To = 'private int PickedEntries() => PickedRows().Count;'
         Test = 'ForcingVerbGuards.A_folded_family_counts_as_many_entries_to_the_bar'
     },
@@ -8723,8 +8724,8 @@ $mutations = @(
         # click over a driver opens the plan of nothing the bar no longer offers.
         Name = 'drivers: a plan over drivers alone is refused before it exists'
         File = 'src\Bws.Gui\MainWindow.Menu.cs'
-        From = '        if (OnlyDrivers(picked))'
-        To = '        if (OnlyDrivers([]))'
+        From = '        if (Picking.OnlyDrivers(picked))'
+        To = '        if (Picking.OnlyDrivers([]))'
         Test = 'DriverPickGuards.Asking_for_a_plan_over_drivers_alone_opens_none_and_says_why'
     },
     @{
@@ -8779,7 +8780,7 @@ $mutations = @(
         File = 'src\Bws.Gui\Themes\Actions.xaml'
         From = '<Setter Property="Visibility" Value="Visible" />'
         To = '<Setter Property="Visibility" Value="Collapsed" />'
-        Test = 'RightsMarkGuards.The_six_write_buttons_wear_a_shield_while_the_session_cannot_carry_their_plans_out'
+        Test = 'RightsMarkGuards.The_write_buttons_wear_a_shield_while_the_session_cannot_carry_their_plans_out'
     },
     @{
         # The shield eats the button's left padding rather than adding its width. RE-AIMED 2026-11-03
@@ -8824,7 +8825,7 @@ $mutations = @(
         File = 'src\Bws.Gui\ActionBar.xaml.cs'
         From = '        button.ToolTip = on && NeedsRights ? saying + " " + Texts.Of("gui.action.needsRights") : saying;'
         To = '        button.ToolTip = saying;'
-        Test = 'RightsMarkGuards.The_six_write_buttons_wear_a_shield_while_the_session_cannot_carry_their_plans_out'
+        Test = 'RightsMarkGuards.The_write_buttons_wear_a_shield_while_the_session_cannot_carry_their_plans_out'
     },
     # ---- UX-GUI-004 (c), 2026-09-23: the restart as administrator opens where the old window was ----
     #

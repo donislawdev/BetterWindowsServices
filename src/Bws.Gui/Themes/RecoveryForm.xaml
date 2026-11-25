@@ -1,0 +1,146 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        WHAT THE RECOVERY FORM ON THE PLAN SHEET IS BUILT FROM - backlog 555 part a2, 2026-11-24. Styles
+        only, and every value a name the window already has, except the two widths of a line of the list
+        (Values.xaml).
+
+        STACKED, NOT TWO COLUMNS, for the argument Settings.xaml makes: the sheet is 560 wide, and a column
+        of labels would take its width from the longest translated label in every language. Each part is a
+        tick naming it, with its control under it.
+    -->
+
+    <!-- One part of the form: the tick that says it will be written, and its name, with air above it. -->
+    <Style x:Key="RecoveryPart" TargetType="CheckBox" BasedOn="{StaticResource SettingCheck}">
+        <Setter Property="Margin" Value="{StaticResource MarginAboveStatus}" />
+    </Style>
+
+    <!--
+        The kind of one failure: a button that opens the four kinds. It stretches over its column, and the
+        column is shared by every line, so all the buttons are as wide as the longest kind on the form.
+    -->
+    <Style x:Key="RecoveryKind" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Margin" Value="{StaticResource MarginBetweenControls}" />
+    </Style>
+
+    <!--
+        What a part without a tick is, when the entries do not agree on it or it could not be read. GONE WHEN
+        EMPTY, which is almost always: an empty TextBlock still measures one line, and the form would carry a
+        blank line under every part.
+    -->
+    <Style x:Key="RecoveryNote" TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="{StaticResource MarginUnderSearchField}" />
+        <Style.Triggers>
+            <Trigger Property="Text" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!--
+        What is wrong with what was typed, under the boxes it is about - in the colour their edge wears. Gone
+        when empty, for the reason above.
+    -->
+    <Style x:Key="RecoveryProblem" TargetType="TextBlock" BasedOn="{StaticResource ProblemText}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="{StaticResource MarginUnderSearchField}" />
+        <Style.Triggers>
+            <Trigger Property="Text" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- One of the two answers for stops with an error - the settings page's option, owner's decision P4. -->
+    <Style x:Key="RecoveryOption" TargetType="RadioButton" BasedOn="{StaticResource LanguageOption}" />
+
+    <!--
+        The delay of one failure, in the command line's words. A box that can say it is wrong.
+
+        HIDDEN, NOT COLLAPSED, beside "take no action" - the first picture of 2026-11-24 had that line's
+        remove mark standing where the others' delay boxes stand. Hidden keeps the room, so the marks of
+        every line stand one under another. The trigger names a property, not a type (`docs/10` trap 10).
+    -->
+    <Style x:Key="RecoveryDelay" TargetType="TextBox" BasedOn="{StaticResource ReportingBox}">
+        <Setter Property="Width" Value="{StaticResource WidthRecoveryDelay}" />
+        <Setter Property="Margin" Value="{StaticResource MarginBetweenControls}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding HasDelay}" Value="False">
+                <Setter Property="Visibility" Value="Hidden" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- The word between the kind and its delay, there exactly when the delay is. -->
+    <Style x:Key="RecoveryAfter" TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="{StaticResource MarginBetweenControls}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding HasDelay}" Value="False">
+                <Setter Property="Visibility" Value="Hidden" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- A box as wide as the form, under the tick of its part. -->
+    <Style x:Key="RecoveryText" TargetType="TextBox" BasedOn="{StaticResource ReportingBox}">
+        <Setter Property="Margin" Value="{StaticResource MarginUnderSearchField}" />
+    </Style>
+
+    <!-- Takes one failure off the list. The sheet's own close mark, saying what it closes. -->
+    <Style x:Key="RecoveryRemove" TargetType="Button" BasedOn="{StaticResource PlanClose}">
+        <Setter Property="ToolTip" Value="{DynamicResource gui.recovery.form.remove}" />
+    </Style>
+
+    <!--
+        ONE LINE OF THE LIST: its name, its kind, "after" and its delay, and the mark that takes it off. The
+        label and kind columns are shared across the lines (Grid.IsSharedSizeScope on the form), so every
+        line's kind and delay stand one under another. The presses are caught on the list in RecoveryFormView
+        - a template here has no class behind it. Here rather than in the view, which would otherwise stand
+        past the share of the markup ceiling the size guard counts as near.
+    -->
+    <DataTemplate x:Key="RecoveryLineTemplate">
+        <Grid Margin="{StaticResource MarginUnderSearchField}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" SharedSizeGroup="RecoveryLabel" />
+                <ColumnDefinition Width="Auto" SharedSizeGroup="RecoveryKind" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding Label}"
+                       VerticalAlignment="Center"
+                       Margin="{StaticResource MarginBetweenControls}"
+                       Style="{StaticResource SubduedText}" />
+            <Button Grid.Column="1"
+                    Tag="kind"
+                    AutomationProperties.AutomationId="recoveryKind"
+                    AutomationProperties.Name="{Binding Label}"
+                    Content="{Binding KindText}"
+                    Style="{StaticResource RecoveryKind}">
+                <Button.ContextMenu>
+                    <ContextMenu />
+                </Button.ContextMenu>
+            </Button>
+            <TextBlock Grid.Column="2"
+                       Text="{DynamicResource gui.recovery.form.after}"
+                       Style="{StaticResource RecoveryAfter}" />
+            <TextBox Grid.Column="3"
+                     AutomationProperties.AutomationId="recoveryDelay"
+                     AutomationProperties.Name="{Binding Label}"
+                     Text="{Binding DelayText, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="{DynamicResource gui.recovery.form.delay.hint}"
+                     Style="{StaticResource RecoveryDelay}" />
+            <Button Grid.Column="4"
+                    Tag="remove"
+                    AutomationProperties.AutomationId="recoveryRemove"
+                    AutomationProperties.Name="{DynamicResource gui.recovery.form.remove}"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource RecoveryRemove}" />
+        </Grid>
+    </DataTemplate>
+</ResourceDictionary>

@@ -37,6 +37,9 @@ internal static partial class PlanWords
             : Texts.Of("gui.plan.warning.programRunsAs", warning.ServiceName, warning.Related[0]),
 
         PlanWarningKind.CriticalRecovery => Texts.Of("gui.plan.warning.criticalRecovery", warning.ServiceName),
+        PlanWarningKind.ProgramUnused => Texts.Of("gui.plan.warning.programUnused", warning.ServiceName),
+        PlanWarningKind.RebootMessageUnused => Texts.Of("gui.plan.warning.rebootMessageUnused", warning.ServiceName),
+        PlanWarningKind.EveryFailureFirst => Texts.Of("gui.plan.warning.everyFailureFirst", warning.ServiceName),
 
         _ => throw new ArgumentOutOfRangeException(
             nameof(warning), warning.Kind, EquivalentCommand.Unhandled)

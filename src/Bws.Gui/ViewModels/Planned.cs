@@ -128,7 +128,7 @@ public sealed partial class Planned : Checked
     /// and after the plan because a plan with nothing to run has no box on it.
     public bool CanCarryOut =>
         Showing && Elevated && !Busy && _run is null && _plan is { IsRunnable: true }
-        && !HasWaitingProblem && Confirmed;
+        && !HasWaitingProblem && Confirmed && _question is not { Outdated: true };
 
     /// <summary>
     /// Whether this session can change anything at all.
@@ -184,10 +184,17 @@ public sealed partial class Planned : Checked
     /// </summary>
     public string CarryOutTip =>
         !Showing ? Texts.Of("gui.plan.carryOut.hint")
+
+        // A recovery form that has not asked anything yet has no plan - the form is what to use.
+        : _plan is null && _question is { Form.HasProblem: true } ? Texts.Of("gui.plan.blocked.formFix")
+        : _plan is null && _question is not null ? Texts.Of("gui.plan.blocked.form")
         : _plan is not { IsRunnable: true } ? Texts.Of("gui.plan.blocked.nothingToRun")
         : !Elevated ? Texts.Of("gui.plan.blocked.notElevated")
         : Busy ? Texts.Of("gui.plan.blocked.running")
         : _run is not null ? Texts.Of("gui.plan.blocked.alreadyDone")
+
+        // The form moved and the plan on screen is about what it said before - Planned.Recovery.cs.
+        : _question is { Outdated: true } ? Texts.Of("gui.plan.blocked.outdated")
 
         // THE SIXTH WAY, SINCE 2026-09-15, AND THE SECOND SOMEBODY CAN CLEAR FROM WHERE THEY
         // STAND: the box of seconds says something that is not seconds. The sentence under the
@@ -233,6 +240,15 @@ public sealed partial class Planned : Checked
                     number,
                     NamedSentence.Slot,
                     CellFaces.SettingLabel(step.To!.Value),
+                    PlanWords.Reason(step.Reason))
+
+                // A recovery write says what it writes, as a start type does - only the parts it names.
+                : step.Recovering is { } write
+                ? Texts.Of(
+                    "gui.plan.step.recovery",
+                    number,
+                    NamedSentence.Slot,
+                    RecoveryWords.Written(write.Change),
                     PlanWords.Reason(step.Reason))
                 : Texts.Of(
                     "gui.plan.step",
@@ -360,6 +376,8 @@ public sealed partial class Planned : Checked
     /// after the press was the same file to the byte as one before it. <see cref="Underway"/> words it.
     public string Notice => !Showing ? string.Empty
         : Busy ? Underway.Notice
+        : _plan is null && _question is { } asked ? asked.Notice
+        : _run is null && _question is not null ? SheetQuestion.Under(Warnings.Count, Problems.Count)
         : _run is not { } run
             ? _because.Length == 0
                 ? Texts.Of("gui.plan.notice.notYet")
@@ -429,6 +447,24 @@ public sealed partial class Planned : Checked
         Underway.End();
         Showing = true;
 
+        // The plan catches up with the form that asked for it, and any other plan takes the form away.
+        if (plan.Action.Kind != ActionKind.SetRecovery)
+        {
+            _question = null;
+        }
+        else if (_question is not null)
+        {
+            _question.Outdated = false;
+        }
+
+        RaiseTheSheet();
+
+        return true;
+    }
+
+    /// <summary>Everything the sheet shows, said again - once a plan, a form or nothing is put on it.</summary>
+    private void RaiseTheSheet()
+    {
         Raise(nameof(CanCarryOut));
         Raise(nameof(Blocked));
         Raise(nameof(Failures));
@@ -443,7 +479,11 @@ public sealed partial class Planned : Checked
         Raise(nameof(Commands));
         Raise(nameof(Notice));
 
-        return true;
+        // The recovery form and the three things a question decides while there is no plan.
+        Raise(nameof(Question));
+        Raise(nameof(Subtitle));
+        Raise(nameof(CarryOutLabel));
+        Raise(nameof(CarryOutTip));
     }
 
     /// <summary>
@@ -478,20 +518,9 @@ public sealed partial class Planned : Checked
         Busy = false;
         Underway.End();
         Showing = false;
+        _question = null;
 
-        Raise(nameof(CanCarryOut));
-        Raise(nameof(Blocked));
-        Raise(nameof(Failures));
-        Raise(nameof(WayBack));
-        RaiseTheCounts();
-        Raise(nameof(Heading));
-        Raise(nameof(Steps));
-        Raise(nameof(Extra));
-        Raise(nameof(Overlapping));
-        Raise(nameof(Warnings));
-        Raise(nameof(Problems));
-        Raise(nameof(Commands));
-        Raise(nameof(Notice));
+        RaiseTheSheet();
 
         return true;
     }

@@ -225,7 +225,7 @@ public partial class MainWindow
         }
 
         var picked = PickedRows();
-        var names = Everything(picked);
+        var names = Picking.Names(picked);
 
         if (names.Count == 0)
         {
@@ -237,7 +237,7 @@ public partial class MainWindow
         // live over any selection (RowMenu says why), so this is the one door both it and the bar
         // come through. The core would refuse every one of them anyway, and the sheet it would open
         // is a plan of nothing. A menu item has no tooltip, so the reason goes to the status line.
-        if (OnlyDrivers(picked))
+        if (Picking.OnlyDrivers(picked))
         {
             _model.Says.CouldNotDo(Texts.Of("gui.action.onlyDrivers"));
 
@@ -504,35 +504,9 @@ public partial class MainWindow
     /// reads to the plan. Two of the bar's buttons take one entry and no more, and a bar told "one
     /// row" over a family would offer a plan over the whole of it.
     /// </summary>
-    private int PickedEntries() => Everything(PickedRows()).Count;
+    private int PickedEntries() => Picking.Names(PickedRows()).Count;
 
     private List<EntryRow> PickedRows() => Entries.SelectedItems.OfType<EntryRow>().ToList();
-
-    /// <summary>
-    /// Whether every picked row is a driver - the core's own fact about the entry, not one this
-    /// window works out. A folded row is a per-user family, which is always services, so rows and
-    /// not the names they stand for are enough to ask.
-    /// </summary>
-    private static bool OnlyDrivers(List<EntryRow> picked) =>
-        picked.Count > 0 && picked.All(row => row.Entry.IsDriver);
-
-    private static List<string> Everything(List<EntryRow> picked)
-    {
-        var names = new List<string>(picked.Count);
-
-        foreach (var row in picked)
-        {
-            // Internal names rather than display names, because that is what identity is -
-            // `ADR-14`. A session's copy carries no display name of its own at all: measured on
-            // this machine, all 23 of them answer with their own service name where the template
-            // answers with a translated sentence.
-            names.Add(row.ServiceName);
-
-            names.AddRange(row.Instances.Select(instance => instance.ServiceName));
-        }
-
-        return names;
-    }
 
     /// <summary>
     /// Puts one field of the chosen row on the clipboard, or says why it could not.

@@ -42,7 +42,7 @@ public sealed partial class Planned
     /// than a name, and nothing to set apart. The whole sentence is its Text.
     /// </summary>
     public NamedSentence Heading => _plan is not { } plan
-        ? NamedSentence.Unnamed(string.Empty)
+        ? _question?.Heading ?? NamedSentence.Unnamed(string.Empty)
         : _run is null
             ? Asked(plan) == 1
                 ? NamedSentence.Around(
@@ -68,7 +68,9 @@ public sealed partial class Planned
     /// a tidy one: an entry whose display name the manager never gave, and every plan built by
     /// something that is not this window.
     /// </summary>
-    public string Subtitle => _plan is not { } plan || !Showing || Asked(plan) != 1
+    public string Subtitle => _plan is null && Showing
+        ? _question?.Subtitle ?? string.Empty
+        : _plan is not { } plan || !Showing || Asked(plan) != 1
         ? string.Empty
         : string.Equals(Named(plan), Only(plan), StringComparison.Ordinal)
             ? string.Empty
@@ -104,7 +106,7 @@ public sealed partial class Planned
     /// button that changes a machine with an act nobody asked for.
     /// </summary>
     public string CarryOutLabel => _plan is not { } plan
-        ? string.Empty
+        ? _question?.CarryOutLabel ?? string.Empty
         : EndsOneProcess(plan) is { } ending
             ? Texts.Of("gui.plan.carryOut.endProcess", ending)
             : Asked(plan) == 1
@@ -122,6 +124,7 @@ public sealed partial class Planned
             : Texts.Of("gui.plan.carryOut.setStartType.one", Named(plan), PlanWords.SetTo(plan)),
         ActionKind.ForceStop => Texts.Of("gui.plan.carryOut.forceStop.one", Named(plan)),
         ActionKind.ForceRestart => Texts.Of("gui.plan.carryOut.forceRestart.one", Named(plan)),
+        ActionKind.SetRecovery => Texts.Of("gui.plan.carryOut.recovery.one", Named(plan)),
         _ => throw new ArgumentOutOfRangeException(nameof(plan), plan.Action.Kind, EquivalentCommand.Unhandled)
     };
 
@@ -136,6 +139,7 @@ public sealed partial class Planned
             : Texts.Of("gui.plan.carryOut.setStartType.many", Asked(plan), PlanWords.SetTo(plan)),
         ActionKind.ForceStop => Texts.Of("gui.plan.carryOut.forceStop.many", Asked(plan)),
         ActionKind.ForceRestart => Texts.Of("gui.plan.carryOut.forceRestart.many", Asked(plan)),
+        ActionKind.SetRecovery => Texts.Of("gui.plan.carryOut.recovery.many", Asked(plan)),
         _ => throw new ArgumentOutOfRangeException(nameof(plan), plan.Action.Kind, EquivalentCommand.Unhandled)
     };
 

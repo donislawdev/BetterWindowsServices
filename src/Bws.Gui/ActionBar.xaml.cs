@@ -153,6 +153,9 @@ public partial class ActionBar : UserControl
     /// <summary>Somebody asked to see what setting a start type would do.</summary>
     internal event EventHandler<StartTypeAsked>? StartTypeRequest;
 
+    /// <summary>Somebody asked for the form that sets what Windows does when the picked entries fail.</summary>
+    internal event EventHandler? RecoveryRequest;
+
     /// <summary>Somebody asked for the machine overview back - `G`.</summary>
     internal event EventHandler? OverviewRequest;
 
@@ -197,6 +200,7 @@ public partial class ActionBar : UserControl
         Set(StartButton, anything, anything ? Texts.Of("gui.action.start.hint") : off);
         Set(RestartButton, anything, anything ? Texts.Of("gui.action.restart.hint") : off);
         Set(StartTypeButton, anything, anything ? Texts.Of("gui.action.startType.hint") : off);
+        Set(RecoveryButton, anything, anything ? Texts.Of("gui.action.recovery.hint") : off);
 
         // ONE ENTRY AND NOT "ANYTHING" - `docs/ANALIZA-FORCE` 15.6, and the paragraph over these
         // two buttons in the markup. Three answers rather than two, because "pick one" over an
@@ -240,6 +244,9 @@ public partial class ActionBar : UserControl
 
     /// <inheritdoc cref="Stop"/>
     internal Button StartType => StartTypeButton;
+
+    /// <inheritdoc cref="Stop"/>
+    internal Button Recovery => RecoveryButton;
 
     /// <inheritdoc cref="Stop"/>
     internal Button OverviewBack => OverviewButton;
@@ -295,6 +302,8 @@ public partial class ActionBar : UserControl
     /// the whole argument.
     /// </summary>
     private void StartTypeAsked(object sender, RoutedEventArgs e) => ButtonMenu.OpenUnder(StartTypeButton);
+
+    private void RecoveryAsked(object sender, RoutedEventArgs e) => RecoveryRequest?.Invoke(this, EventArgs.Empty);
 }
 
 /// <summary>Which of the five somebody asked to see the effects of.</summary>

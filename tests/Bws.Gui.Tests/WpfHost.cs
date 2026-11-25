@@ -333,6 +333,9 @@ internal static class WpfHost
                      // between them since 2026-09-24 - it extends a style PlanLines.xaml declares.
                      "Scroll.xaml", "PlanLines.xaml", "PlanOffers.xaml", "Plan.xaml", "PlanRun.xaml",
 
+                     // After Plan.xaml, whose close mark the form's remove mark extends (2026-11-24).
+                     "RecoveryForm.xaml",
+
                      "List.xaml", "Marks.xaml", "Cells.xaml",
 
                      // After Marks.xaml, whose mark styles it extends - the panel about one
