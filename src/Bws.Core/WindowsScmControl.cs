@@ -22,8 +22,12 @@ public sealed partial class WindowsScmControl : IScmControl
 {
     public ControlAnswer Request(string serviceName, StepOperation operation) => operation switch
     {
-        StepOperation.Stop => Stop(serviceName),
+        StepOperation.Stop => Control(serviceName, PInvoke.SERVICE_STOP, PInvoke.SERVICE_CONTROL_STOP),
         StepOperation.Start => Start(serviceName),
+
+        // One right covers both, and it is the only right these two ask for.
+        StepOperation.Pause => Control(serviceName, PInvoke.SERVICE_PAUSE_CONTINUE, PInvoke.SERVICE_CONTROL_PAUSE),
+        StepOperation.Resume => Control(serviceName, PInvoke.SERVICE_PAUSE_CONTINUE, PInvoke.SERVICE_CONTROL_CONTINUE),
 
         // THE MOST IMPORTANT OF THE NINE, and the reason all nine were changed. This one asks the
         // service manager to MOVE something. A step of a kind nobody taught it used to arrive here
@@ -303,9 +307,13 @@ public sealed partial class WindowsScmControl : IScmControl
         StartType.Disabled => SERVICE_START_TYPE.SERVICE_DISABLED,
         _ => null
     };
-    private static ControlAnswer Stop(string serviceName)
+    /// <summary>
+    /// Sends one control - a stop, a pause or a resume - with the one right it needs. One method for the
+    /// three since 2026-11-25, because they differ in two numbers and nothing else.
+    /// </summary>
+    private static ControlAnswer Control(string serviceName, uint right, uint control)
     {
-        using var handle = Open(serviceName, PInvoke.SERVICE_STOP, out var refusal);
+        using var handle = Open(serviceName, right, out var refusal);
 
         if (handle is null)
         {
@@ -315,7 +323,7 @@ public sealed partial class WindowsScmControl : IScmControl
         // The returned status is deliberately dropped. It is what the manager knew at the
         // moment it took the request, which is a snapshot already going stale, and mixing it
         // with the answers from the watching loop would give two sources for one question.
-        return PInvoke.ControlService(handle, PInvoke.SERVICE_CONTROL_STOP, out _)
+        return PInvoke.ControlService(handle, control, out _)
             ? ControlAnswer.Done()
             : Refusal();
     }

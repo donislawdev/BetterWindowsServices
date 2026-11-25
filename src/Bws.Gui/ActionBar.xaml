@@ -66,6 +66,25 @@
                 Click="RestartAsked" />
 
         <!--
+            PAUSE AND RESUME, 2026-11-25 - spec C1, backlog 555 part (b). Two buttons as services.msc
+            has them, right after the three that move an entry, because these move one too. Each opens a
+            plan and nothing else, so three dots like the rest. Most services take no pause - the plan
+            says so before anything is sent, and the reason sits in the plan rather than on the button,
+            because whether an entry takes a pause is known only while it runs.
+        -->
+        <Button x:Name="PauseButton"
+                AutomationProperties.AutomationId="actionPause"
+                Content="{DynamicResource gui.action.pause}"
+                Style="{StaticResource WriteAction}"
+                Click="PauseAsked" />
+
+        <Button x:Name="ResumeButton"
+                AutomationProperties.AutomationId="actionResume"
+                Content="{DynamicResource gui.action.resume}"
+                Style="{StaticResource WriteAction}"
+                Click="ResumeAsked" />
+
+        <!--
             THE TWO VERBS THAT CAN END A PROCESS, arriving 2026-09-16 - backlog 374, the owner's
             decision, and the second on the owner's word that a window with the verb has the whole
             verb. Until this line the window offered them only under a stop or a restart that had

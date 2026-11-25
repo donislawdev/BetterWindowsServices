@@ -196,6 +196,7 @@ public sealed class QueryExampleScopeTests
             Status = status,
             ProcessId = Reading<int>.Absent(),
             AcceptsStop = Reading<bool>.Absent(),
+            AcceptsPause = Reading<bool>.Absent(),
             Account = Reading<string>.Absent(),
             Triggers = Reading<IReadOnlyList<ServiceTrigger>>.Absent(),
             BinaryPath = Reading<string>.Present(@"C:\Windows\System32\drivers\" + name + ".sys"),

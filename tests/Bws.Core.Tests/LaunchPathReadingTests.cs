@@ -149,7 +149,7 @@ public sealed class LaunchPathReadingTests
         // path named nothing at all instead of the default under System32\drivers.
         var enumerated = new EnumeratedEntry(
             "Recognizer", "Recognizer", EntryType.Unknown, PerUserRole.None, EntryStatus.Running, 0, AcceptsStop: false,
-            RecognizerDriver: true);
+            AcceptsPause: false, RecognizerDriver: true);
 
         var configuration = ScmConfiguration.Refused(0) with { BinaryPath = Reading<string>.Absent() };
 

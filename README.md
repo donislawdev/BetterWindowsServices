@@ -32,8 +32,9 @@ next administrator finds out it exists.
 
 - **Ask, instead of scroll** - `start:auto !status:running` is *what should be up and is not*. One
   language, in the search box and in `bws list --query`, with the fields offered as you type.
-- **Show the plan before anything happens** - every stop, start, restart and start type change is
-  previewed with the services it takes down with it, and the preview is what runs.
+- **Show the plan before anything happens** - every stop, start, restart, pause, resume and start type
+  change is previewed first, with the services a stop takes down along with it and the ones a pause
+  leaves running. The preview is what runs.
 - **Tell you what drifted, and who changed it** - `bws snapshot create` freezes the machine into a
   file, and `bws snapshot diff` says what changed since, configuration apart from what merely started
   or stopped. `bws history` says who changed a start type and who installed a service, out of the
@@ -596,8 +597,10 @@ The short version of `bws --help`, which is the authoritative one and is longer.
 bws list [--query TEXT] [--signatures] [--memory] [--required-by] [--follow-network] [--json] [--timing]
 bws show NAME [--full] [--follow-network] [--json] [--timing]
 bws stop|start|restart NAME [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
+bws pause|resume NAME [--dry-run] [--timeout SECONDS] [--json] [--timing]
 bws kill NAME [--force] [--restart] [--dry-run] [--dependents] [--timeout SECONDS] [--json] [--timing]
 bws start-type NAME automatic|delayed|manual|disabled [--stop] [--dry-run] [--json] [--timing]
+bws recovery NAME [ACTION ...] [--reset PERIOD] [--program TEXT] [--message TEXT] [--on-error-stops yes|no] [--dry-run] [--json] [--timing]
 bws snapshot create [FILE] [--note TEXT] [--follow-network] [--force] [--json] [--timing]
 bws snapshot diff EARLIER LATER [--exit-code] [--json] [--timing]
 bws snapshot diff EARLIER --live [--exit-code] [--json] [--timing]

@@ -223,6 +223,7 @@ public sealed class MemoryBudgetTests(ITestOutputHelper output)
         Status = EntryStatus.Running,
         ProcessId = Reading<int>.Present(1234),
         AcceptsStop = Reading<bool>.Present(true),
+        AcceptsPause = Reading<bool>.Present(false),
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
         DelayedAuto = Reading<bool>.Present(false),
         Account = Reading<string>.Present(@"NT AUTHORITY\LocalService"),

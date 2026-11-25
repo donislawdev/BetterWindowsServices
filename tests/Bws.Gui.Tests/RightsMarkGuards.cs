@@ -35,9 +35,10 @@ public sealed class RightsMarkGuards
             return (Shown(bar), bar.Stop.ToolTip as string);
         });
 
-        // Seven, not ten: Refresh, Export and Overview change nothing, so they wear nothing. Six until
-        // 2026-11-24, when "Set recovery..." joined the verbs that open a plan (backlog 555 a2).
-        Assert.Equal(7, shields);
+        // Nine, not twelve: Refresh, Export and Overview change nothing, so they wear nothing. "Set
+        // recovery..." joined the verbs that open a plan on 2026-11-24 (backlog 555 a2), "Pause..." and
+        // "Resume..." on 2026-11-25 (555 b).
+        Assert.Equal(9, shields);
         Assert.Equal(Texts.Of("gui.action.stop.hint") + " " + Texts.Of("gui.action.needsRights"), tip);
     }
 
@@ -102,12 +103,12 @@ public sealed class RightsMarkGuards
                 with.Zip(without, (wide, narrow) => (Before: narrow.RightGap, After: wide.RightGap)).ToArray());
         });
 
-        // NOT VACUOUS: seven buttons wear the shield, so seven have to have grown at all.
-        Assert.Equal(7, grown.Count(by => by > 0));
+        // NOT VACUOUS: nine buttons wear the shield, so nine have to have grown at all.
+        Assert.Equal(9, grown.Count(by => by > 0));
         Assert.All(grown.Where(by => by > 0), by => Assert.True(
             footprint - by > ordinary / 2,
             $"A write button grew by {by} with the shield, whose mark and gap take {footprint} - so the shield took {footprint - by} of "
-            + $"a left padding of {ordinary}, not most of it, and the bar that cannot wrap grows by the rest on every one of seven buttons."));
+            + $"a left padding of {ordinary}, not most of it, and the bar that cannot wrap grows by the rest on every one of nine buttons."));
         Assert.All(edges, edge => Assert.True(
             Math.Abs(edge.After - edge.Before) < 0.5,
             $"A label ends {edge.Before} short of its button's right edge without the shield and {edge.After} with it - so the "
@@ -146,7 +147,7 @@ public sealed class RightsMarkGuards
     }
 
     /// <summary>
-    /// The seven write buttons laid out, in the order the bar holds them: each one's width, its left
+    /// The nine write buttons laid out, in the order the bar holds them: each one's width, its left
     /// padding, and how far its label ends short of its right edge.
     /// </summary>
     private static (double Width, double LeftPadding, double RightGap)[] WriteButtons(ActionBar bar)

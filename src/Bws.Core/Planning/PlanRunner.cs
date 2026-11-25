@@ -334,7 +334,7 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock, IEndin
             return Refused(step, request, Where(after), Holding(after), started) with { Answered = answered };
         }
 
-        return WaitFor(step, target, timeout, started, () => halt.Asked, asked: true)
+        return WaitFor(step, target, timeout, started, () => halt.Asked, asked: true, begun: false)
             with { Answered = answered };
     }
 

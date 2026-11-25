@@ -1636,14 +1636,15 @@ $mutations = @(
         # RE-ANCHORED 2026-09-29 (S-7): the ordering asks through the build's own DependentsAskedOnce,
         # passed in as `asking`, rather than through the catalogue field. The swap it makes is unchanged.
         From = @'
-        action.Kind is ActionKind.Start or ActionKind.SetRecovery
+        action.Kind is ActionKind.Start or ActionKind.SetRecovery or ActionKind.Pause or ActionKind.Resume
             || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
             ? asked
             : DependentsFirst.Order(asking, asked);
 '@
-        # RE-ANCHORED 2026-11-24, when a recovery write joined the unordered side (backlog 555 part a2).
+        # RE-ANCHORED 2026-11-24, when a recovery write joined the unordered side (backlog 555 part a2),
+        # and 2026-11-25, when a pause and a resume did (part b). The swap it makes is unchanged.
         To = @'
-        action.Kind is ActionKind.Start or ActionKind.SetRecovery
+        action.Kind is ActionKind.Start or ActionKind.SetRecovery or ActionKind.Pause or ActionKind.Resume
             || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
             ? DependentsFirst.Order(asking, asked)
             : asked;
@@ -5664,8 +5665,9 @@ $mutations = @(
         # make the other arm unreachable, and a constant condition is an error here.
         Name = 'panel: refusals that say the same thing are gathered rather than repeated'
         File = 'src\Bws.Gui\ViewModels\PlanWords.cs'
-        From = 'kind is PlanProblemKind.UnknownService or PlanProblemKind.NotOperable;'
-        To = 'kind is PlanProblemKind.UnknownService;'
+        # RE-ANCHORED 2026-11-25, when the three refusals of a pause joined the list on a line of their own.
+        From = 'kind is PlanProblemKind.UnknownService or PlanProblemKind.NotOperable'
+        To = 'kind is PlanProblemKind.UnknownService'
         Test = 'PlanRefusalGuards.Refusals_that_say_the_same_thing_come_back_as_one_sentence_with_a_count'
     },
     @{
@@ -5676,8 +5678,9 @@ $mutations = @(
         # untouchable list, met on the one screen where somebody is deciding whether to press.
         Name = 'panel: refusals that name other entries are never gathered'
         File = 'src\Bws.Gui\ViewModels\PlanWords.cs'
-        From = 'kind is PlanProblemKind.UnknownService or PlanProblemKind.NotOperable;'
-        To = 'kind is PlanProblemKind.UnknownService or PlanProblemKind.NotOperable or PlanProblemKind.CascadeNotOperable;'
+        # RE-ANCHORED 2026-11-25, when the three refusals of a pause joined the list on a line of their own.
+        From = 'kind is PlanProblemKind.UnknownService or PlanProblemKind.NotOperable'
+        To = 'kind is PlanProblemKind.UnknownService or PlanProblemKind.NotOperable or PlanProblemKind.CascadeNotOperable'
         Test = 'PlanRefusalGuards.Refusals_that_name_other_entries_are_never_gathered'
     },
     @{
@@ -9923,15 +9926,18 @@ $mutations = @(
         # W-7: a stop to an entry already stopping is refused by the manager, so it is waited for.
         Name = 'plan wait: an entry already on its way is waited for rather than asked'
         File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
-        From = '            return OnItsWay(target, status) ? WaitFor(step, target, timeout, started, Unasked, asked: false) : null;'
-        To = '            return null;'
+        # RE-ANCHORED 2026-11-25: the directions are asked by kind of step since pausing arrived (555 part b),
+        # and the watch is told whether the pending state was already seen (review of PR #135).
+        From = '                ? WaitFor(step, target, timeout, started, Unasked, asked: false, begun: status == Pending(step.Operation))'
+        To = '                ? null'
         Test = 'PlanRunProgressTests.A_stop_that_meets_an_entry_already_stopping_asks_nothing_and_waits_for_it'
     },
     @{
         # W-1 itself: the start that puts a service back waits for it to finish stopping.
         Name = 'plan wait: a start waits for the entry to finish stopping before it asks'
         File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
-        From = '        var watched = Watch(step.ServiceName, now => now != status, timeout, Unasked);'
+        # RE-ANCHORED 2026-11-25: watched until it heads nowhere the step waits for (review of PR #135).
+        From = '        var watched = Watch(step.ServiceName, now => !HeadingAway(step.Operation, now), timeout, Unasked);'
         To = '        var watched = Watch(step.ServiceName, now => true, timeout, Unasked);'
         Test = 'PlanRunProgressTests.A_restart_whose_stop_ran_out_starts_the_entry_once_it_has_finished_stopping'
     },
@@ -9939,24 +9945,29 @@ $mutations = @(
         # Nothing sent, so a failure in our own words - never a request the manager refuses.
         Name = 'plan wait: an entry that never leaves the other way is never asked'
         File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
-        From = '            _ => Refused(step, ControlAnswer.Refused(0, NeverAsked(target)), Where(seen), Holding(seen), started)'
-        To = '            Settled.GaveUp => null, _ => Refused(step, ControlAnswer.Refused(0, NeverAsked(target)), Where(seen), Holding(seen), started)'
+        # RE-ANCHORED 2026-11-25: the sentence is asked by kind of step since pausing arrived (555 part b),
+        # about the state last seen rather than the first (review of PR #135).
+        From = '            _ => Refused(step, ControlAnswer.Refused(0, NeverAsked(step.Operation, Where(seen))), Where(seen), Holding(seen), started)'
+        To = '            Settled.GaveUp => null, _ => Refused(step, ControlAnswer.Refused(0, NeverAsked(step.Operation, Where(seen))), Where(seen), Holding(seen), started)'
         Test = 'PlanRunProgressTests.An_entry_that_never_leaves_the_other_way_is_never_asked'
     },
     @{
         # W-7: a start the service did not survive is over at once, not a minute later.
         Name = 'plan wait: a start that falls back to stopped fails at once'
-        File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
-        From = '        target == EntryStatus.Running && status == EntryStatus.Stopped;'
-        To = '        target == EntryStatus.Running && status == EntryStatus.Unknown;'
+        # RE-ANCHORED 2026-11-25: FellBack moved to PlanRunner.Directions and is asked by kind of step (555 b).
+        File = 'src\Bws.Core\Planning\PlanRunner.Directions.cs'
+        From = '        StepOperation.Start => status == EntryStatus.Stopped,'
+        To = '        StepOperation.Start => status == EntryStatus.Unknown,'
         Test = 'StartFellOverTests.A_start_that_falls_back_to_stopped_fails_at_once_with_the_service_exit_code'
     },
     @{
         # The mirror is deliberately not a failure - Running just after a stop is ordinary.
         Name = 'plan wait: a stop that reads running after the request is not a failure'
-        File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
-        From = '        target == EntryStatus.Running && status == EntryStatus.Stopped;'
-        To = '        status != target && status is EntryStatus.Stopped or EntryStatus.Running;'
+        # RE-ANCHORED 2026-11-25: FellBack moved to PlanRunner.Directions and is asked by kind of step (555 b) -
+        # its last arm answers for a stop, and the mutant makes Running after a stop a fall.
+        File = 'src\Bws.Core\Planning\PlanRunner.Directions.cs'
+        From = '        _ => false'
+        To = '        _ => status == EntryStatus.Running'
         Test = 'StartFellOverTests.A_stop_that_still_reads_running_just_after_the_request_is_watched_rather_than_failed'
     },
     @{
@@ -13899,8 +13910,9 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # somebody else was stopping, though this tool never asked it to stop.
         Name = 'plan run: a watch that runs out before anything is asked puts nothing back'
         File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
-        From = '_ when !asked => Refused(step, ControlAnswer.Refused(0, NeverArrived(target)), Where(seen), Holding(seen), started),'
-        To = '_ when false => Refused(step, ControlAnswer.Refused(0, NeverArrived(target)), Where(seen), Holding(seen), started),'
+        # RE-ANCHORED 2026-11-25: the sentence is asked by kind of step since pausing arrived (555 part b).
+        From = '_ when !asked => Refused(step, ControlAnswer.Refused(0, NeverArrived(step.Operation)), Where(seen), Holding(seen), started),'
+        To = '_ when false => Refused(step, ControlAnswer.Refused(0, NeverArrived(step.Operation)), Where(seen), Holding(seen), started),'
         Test = 'PlanRunProgressTests.A_restart_that_only_watched_an_entry_stopping_and_ran_out_puts_nothing_back'
     }
     @{
@@ -13908,8 +13920,9 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         # finding: the input it failed on replayed on every pull request.
         Name = 'search: the run the first minute-long search found puts back nothing it never asked to stop'
         File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
-        From = '_ when !asked => Refused(step, ControlAnswer.Refused(0, NeverArrived(target)), Where(seen), Holding(seen), started),'
-        To = '_ when false => Refused(step, ControlAnswer.Refused(0, NeverArrived(target)), Where(seen), Holding(seen), started),'
+        # RE-ANCHORED 2026-11-25 with the entry above.
+        From = '_ when !asked => Refused(step, ControlAnswer.Refused(0, NeverArrived(step.Operation)), Where(seen), Holding(seen), started),'
+        To = '_ when false => Refused(step, ControlAnswer.Refused(0, NeverArrived(step.Operation)), Where(seen), Holding(seen), started),'
         Test = 'PlanRunPropertyTests.The_run_the_first_minute_long_search_found_puts_back_nothing_it_never_asked_to_stop'
     }
     @{

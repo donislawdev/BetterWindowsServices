@@ -5,9 +5,10 @@ namespace Bws.Core.Planning;
 ///
 /// <b>It builds ordinary plans and decides nothing a single plan already decides.</b> Cascade,
 /// warnings, refusals and the order INSIDE one plan all stay with <see cref="PlanBuilder"/>, which
-/// is where they were already tested without a machine to break. What this adds is the two answers
-/// that only exist once there is more than one entry: which plan goes first, and which entries get
-/// no plan at all.
+/// is where they were already tested without a machine to break. What this adds is the answers
+/// that only exist once there is more than one entry: which plan goes first, which entries get
+/// no plan at all, and - for a pause - which dependants named as staying the selection pauses
+/// itself (<see cref="PausePlan.Together"/>).
 ///
 /// <b>Reads and reasons, never writes</b> - the same property that makes the interesting half of
 /// `ADR-11` testable, and the reason a selection of twenty can be checked without touching a
@@ -66,7 +67,7 @@ public sealed class BulkPlanBuilder(
         return new BulkPlan
         {
             Action = action,
-            Plans = plans,
+            Plans = action.Kind == ActionKind.Pause ? PausePlan.Together(plans) : plans,
             Problems = problems
         };
     }
@@ -105,10 +106,11 @@ public sealed class BulkPlanBuilder(
     /// entry still running and the manager refuses it.
     ///
     /// <b>A recovery write is on the unordered side from its first day (2026-11-24)</b>, for the reason a
-    /// start type without a stop is: it takes nothing down.
+    /// start type without a stop is: it takes nothing down. <b>So are a pause and a resume (2026-11-25)</b> -
+    /// a paused entry keeps its dependants running, measured, so no order of two of them can be refused.
     /// </summary>
     private static List<string> InTheOrderTheyMustHappen(BulkAction action, List<string> asked, IScmCatalog asking) =>
-        action.Kind is ActionKind.Start or ActionKind.SetRecovery
+        action.Kind is ActionKind.Start or ActionKind.SetRecovery or ActionKind.Pause or ActionKind.Resume
             || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
             ? asked
             : DependentsFirst.Order(asking, asked);

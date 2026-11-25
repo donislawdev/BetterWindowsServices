@@ -41,6 +41,14 @@ is not part of this repository.
   for many at once. Each part has a tick: what you edit is ticked and written, and everything without
   a tick stays as it is on each service. The plan under the form follows what you type, and the line
   at the top of the sheet says how many warnings are under the form before you carry it out.
+- `bws pause NAME` and `bws resume NAME` pause a running service and resume a paused one - the
+  *Pause* and *Resume* of services.msc. A service that does not accept a pause, or one that is not
+  running, is refused before anything is sent - resume does not start a stopped service, and says how
+  to start it. The plan names the running services that depend on the one being paused, which keep
+  running, and says so when it cannot read them. After a pause, the line that resumes it is printed. In
+  the window, *Pause...* and *Resume...* stand beside *Restart...* and in the menu of a row, and open
+  the same plans for every service you picked - the services that cannot be paused are named together
+  in one sentence, and a service you picked to pause as well is not named as one that keeps running.
 
 - Clicking the empty search box shows your last five searches above the questions to start from,
   with a clock beside each. Delete forgets the chosen one. A search is kept when you leave the box or
@@ -86,6 +94,11 @@ is not part of this repository.
 - A switch that needs a value and is followed straight away by another switch written with `=`, such
   as `bws list --query --note=before`, now ends with "--query needs a value after it." and code 2.
   Before, the second switch was read as the value of the first.
+- A stop of a service that is in the middle of pausing now waits for the pause to finish and is
+  sent after it. Windows accepts a stop sent in the middle and drops it, so the service used to end
+  up paused rather than stopped, and the stop waited until it ran out of time.
+- The warning that a paused service cannot be started now points at `bws resume` instead of
+  `sc.exe continue`.
 
 ## [0.5.0] - 2026-11-03
 

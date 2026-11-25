@@ -105,16 +105,21 @@ internal sealed class ProductFacts
     }
 
     /// <summary>
-    /// The verb as somebody types it. Five are not the enumeration name lower-cased, and printing
+    /// The verb as somebody types it. Six are not the enumeration name lower-cased, and printing
     /// "setstarttype" on a page would be printing a word nobody can type. The two under
     /// <c>bws tool fix</c> arrived 2026-10-20 and mirror OptionSurface.Spelling, which gives the one
     /// that runs a fix its NAME so a page saying where a switch works names a line that runs.
+    ///
+    /// <b>"recovery" arrived on 2026-11-25, a day late</b>: the verb came on 2026-11-24 and every
+    /// reference page printed "setrecovery" for it until then. VerbSpellingGuards now checks each word
+    /// against the list of verbs the command line itself reads.
     /// </summary>
-    private static string Spelling(string kind) => kind switch
+    internal static string Spelling(string kind) => kind switch
     {
         "SnapshotCreate" => "snapshot create",
         "SnapshotDiff" => "snapshot diff",
         "SetStartType" => "start-type",
+        "SetRecovery" => "recovery",
         "Fixes" => "tool fix",
         "Fix" => "tool fix NAME",
         _ => kind.ToLowerInvariant(),

@@ -261,7 +261,23 @@ public enum PlanWarningKind
     /// 2026-10-07). Backlog 650, owner's decision P3 of 2026-11-25: the window's form makes such a list two
     /// clicks away, and until then the plan wrote it without a word.
     /// </summary>
-    EveryFailureFirst
+    EveryFailureFirst,
+
+    /// <summary>
+    /// The plan pauses an entry that running entries depend on, and they stay running - the manager pauses
+    /// the one entry it is asked about. Measured on the throwaway machine 2026-11-25: a dependant kept running
+    /// and could even be started while the entry it needs was paused. What a dependant does while its
+    /// dependency is paused is up to the dependant, so the sentence names them and claims nothing more.
+    /// Owner's decision of that day: a warning, no cascade.
+    /// </summary>
+    DependentsKeepRunning,
+
+    /// <summary>
+    /// The plan pauses an entry, and what depends on it could not be read - so the plan cannot name what
+    /// keeps running. Nothing is missing from the plan itself, since a pause does nothing to a dependant, but
+    /// without this a plan that names no dependants reads as one with none (rule 8).
+    /// </summary>
+    DependentsUnreadable
 }
 
 /// <summary>

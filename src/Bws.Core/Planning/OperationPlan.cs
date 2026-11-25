@@ -55,7 +55,24 @@ public enum ActionKind
     /// the parts somebody did not name have to be known to be kept, and the parts somebody did name have to be
     /// known to be put back.
     /// </summary>
-    SetRecovery
+    SetRecovery,
+
+    /// <summary>
+    /// Pause a running entry - spec `C1`, backlog 555 part (b), the owner's decisions of 2026-11-25.
+    ///
+    /// <b>One step and no cascade, and that is measured rather than chosen.</b> On the throwaway machine
+    /// that day (tools/vm-service/pause-probe.ps1) an entry depending on a paused one kept running and
+    /// could even be started, and the manager sends the pause to the one entry it was asked about. The plan
+    /// names the running dependants in a warning and does nothing to them.
+    /// </summary>
+    Pause,
+
+    /// <summary>
+    /// Resume a paused entry - the way back from <see cref="Pause"/>, and the operation services.msc calls
+    /// Resume. A stopped entry is refused rather than started, the owner's decision of 2026-11-25: starting
+    /// runs the service's own start-up, which nobody who asked to resume asked for.
+    /// </summary>
+    Resume
 }
 
 /// <summary>What one step actually does to one entry.</summary>
@@ -96,7 +113,17 @@ public enum StepOperation
     /// the call: a list somebody changed between the preview and the press is refused rather than written
     /// over, the logic report's R05 applied to a write.
     /// </summary>
-    SetRecovery
+    SetRecovery,
+
+    /// <summary>
+    /// Ask the manager to pause the entry, and watch it to Paused. The same request and the same watching
+    /// as a stop, aimed at a different state - measured on 2026-11-25, a slow pause reports PausePending
+    /// with a rising check point and a wait hint exactly as a slow stop does.
+    /// </summary>
+    Pause,
+
+    /// <summary>Ask the manager to resume a paused entry, and watch it to Running.</summary>
+    Resume
 }
 
 /// <summary>Why a step is in the plan, which is the part a person reads first.</summary>
@@ -514,7 +541,26 @@ public enum PlanProblemKind
     /// manager keeps no period beside an empty list - it zeroes it when the list goes (measured 2026-11-24) -
     /// so the write would put down something other than what the preview says.
     /// </summary>
-    NoActionsToReset
+    NoActionsToReset,
+
+    /// <summary>
+    /// A pause of an entry that is stopped or stopping - the manager answers 1062 (measured on the throwaway
+    /// machine 2026-11-25).
+    /// </summary>
+    NotRunning,
+
+    /// <summary>
+    /// A resume of an entry that is stopped or stopping - the same 1062, and a kind of its own because its
+    /// sentence points at a start. The resume is not turned into one, the owner's decision of 2026-11-25: a
+    /// start runs the service's own start-up, which nobody who asked to resume asked for.
+    /// </summary>
+    StoppedNotPaused,
+
+    /// <summary>
+    /// A pause of a running entry that does not take pauses - the manager answers 1052 (measured 2026-11-25),
+    /// and no stronger way to pause exists the way ending a process stands behind a stop.
+    /// </summary>
+    PauseNotAccepted
 }
 
 /// <summary>A reason there is no plan. Facts only, wording belongs above.</summary>

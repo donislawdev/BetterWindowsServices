@@ -45,6 +45,7 @@ internal static class Entries
         // two must move together - a specimen that is stopped and still claims to take a stop is
         // a shape no machine produces, which is what StoppedEntryGuards is about.
         AcceptsStop = Reading<bool>.Present(true),
+        AcceptsPause = Reading<bool>.Present(false),
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
         DelayedAuto = Reading<bool>.Present(false),
         Account = Reading<string>.Present("LocalSystem"),

@@ -46,6 +46,8 @@ internal static partial class PlanWords
         ActionKind.ForceStop => Texts.Of("gui.plan.doing.forceStop"),
         ActionKind.ForceRestart => Texts.Of("gui.plan.doing.forceRestart"),
         ActionKind.SetRecovery => Texts.Of("gui.plan.doing.setRecovery"),
+        ActionKind.Pause => Texts.Of("gui.plan.doing.pause"),
+        ActionKind.Resume => Texts.Of("gui.plan.doing.resume"),
         _ => throw new ArgumentOutOfRangeException(
             nameof(kind), kind, Bws.Core.Planning.EquivalentCommand.Unhandled)
     };
@@ -256,8 +258,13 @@ internal static partial class PlanWords
     /// two are not the same question and would drift the day a kind carries a list it does not put
     /// in its sentence.
     /// </summary>
+    /// <remarks>
+    /// <b>The three refusals of a pause and a resume since 2026-11-25</b> - most services take no pause, so
+    /// ten rows picked and Pause pressed would otherwise be nine sentences saying one thing.
+    /// </remarks>
     private static bool SaysOnlyAName(PlanProblemKind kind) =>
-        kind is PlanProblemKind.UnknownService or PlanProblemKind.NotOperable;
+        kind is PlanProblemKind.UnknownService or PlanProblemKind.NotOperable
+            or PlanProblemKind.NotRunning or PlanProblemKind.StoppedNotPaused or PlanProblemKind.PauseNotAccepted;
 
     /// <summary>
     /// One sentence for a group of refusals that all say the same thing.
@@ -279,6 +286,10 @@ internal static partial class PlanWords
 
         PlanProblemKind.NotOperable =>
             Texts.Of("gui.plan.problem.notOperable.many", names.Count, Listed(names)),
+
+        PlanProblemKind.NotRunning => Texts.Of("gui.plan.problem.notRunning.many", names.Count, Listed(names)),
+        PlanProblemKind.StoppedNotPaused => Texts.Of("gui.plan.problem.stoppedNotPaused.many", names.Count, Listed(names)),
+        PlanProblemKind.PauseNotAccepted => Texts.Of("gui.plan.problem.pauseNotAccepted.many", names.Count, Listed(names)),
 
         _ => throw new ArgumentOutOfRangeException(
             nameof(kind),
@@ -389,6 +400,8 @@ internal static partial class PlanWords
         StepOperation.SetStartType => Texts.Of("gui.plan.operation.setStartType"),
         StepOperation.Terminate => Texts.Of("gui.plan.operation.terminate"),
         StepOperation.SetRecovery => Texts.Of("gui.plan.operation.setRecovery"),
+        StepOperation.Pause => Texts.Of("gui.plan.operation.pause"),
+        StepOperation.Resume => Texts.Of("gui.plan.operation.resume"),
         _ => throw new ArgumentOutOfRangeException(
             nameof(operation), operation, Bws.Core.Planning.EquivalentCommand.Unhandled)
     };

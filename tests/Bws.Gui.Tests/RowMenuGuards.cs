@@ -45,6 +45,8 @@ public sealed class RowMenuGuards
         "gui.action.stop",
         "gui.action.start",
         "gui.action.restart",
+        "gui.action.pause",
+        "gui.action.resume",
         "gui.action.forceStop",
         "gui.action.forceRestart",
         "gui.menu.startType"

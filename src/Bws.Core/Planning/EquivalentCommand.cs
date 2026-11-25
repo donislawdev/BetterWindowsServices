@@ -346,7 +346,8 @@ public static class EquivalentCommand
     /// </summary>
     public static bool HasAVerb(ActionKind kind) =>
         kind is ActionKind.Stop or ActionKind.Start or ActionKind.Restart or ActionKind.SetStartType
-            or ActionKind.ForceStop or ActionKind.ForceRestart or ActionKind.SetRecovery;
+            or ActionKind.ForceStop or ActionKind.ForceRestart or ActionKind.SetRecovery
+            or ActionKind.Pause or ActionKind.Resume;
 
     /// <summary>
     /// What somebody would type to put one entry back where a run found it.
@@ -417,6 +418,10 @@ public static class EquivalentCommand
 
         // The field's own name, as the JSON and the query language spell it - frozen in `docs/02`, 2026-11-24.
         ActionKind.SetRecovery => "recovery",
+
+        // The words services.msc and PowerShell use - the owner's decision of 2026-11-25, frozen in `docs/02`.
+        ActionKind.Pause => "pause",
+        ActionKind.Resume => "resume",
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "No command verb for this action.")
     };
 
@@ -433,6 +438,8 @@ public static class EquivalentCommand
         StepOperation.Start => "start",
         StepOperation.SetStartType => "start-type",
         StepOperation.SetRecovery => "recovery",
+        StepOperation.Pause => "pause",
+        StepOperation.Resume => "resume",
 
         // A STEP THAT ENDS A PROCESS HAS NO LINE OF ITS OWN, and this is the same distinction
         // restart makes one method up: a person asks to force a stop, they never ask for the

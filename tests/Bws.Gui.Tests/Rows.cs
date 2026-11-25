@@ -28,6 +28,7 @@ internal static class Rows
         Status = EntryStatus.Running,
         ProcessId = Reading<int>.Present(1234),
         AcceptsStop = Reading<bool>.Present(true),
+        AcceptsPause = Reading<bool>.Present(false),
         StartType = Reading<StartType>.Present(Core.StartType.Automatic),
         DelayedAuto = Reading<bool>.Absent(),
         Account = Reading<string>.Present("LocalSystem"),
@@ -56,7 +57,8 @@ internal static class Rows
     {
         Status = EntryStatus.Stopped,
         ProcessId = Reading<int>.Absent(),
-        AcceptsStop = Reading<bool>.Absent()
+        AcceptsStop = Reading<bool>.Absent(),
+        AcceptsPause = Reading<bool>.Absent()
     };
 
     internal static ScmEntry Driver(string name) => Entry(name) with
