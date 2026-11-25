@@ -125,6 +125,60 @@ public sealed class RecoveryPlanTests
 
         Assert.Equal(PlanProblemKind.RecoveryUnnamed, Assert.Single(Plan(machine, Change(RecoveryParts.Actions, schedule.List.Items)).Problems).Kind);
         Assert.Equal(PlanProblemKind.RecoveryUnnamed, Assert.Single(Plan(unread, Change(RecoveryParts.Actions | RecoveryParts.ResetPeriod, schedule.List.Items, Hour)).Problems).Kind);
+
+        // An ask that names no part has nothing to write - neither interface sends one, so it is not a plan.
+        Assert.Throws<ArgumentException>(() => Plan(machine, Change(RecoveryParts.None)));
+    }
+
+    /// <summary>
+    /// A recovery Windows cannot be handed as it is, refused by the writer before a handle is opened - what
+    /// StartTypeTests asks of a start type. The name is one no machine has, so a writer that let one of these
+    /// through would be answered 1060 by the manager rather than write anything, and the 0 below tells the two
+    /// refusals apart.
+    /// </summary>
+    [Fact]
+    public void A_recovery_the_manager_cannot_be_handed_is_refused_before_anything_is_opened()
+    {
+        var control = new WindowsScmControl();
+        var restart = new RecoveryItem(RecoveryAction.RestartService, TimeSpan.FromMinutes(1));
+        var both = RecoveryParts.Actions | RecoveryParts.ResetPeriod;
+
+        RecoveryChange[] refused =
+        [
+            // Half of what the manager writes as one.
+            Change(RecoveryParts.Actions, [restart]),
+            Change(both, [new RecoveryItem(RecoveryAction.Unnamed, TimeSpan.Zero)], Hour),
+
+            // A period of a second and a half, and two delays the structure cannot hold.
+            Change(both, [restart], TimeSpan.FromMilliseconds(1500)),
+            Change(both, [new RecoveryItem(RecoveryAction.RestartService, TimeSpan.FromMilliseconds(-1))], Hour),
+            Change(both, [new RecoveryItem(RecoveryAction.RestartService, TimeSpan.FromDays(60))], Hour)
+        ];
+
+        foreach (var change in refused)
+        {
+            var answer = control.ConfigureRecovery("BwsNoSuchEntry-55a2", change);
+
+            Assert.False(answer.Worked);
+            Assert.Equal(0, answer.ErrorCode);
+            Assert.NotNull(answer.Error);
+        }
+    }
+
+    /// <summary>
+    /// A recovery write on one of the entries the machine does not work without is said, whatever part it
+    /// changes - those answer a failure by restarting the computer.
+    /// </summary>
+    [Fact]
+    public void A_recovery_write_on_an_entry_the_machine_needs_is_said()
+    {
+        var rpc = Spooler with { ServiceName = "RpcSs", DisplayName = "Remote Procedure Call (RPC)" };
+        var catalog = new FakeScmCatalog(rpc);
+        var plan = new PlanBuilder(catalog.ReadAll(), catalog, recovery: new FakeScmControl())
+            .Build(new ServiceAction(ActionKind.SetRecovery, "RpcSs", Recovery: Texted(RecoveryParts.Command, "C:\\fix.cmd")));
+
+        Assert.Equal(["RpcSs"], Assert.Single(plan.Warnings, warning => warning.Kind == PlanWarningKind.CriticalRecovery).Related);
+        Assert.DoesNotContain(Plan(new FakeScmControl(), Texted(RecoveryParts.Command, "C:\\fix.cmd")).Warnings, warning => warning.Kind == PlanWarningKind.CriticalRecovery);
     }
 
     [Fact]
