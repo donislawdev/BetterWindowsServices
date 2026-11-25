@@ -292,6 +292,11 @@ internal sealed partial class FakeScmControl(IClock? clock = null) : IScmControl
             return refused;
         }
 
+        if (entry.LosesWhile is { } losing && entry.Status == losing)
+        {
+            return ControlAnswer.Done();
+        }
+
         entry.ReadRefusedWith ??= entry.ReadRefusedOnceAsked;
         entry.AskedAgain();
         entry.Moving = true;
@@ -456,6 +461,9 @@ internal sealed partial class FakeScmControl(IClock? clock = null) : IScmControl
         internal Queue<ServiceProgress>? ComesBack { get; set; }
 
         internal bool Moving { get; set; }
+
+        /// <summary>The state in which a request is taken and lost - see LosingRequestsWhile.</summary>
+        internal EntryStatus? LosesWhile { get; set; }
 
         internal int? RequestRefusedWith { get; set; }
 

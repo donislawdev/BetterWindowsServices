@@ -4,7 +4,8 @@ namespace Bws.Gui.ViewModels;
 
 /// <summary>
 /// What a plan says about a pause or a resume - its three refusals and the sentence naming what keeps
-/// running. Since 2026-11-25 (backlog 555 part b) - the terminal's PlanText.Pausing says the same.
+/// running, or saying that it could not be read. Since 2026-11-25 (backlog 555 part b) - the terminal's
+/// PlanText.Pausing says the same.
 ///
 /// <b>The last link of the chain of switches</b>, reached from the aftermath ones: what this one does not
 /// know throws, so a kind with no sentence never borrows one. Each key is written out inside the call, for
@@ -17,6 +18,8 @@ internal static partial class PlanWords
         PlanWarningKind.DependentsKeepRunning => warning.Related.Count == 1
             ? Texts.Of("gui.plan.warning.dependentsKeepRunning.one", warning.ServiceName, Listed(warning.Related))
             : Texts.Of("gui.plan.warning.dependentsKeepRunning.many", warning.ServiceName, Listed(warning.Related)),
+
+        PlanWarningKind.DependentsUnreadable => Texts.Of("gui.plan.warning.dependentsUnreadable", warning.ServiceName),
 
         _ => throw new ArgumentOutOfRangeException(nameof(warning), warning.Kind, EquivalentCommand.Unhandled)
     };

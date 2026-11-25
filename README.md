@@ -33,7 +33,8 @@ next administrator finds out it exists.
 - **Ask, instead of scroll** - `start:auto !status:running` is *what should be up and is not*. One
   language, in the search box and in `bws list --query`, with the fields offered as you type.
 - **Show the plan before anything happens** - every stop, start, restart, pause, resume and start type
-  change is previewed with the services it takes down with it, and the preview is what runs.
+  change is previewed first, with the services a stop takes down along with it and the ones a pause
+  leaves running. The preview is what runs.
 - **Tell you what drifted, and who changed it** - `bws snapshot create` freezes the machine into a
   file, and `bws snapshot diff` says what changed since, configuration apart from what merely started
   or stopped. `bws history` says who changed a start type and who installed a service, out of the

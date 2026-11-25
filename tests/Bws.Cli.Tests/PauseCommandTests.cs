@@ -57,6 +57,15 @@ public sealed class PauseCommandTests
     }
 
     [Fact]
+    public void A_list_of_dependants_that_could_not_be_read_is_said_rather_than_left_out()
+    {
+        Assert.Equal(
+            "Could not read what depends on LanmanWorkstation, so this plan cannot name what keeps running while it is paused. "
+            + "Pausing LanmanWorkstation pauses and stops nothing else.",
+            PlanText.Describe(new PlanWarning(PlanWarningKind.DependentsUnreadable, "LanmanWorkstation", [])));
+    }
+
+    [Fact]
     public void A_start_of_a_paused_entry_points_at_this_tools_own_resume()
     {
         Assert.EndsWith(

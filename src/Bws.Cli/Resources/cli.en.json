@@ -113,6 +113,7 @@
   "cli.plan.problem.pauseNotAccepted": "{0} does not accept pause requests, so Windows would refuse the pause. Not every service can be paused.",
   "cli.plan.warning.dependentsKeepRunning.one": "{1} depends on {0}. Pausing {0} does not pause or stop it, so it keeps running.",
   "cli.plan.warning.dependentsKeepRunning.many": "These depend on {0}: {1}. Pausing {0} does not pause or stop them, so they keep running.",
+  "cli.plan.warning.dependentsUnreadable": "Could not read what depends on {0}, so this plan cannot name what keeps running while it is paused. Pausing {0} pauses and stops nothing else.",
 
   "cli.plan.reason.requested": "(asked for)",
   "cli.plan.reason.cascade": "(would break otherwise)",

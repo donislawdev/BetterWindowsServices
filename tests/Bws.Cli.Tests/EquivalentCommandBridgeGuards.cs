@@ -243,19 +243,15 @@ public sealed class EquivalentCommandBridgeGuards
         }
     }
 
-    private static CommandKind Verb(ActionKind kind) => kind switch
-    {
-        ActionKind.Stop => CommandKind.Stop,
-        ActionKind.Start => CommandKind.Start,
-        ActionKind.SetStartType => CommandKind.SetStartType,
-        ActionKind.SetRecovery => CommandKind.SetRecovery,
-
-        // BOTH FORCING ASKS ARE ONE VERB, and the discard is why this had to be written out.
-        // It read "anything else is a restart", so the first ask that was neither a stop, a
-        // start nor a setting was checked against the wrong verb's switch list - and the
-        // guard reported a fault in the core that was really a fault in this line.
-        ActionKind.ForceStop or ActionKind.ForceRestart => CommandKind.Kill,
-
-        _ => CommandKind.Restart
-    };
+    /// <summary>
+    /// The verb an ask is checked against: the command of the same name, and kill for both forcing asks.
+    ///
+    /// <b>By name, with no fallback.</b> A fallback to one verb checks every ask it catches against that
+    /// verb's switch list - and the guard then reports a fault in the core that is really a fault in this
+    /// line. An ask with no command of its name throws here instead.
+    /// </summary>
+    private static CommandKind Verb(ActionKind kind) =>
+        kind is ActionKind.ForceStop or ActionKind.ForceRestart
+            ? CommandKind.Kill
+            : Enum.Parse<CommandKind>(kind.ToString());
 }

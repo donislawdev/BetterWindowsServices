@@ -92,6 +92,9 @@ public sealed partial class PlanRunner
     /// a measurement that day: a stop sent to an entry in PausePending was taken by the manager and lost,
     /// and the entry ended up Paused. So a stop now waits for a pause or a resume to finish, as it has
     /// waited for a start since 2026-09-30.
+    ///
+    /// <b>Watched until it heads nowhere the step must wait for, not until it merely changes</b> - a start
+    /// can be followed straight by somebody's pause, and a stop sent then is lost the same way.
     /// </summary>
     private StepResult? Settle(
         PlanStep step, EntryStatus target, ControlAnswer before, TimeSpan timeout, TimeSpan started, Halt halt)
@@ -101,10 +104,12 @@ public sealed partial class PlanRunner
 
         if (!HeadingAway(step.Operation, status))
         {
-            return OnItsWay(step.Operation, status) ? WaitFor(step, target, timeout, started, Unasked, asked: false) : null;
+            return OnItsWay(step.Operation, status)
+                ? WaitFor(step, target, timeout, started, Unasked, asked: false, begun: status == Pending(step.Operation))
+                : null;
         }
 
-        var watched = Watch(step.ServiceName, now => now != status, timeout, Unasked);
+        var watched = Watch(step.ServiceName, now => !HeadingAway(step.Operation, now), timeout, Unasked);
         var seen = watched.Seen ?? watched.Last;
 
         return watched.End switch
@@ -114,12 +119,12 @@ public sealed partial class PlanRunner
                 Result(step, StepOutcome.Succeeded, target, Holding(seen), Elapsed(started)) with { ArrivedUnasked = true },
 
             Settled.Over when OnItsWay(step.Operation, Where(seen)) =>
-                WaitFor(step, target, timeout, started, Unasked, asked: false),
+                WaitFor(step, target, timeout, started, Unasked, asked: false, begun: Where(seen) == Pending(step.Operation)),
 
             Settled.Over => null,
             Settled.Unreadable => Refused(step, watched.Last, Where(seen), Holding(seen), started),
             Settled.Halted => Skipped(step, SkipReason.Cancelled, Where(seen), Holding(seen), Elapsed(started)),
-            _ => Refused(step, ControlAnswer.Refused(0, NeverAsked(step.Operation, status)), Where(seen), Holding(seen), started)
+            _ => Refused(step, ControlAnswer.Refused(0, NeverAsked(step.Operation, Where(seen))), Where(seen), Holding(seen), started)
         };
     }
 
@@ -143,13 +148,15 @@ public sealed partial class PlanRunner
     /// move this tool made. One that arrives before any request is marked ArrivedUnasked, and one whose
     /// entry stops being readable after a request is marked LostSight - both since 2026-10-26.
     /// </param>
+    /// <param name="begun">
+    /// Whether the look before this watch already saw the entry on its way - pausing for a pause, resuming
+    /// for a resume - which is what makes going back a refusal rather than a service that has not begun yet
+    /// (see FellBack). Without it, an entry seen pausing and running again by the next look would be watched
+    /// to the limit.
+    /// </param>
     private StepResult WaitFor(
-        PlanStep step, EntryStatus target, TimeSpan timeout, TimeSpan started, Func<bool> halted, bool asked)
+        PlanStep step, EntryStatus target, TimeSpan timeout, TimeSpan started, Func<bool> halted, bool asked, bool begun)
     {
-        // Whether the entry has been seen on its way, which is what makes going back a refusal rather than
-        // a service that has not begun yet - see FellBack.
-        var begun = false;
-
         bool Over(EntryStatus now)
         {
             begun |= now == Pending(step.Operation);

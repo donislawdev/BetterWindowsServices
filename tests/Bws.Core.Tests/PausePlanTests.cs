@@ -2,6 +2,7 @@ using Bws.Core.Planning;
 using Bws.Core.Tests.Fakes;
 
 using static Bws.Core.Tests.Fakes.DependencyChain;
+using static Bws.Core.Tests.Fakes.PauseRuns;
 
 namespace Bws.Core.Tests;
 
@@ -13,8 +14,6 @@ namespace Bws.Core.Tests;
 /// </summary>
 public sealed class PausePlanTests
 {
-    private const uint Held = FakeScmControl.FakeProcess;
-
     [Fact]
     public void A_running_entry_that_takes_pauses_is_paused_in_one_step_and_what_depends_on_it_is_named_as_staying()
     {
@@ -263,34 +262,7 @@ public sealed class PausePlanTests
             AcceptsPause = status == EntryStatus.Stopped ? Reading<bool>.Absent() : Reading<bool>.Present(accepts)
         });
 
-    private static ServiceProgress Progress(EntryStatus status, uint checkPoint) =>
-        new(status, checkPoint, checkPoint == 0 ? TimeSpan.Zero : TimeSpan.FromSeconds(4), Held);
-
-    private static OperationPlan Asked(ActionKind kind) => new()
-    {
-        Action = new ServiceAction(kind, "Spooler"),
-        Steps = [new PlanStep("Spooler", "Spooler", kind == ActionKind.Pause ? StepOperation.Pause : StepOperation.Resume, StepReason.Requested)],
-        Warnings = [],
-        Problems = []
-    };
+    private static OperationPlan Asked(ActionKind kind) => Doing(kind == ActionKind.Pause ? StepOperation.Pause : StepOperation.Resume);
 
     private static OperationPlan Stopping() => Doing(StepOperation.Stop);
-
-    private static OperationPlan Doing(StepOperation operation) => new()
-    {
-        Action = new ServiceAction(
-            operation switch
-            {
-                StepOperation.Pause => ActionKind.Pause,
-                StepOperation.Resume => ActionKind.Resume,
-                _ => ActionKind.Stop
-            },
-            "Spooler"),
-        Steps = [new PlanStep("Spooler", "Spooler", operation, StepReason.Requested)],
-        Warnings = [],
-        Problems = []
-    };
-
-    private static PlanRun Ran(FakeScmControl control, OperationPlan plan, FakeClock? clock = null) =>
-        new PlanRunner(control, clock ?? new FakeClock()).Run(plan, TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
 }

@@ -9926,16 +9926,18 @@ $mutations = @(
         # W-7: a stop to an entry already stopping is refused by the manager, so it is waited for.
         Name = 'plan wait: an entry already on its way is waited for rather than asked'
         File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
-        # RE-ANCHORED 2026-11-25: the directions are asked by kind of step since pausing arrived (555 part b).
-        From = '            return OnItsWay(step.Operation, status) ? WaitFor(step, target, timeout, started, Unasked, asked: false) : null;'
-        To = '            return null;'
+        # RE-ANCHORED 2026-11-25: the directions are asked by kind of step since pausing arrived (555 part b),
+        # and the watch is told whether the pending state was already seen (review of PR #135).
+        From = '                ? WaitFor(step, target, timeout, started, Unasked, asked: false, begun: status == Pending(step.Operation))'
+        To = '                ? null'
         Test = 'PlanRunProgressTests.A_stop_that_meets_an_entry_already_stopping_asks_nothing_and_waits_for_it'
     },
     @{
         # W-1 itself: the start that puts a service back waits for it to finish stopping.
         Name = 'plan wait: a start waits for the entry to finish stopping before it asks'
         File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
-        From = '        var watched = Watch(step.ServiceName, now => now != status, timeout, Unasked);'
+        # RE-ANCHORED 2026-11-25: watched until it heads nowhere the step waits for (review of PR #135).
+        From = '        var watched = Watch(step.ServiceName, now => !HeadingAway(step.Operation, now), timeout, Unasked);'
         To = '        var watched = Watch(step.ServiceName, now => true, timeout, Unasked);'
         Test = 'PlanRunProgressTests.A_restart_whose_stop_ran_out_starts_the_entry_once_it_has_finished_stopping'
     },
@@ -9943,9 +9945,10 @@ $mutations = @(
         # Nothing sent, so a failure in our own words - never a request the manager refuses.
         Name = 'plan wait: an entry that never leaves the other way is never asked'
         File = 'src\Bws.Core\Planning\PlanRunner.Waiting.cs'
-        # RE-ANCHORED 2026-11-25: the sentence is asked by kind of step since pausing arrived (555 part b).
-        From = '            _ => Refused(step, ControlAnswer.Refused(0, NeverAsked(step.Operation, status)), Where(seen), Holding(seen), started)'
-        To = '            Settled.GaveUp => null, _ => Refused(step, ControlAnswer.Refused(0, NeverAsked(step.Operation, status)), Where(seen), Holding(seen), started)'
+        # RE-ANCHORED 2026-11-25: the sentence is asked by kind of step since pausing arrived (555 part b),
+        # about the state last seen rather than the first (review of PR #135).
+        From = '            _ => Refused(step, ControlAnswer.Refused(0, NeverAsked(step.Operation, Where(seen))), Where(seen), Holding(seen), started)'
+        To = '            Settled.GaveUp => null, _ => Refused(step, ControlAnswer.Refused(0, NeverAsked(step.Operation, Where(seen))), Where(seen), Holding(seen), started)'
         Test = 'PlanRunProgressTests.An_entry_that_never_leaves_the_other_way_is_never_asked'
     },
     @{

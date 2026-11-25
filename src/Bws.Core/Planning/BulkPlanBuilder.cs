@@ -5,9 +5,10 @@ namespace Bws.Core.Planning;
 ///
 /// <b>It builds ordinary plans and decides nothing a single plan already decides.</b> Cascade,
 /// warnings, refusals and the order INSIDE one plan all stay with <see cref="PlanBuilder"/>, which
-/// is where they were already tested without a machine to break. What this adds is the two answers
-/// that only exist once there is more than one entry: which plan goes first, and which entries get
-/// no plan at all.
+/// is where they were already tested without a machine to break. What this adds is the answers
+/// that only exist once there is more than one entry: which plan goes first, which entries get
+/// no plan at all, and - for a pause - which dependants named as staying the selection pauses
+/// itself (<see cref="PausePlan.Together"/>).
 ///
 /// <b>Reads and reasons, never writes</b> - the same property that makes the interesting half of
 /// `ADR-11` testable, and the reason a selection of twenty can be checked without touching a
@@ -66,7 +67,7 @@ public sealed class BulkPlanBuilder(
         return new BulkPlan
         {
             Action = action,
-            Plans = plans,
+            Plans = action.Kind == ActionKind.Pause ? PausePlan.Together(plans) : plans,
             Problems = problems
         };
     }

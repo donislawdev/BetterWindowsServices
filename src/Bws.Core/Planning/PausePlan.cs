@@ -43,9 +43,9 @@ internal static class PausePlan
         {
             warnings.Add(new PlanWarning(PlanWarningKind.AlreadyThere, target.ServiceName));
         }
-        else if (pausing && Running(target, entries, dependents) is { Count: > 0 } staying)
+        else if (pausing && Staying(target, entries, dependents) is { } staying)
         {
-            warnings.Add(new PlanWarning(PlanWarningKind.DependentsKeepRunning, target.ServiceName, staying));
+            warnings.Add(staying);
         }
 
         return new OperationPlan
@@ -83,31 +83,74 @@ internal static class PausePlan
     }
 
     /// <summary>
-    /// The running entries that depend on this one, by the manager's own answer - the one a stop asks.
+    /// The sentence about the entries that depend on this one, by the manager's own answer - the one a stop
+    /// asks - or nothing, when none of them is running.
     ///
-    /// <b>Nothing when that answer cannot be read, and no sentence about it.</b> A stop says so out loud,
-    /// because its cascade would be missing steps. Here nothing would be missing: the plan does nothing to a
-    /// dependant either way, and this sentence only names what stays as it is.
+    /// <b>An answer that cannot be read is said, rule 8.</b> The plan would be no shorter for it - a pause does
+    /// nothing to a dependant either way - but a plan that names what keeps running, saying nothing, reads as
+    /// a plan with nothing that does.
+    ///
+    /// <b>Running, or on its way there</b> - a dependant that is paused, pausing or stopping does not keep
+    /// running, and the sentence says it does. So not the filter a stop's cascade uses, which is anything but
+    /// stopped: a paused dependant has to be stopped by a cascade, and is not running here.
     /// </summary>
-    private static List<string> Running(ScmEntry target, IReadOnlyList<ScmEntry> entries, IScmCatalog dependents)
+    private static PlanWarning? Staying(ScmEntry target, IReadOnlyList<ScmEntry> entries, IScmCatalog dependents)
     {
         var named = dependents.ReadDependents(target.ServiceName);
 
-        if (!named.IsPresent)
+        if (named.Outcome == ReadOutcome.Denied)
         {
-            return [];
+            return new PlanWarning(PlanWarningKind.DependentsUnreadable, target.ServiceName);
         }
 
-        return
+        if (!named.IsPresent)
+        {
+            return null;
+        }
+
+        List<string> running =
         [
             .. named.Value!
                 .Select(name => entries.FirstOrDefault(entry =>
                     string.Equals(entry.ServiceName, name, StringComparison.OrdinalIgnoreCase)))
                 .OfType<ScmEntry>()
-                .Where(entry => entry.Status != EntryStatus.Stopped
+                .Where(entry => entry.Status is EntryStatus.Running or EntryStatus.StartPending or EntryStatus.ContinuePending
                     && !target.ServiceName.Equals(entry.ServiceName, StringComparison.OrdinalIgnoreCase))
                 .Select(entry => entry.ServiceName)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
         ];
+
+        return running.Count > 0 ? new PlanWarning(PlanWarningKind.DependentsKeepRunning, target.ServiceName, running) : null;
+    }
+
+    /// <summary>
+    /// The plans of one selection, with the sentence naming what keeps running cut to what really does: a
+    /// dependant the same selection pauses does not keep running, and its own step says so. A sentence left
+    /// with nobody to name goes. Only a selection asks this, since one plan pauses one entry.
+    ///
+    /// <b>Only a step that is planned counts</b> - a dependant whose own pause was refused stays running, and
+    /// stays named.
+    /// </summary>
+    internal static List<OperationPlan> Together(List<OperationPlan> plans)
+    {
+        var pausing = plans
+            .SelectMany(plan => plan.Steps)
+            .Where(step => step.Operation == StepOperation.Pause)
+            .Select(step => step.ServiceName)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return [.. plans.Select(plan => plan with { Warnings = [.. plan.Warnings.Select(warning => Cut(warning, pausing)).OfType<PlanWarning>()] })];
+    }
+
+    private static PlanWarning? Cut(PlanWarning warning, HashSet<string> pausing)
+    {
+        if (warning.Kind != PlanWarningKind.DependentsKeepRunning)
+        {
+            return warning;
+        }
+
+        List<string> staying = [.. warning.Related.Where(name => !pausing.Contains(name))];
+
+        return staying.Count == 0 ? null : warning with { Related = staying };
     }
 }

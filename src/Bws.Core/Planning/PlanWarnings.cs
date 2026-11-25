@@ -270,7 +270,14 @@ public enum PlanWarningKind
     /// dependency is paused is up to the dependant, so the sentence names them and claims nothing more.
     /// Owner's decision of that day: a warning, no cascade.
     /// </summary>
-    DependentsKeepRunning
+    DependentsKeepRunning,
+
+    /// <summary>
+    /// The plan pauses an entry, and what depends on it could not be read - so the plan cannot name what
+    /// keeps running. Nothing is missing from the plan itself, since a pause does nothing to a dependant, but
+    /// without this a plan that names no dependants reads as one with none (rule 8).
+    /// </summary>
+    DependentsUnreadable
 }
 
 /// <summary>

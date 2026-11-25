@@ -44,10 +44,11 @@ is not part of this repository.
 - `bws pause NAME` and `bws resume NAME` pause a running service and resume a paused one - the
   *Pause* and *Resume* of services.msc. A service that does not accept a pause, or one that is not
   running, is refused before anything is sent - resume does not start a stopped service, and says how
-  to start it. The plan names the services that depend on the one being paused, which keep running.
-  After a pause, the line that resumes it is printed. In the window, *Pause...* and *Resume...* stand
-  beside *Restart...* and in the menu of a row, and open the same plans for every service you picked -
-  the services that cannot be paused are named together in one sentence.
+  to start it. The plan names the running services that depend on the one being paused, which keep
+  running, and says so when it cannot read them. After a pause, the line that resumes it is printed. In
+  the window, *Pause...* and *Resume...* stand beside *Restart...* and in the menu of a row, and open
+  the same plans for every service you picked - the services that cannot be paused are named together
+  in one sentence, and a service you picked to pause as well is not named as one that keeps running.
 
 - Clicking the empty search box shows your last five searches above the questions to start from,
   with a clock beside each. Delete forgets the chosen one. A search is kept when you leave the box or

@@ -85,12 +85,14 @@ public sealed class PauseWindowGuards
         Assert.Equal(
             [
                 Texts.Of("gui.plan.warning.dependentsKeepRunning.one", "LanmanWorkstation", "SessionEnv"),
-                Texts.Of("gui.plan.warning.dependentsKeepRunning.many", "LanmanWorkstation", "SessionEnv, Netlogon")
+                Texts.Of("gui.plan.warning.dependentsKeepRunning.many", "LanmanWorkstation", "SessionEnv, Netlogon"),
+                Texts.Of("gui.plan.warning.dependentsUnreadable", "LanmanWorkstation")
             ],
             PlanWords.Describe(
             [
                 new PlanWarning(PlanWarningKind.DependentsKeepRunning, "LanmanWorkstation", ["SessionEnv"]),
-                new PlanWarning(PlanWarningKind.DependentsKeepRunning, "LanmanWorkstation", ["SessionEnv", "Netlogon"])
+                new PlanWarning(PlanWarningKind.DependentsKeepRunning, "LanmanWorkstation", ["SessionEnv", "Netlogon"]),
+                new PlanWarning(PlanWarningKind.DependentsUnreadable, "LanmanWorkstation", [])
             ]));
 
         Assert.Equal(
