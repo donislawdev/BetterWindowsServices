@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Saltar al contenido",
@@ -43,6 +43,10 @@
   "switch.force": "En <code>kill</code>, terminar el proceso de inmediato sin pedirlo con cortesía: la vista previa muestra entonces un paso en lugar de dos. En <code>snapshot create</code>, sustituir una instantánea que ya existe; un archivo que no es una instantánea nunca se sustituye.",
   "switch.restart": "En <code>kill</code>, devolver la entrada a su sitio una vez desaparecido el proceso, junto con todo lo que lo compartía.",
   "switch.stop": "En <code>start-type</code>, y solo junto a <code>disabled</code>, detener la entrada en el mismo plan una vez escrito el ajuste. Un tipo de inicio cambia el próximo arranque y nada ahora, así que sin esta opción una entrada en ejecución configurada como deshabilitada sigue ejecutándose.",
+  "switch.reset": "Tras cuánto tiempo sin fallos Windows vuelve a contar desde el primer fallo - un número entero con s, m, h o d, 0, o <code>never</code>, que espera a que se reinicie el equipo. Sin esta opción, la entrada conserva el periodo que tiene.",
+  "switch.program": "El programa que ejecuta una acción <code>program:DELAY</code>, tal cual, con las comillas y <code>%1%</code> - <code>%1%</code> representa el número del fallo. Se ejecuta con la cuenta con la que se ejecuta el servicio. Un valor vacío lo elimina.",
+  "switch.message": "El mensaje que se envía a las personas que han iniciado sesión antes de que una acción <code>reboot:DELAY</code> reinicie el equipo. Un valor vacío lo elimina.",
+  "switch.on-error-stops": "<code>yes</code> hace que las acciones respondan también a un servicio que se detiene con un error, no solo a uno que se bloquea. <code>no</code> responde solo a los bloqueos.",
   "switch.full": "En <code>show</code>, imprimir también los campos realmente vacíos. Un campo que nadie pudo leer se imprime en cualquier caso.",
   "switch.components": "En <code>license</code>, convertir el aviso en cada componente de este ejecutable con su versión, su licencia y su procedencia. El mismo conjunto que lleva la lista de materiales publicada junto a la descarga, porque ambos se generan desde un único registro.",
   "switch.json": "El mismo documento, legible por máquina, por la salida estándar.",

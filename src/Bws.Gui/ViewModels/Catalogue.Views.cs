@@ -450,39 +450,6 @@ public static partial class Catalogue
         ]);
     }
 
-    /// <summary>
-    /// The plan sheet's views - the sheet, its foot, and the heavy ask at the foot.
-    ///
-    /// <b>Out of <see cref="Views"/> on 2026-09-29</b>, when the third arrived and that method stood
-    /// one line under the share of its ceiling the shape guard counts as near. One subject, so one
-    /// place - and the next state of the sheet lands here rather than in the list of everything.
-    /// </summary>
-    private static Built[] PlanViews(Prepared ready) =>
-    [
-        View(() => new PlanView(),
-            data: ready.WithPlan.Planned, wrong: ready.WithRefusedPlan.Planned, extreme: ready.WithBulkPlan.Planned),
-
-        View(() => new PlanFooter(),
-            data: ready.WithPlan.Planned, wrong: ready.WithRefusedPlan.Planned, extreme: ready.WithBulkPlan.Planned),
-
-        // The same foot while a run goes, since 2026-09-30 (backlog 497): data is a run under way,
-        // loading is the same run interrupted and waiting on its step, extreme is the second level
-        // offered with the window waiting to close. Catalogue.Runs.cs builds them.
-        View(() => new PlanFooter(), key: nameof(PlanFooter) + " while a run goes",
-            data: ready.Runs.Running.Planned, loading: ready.Runs.Interrupted.Planned, extreme: ready.Runs.Abandonable.Planned),
-
-        // The whole sheet once the run has ended, since 2026-11-16: data is every entry where it was
-        // asked to go - the green result and the button that closes the sheet - wrong is the step
-        // refused, in amber.
-        View(() => new PlanView(), key: nameof(PlanView) + " after a run",
-            data: ready.Runs.Arrived.Planned, wrong: ready.Runs.FellShort.Planned),
-
-        // The heavy ask on its own, since 2026-09-29 (backlog 475): data is one critical entry
-        // asking for its name, wrong is a selection holding it, refused with no box.
-        View(() => new PlanConfirmation(),
-            data: ready.AskingForName.Planned, wrong: ready.RefusingSelection.Planned)
-    ];
-
     /// <summary>One view in up to five states, built and not yet measured.</summary>
     private sealed record Built(string Key, FrameworkElement?[] Cells);
 

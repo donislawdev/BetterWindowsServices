@@ -356,6 +356,9 @@ public partial class PlanView : UserControl
     internal System.Windows.Controls.Control WayIn =>
         (DataContext as Planned)?.HasResult == true ? Footer.Done
         : ConfirmShown ? Footer.Confirm
+
+        // A recovery sheet opens on its form, and the form is what there is to do first (backlog 555 a2).
+        : (DataContext as Planned)?.Question is not null ? FormPart.WayIn
         : PlanCloseButton;
 
     /// <summary>

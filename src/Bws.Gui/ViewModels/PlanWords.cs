@@ -45,6 +45,7 @@ internal static partial class PlanWords
         ActionKind.SetStartType => Texts.Of("gui.plan.doing.setStartType"),
         ActionKind.ForceStop => Texts.Of("gui.plan.doing.forceStop"),
         ActionKind.ForceRestart => Texts.Of("gui.plan.doing.forceRestart"),
+        ActionKind.SetRecovery => Texts.Of("gui.plan.doing.setRecovery"),
         _ => throw new ArgumentOutOfRangeException(
             nameof(kind), kind, Bws.Core.Planning.EquivalentCommand.Unhandled)
     };
@@ -306,7 +307,12 @@ internal static partial class PlanWords
                 "gui.plan.failure.refusedStartType",
                 result.Step.ServiceName,
                 result.Error ?? string.Empty)
-            : Ordinary(result);
+
+            // The same for a recovery write, and for the same reason: a write is done when it returns.
+            // The error names the half that did not land when one did - the writer words it.
+            : result.Step.Operation == StepOperation.SetRecovery
+                ? Texts.Of("gui.plan.failure.refusedRecovery", result.Step.ServiceName, result.Error ?? string.Empty)
+                : Ordinary(result);
 
     private static string Ordinary(StepResult result) => result switch
     {
@@ -382,6 +388,7 @@ internal static partial class PlanWords
         StepOperation.Start => Texts.Of("gui.plan.operation.start"),
         StepOperation.SetStartType => Texts.Of("gui.plan.operation.setStartType"),
         StepOperation.Terminate => Texts.Of("gui.plan.operation.terminate"),
+        StepOperation.SetRecovery => Texts.Of("gui.plan.operation.setRecovery"),
         _ => throw new ArgumentOutOfRangeException(
             nameof(operation), operation, Bws.Core.Planning.EquivalentCommand.Unhandled)
     };

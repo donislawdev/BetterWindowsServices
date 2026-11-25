@@ -209,7 +209,59 @@ public enum PlanWarningKind
     /// before the change: <c>bws restart AxInstSV --dry-run</c> on a stopped entry of this machine showed a
     /// stop and a start "put back" and said nothing about the entry not running.
     /// </summary>
-    RestartOnlyStarts
+    RestartOnlyStarts,
+
+    /// <summary>
+    /// The recovery list this plan writes restarts the COMPUTER on some failure.
+    ///
+    /// <b>Allowed and said, on the owner's decision of 2026-11-24</b> (backlog 555 part a2): without it the
+    /// way back from a change on the seven entries of the owner's machine that already carry one could not be
+    /// written. To write it this tool turns on the privilege to shut the system down for the one call and
+    /// turns it off again - Windows refuses the write without it, with the same number as a refusal of access
+    /// (measured on the throwaway machine that day).
+    /// </summary>
+    RestartsComputerOnFailure,
+
+    /// <summary>
+    /// After this plan a failure of the entry runs a program, and Windows runs it on the entry's own account
+    /// - <see cref="PlanWarning.Related"/> names that account when it was read, and is empty when it was not.
+    ///
+    /// <b>Said because the account is usually LocalSystem</b>, and a program run after a failure is a known
+    /// way to keep a foothold on a machine: Windows records no event when recovery changes (measured on the
+    /// throwaway machine 2026-11-24), so a snapshot compared later is the only witness.
+    /// </summary>
+    ProgramRunsAs,
+
+    /// <summary>
+    /// The plan changes the recovery of an entry the machine does not work without. Those carry "restart the
+    /// computer" on the owner's machine, and taking it away leaves a machine that has lost one of them running
+    /// on without it.
+    /// </summary>
+    CriticalRecovery,
+
+    /// <summary>
+    /// After this plan the entry names a program to run on failure and no item of its list runs one - so the
+    /// program is kept and never runs. Said when the plan sets the program or changes the list, never about a
+    /// program the plan did not touch on a list it did not change (owner's decision P3, 2026-11-25). The
+    /// details panel already says "Not used" about such a program, and a plan writing it says so before it is
+    /// written. A clean Windows has one: MSiSCSI (measured 2026-11-23).
+    /// </summary>
+    ProgramUnused,
+
+    /// <summary>
+    /// The same for the message broadcast before the computer restarts: after this plan the entry holds one
+    /// and no item of its list restarts the computer, so it is never sent. Owner's decision P6 of 2026-11-25 -
+    /// the same family as <see cref="ProgramUnused"/>, said the same way and at the same moments.
+    /// </summary>
+    RebootMessageUnused,
+
+    /// <summary>
+    /// The list this plan writes has two items or more and a reset period of zero - Windows counts every
+    /// failure as the first then, so only the first item ever runs (measured on the throwaway machine on
+    /// 2026-10-07). Backlog 650, owner's decision P3 of 2026-11-25: the window's form makes such a list two
+    /// clicks away, and until then the plan wrote it without a word.
+    /// </summary>
+    EveryFailureFirst
 }
 
 /// <summary>

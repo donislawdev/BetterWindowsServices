@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "İçeriğe geç",
@@ -43,6 +43,10 @@
   "switch.force": "<code>kill</code> üzerinde, nazikçe sormadan süreci hemen sonlandırır - önizleme o zaman iki yerine bir adım gösterir. <code>snapshot create</code> üzerinde, zaten var olan bir anlık görüntünün yerine yazar - anlık görüntü olmayan bir dosyanın yerine asla yazılmaz.",
   "switch.restart": "<code>kill</code> üzerinde, süreç gittikten sonra öğeyi, onunla paylaşılan her şeyle birlikte geri getirir.",
   "switch.stop": "<code>start-type</code> üzerinde ve yalnızca <code>disabled</code> ile birlikte, ayar yazıldıktan sonra öğeyi aynı planda durdurur. Başlangıç türü bir sonraki açılışı değiştirir, şimdiyi değil; bu yüzden onsuz, disabled yapılmış çalışan bir öğe çalışmaya devam eder.",
+  "switch.reset": "Windows'un hatasız ne kadar süre geçtikten sonra yeniden ilk hatadan saymaya başlayacağı - s, m, h veya d ile bir tam sayı, 0 ya da bilgisayar yeniden başlayana kadar bekleyen <code>never</code>. Verilmezse öğe mevcut süresini korur.",
+  "switch.program": "Bir <code>program:DELAY</code> eyleminin çalıştırdığı program, tırnaklar ve <code>%1%</code> dahil kelimesi kelimesine - <code>%1%</code> hatanın sırasını belirtir. Hizmetin çalıştığı hesapla çalışır. Boş bir değer onu kaldırır.",
+  "switch.message": "Bir <code>reboot:DELAY</code> eylemi bilgisayarı yeniden başlatmadan önce oturum açmış kişilere gönderilen ileti. Boş bir değer onu kaldırır.",
+  "switch.on-error-stops": "<code>yes</code>, eylemlerin yalnızca çöken bir hizmete değil, hatayla duran bir hizmete de yanıt vermesini sağlar. <code>no</code> yalnızca çökmelere yanıt verir.",
   "switch.full": "<code>show</code> üzerinde, gerçekten boş olan alanları da yazdırır. Kimsenin okuyamadığı bir alan her durumda yazdırılır.",
   "switch.components": "<code>license</code> üzerinde, bildirimi bu yürütülebilir dosyanın içindeki her bileşene, sürümüyle, lisansıyla ve nereden geldiğiyle açar. İndirmenin yanında yayımlanan malzeme listesinin taşıdığı aynı küme, çünkü ikisi de tek bir kayıttan üretilir.",
   "switch.json": "Aynı belge, makine tarafından okunabilir, standart çıktıda.",

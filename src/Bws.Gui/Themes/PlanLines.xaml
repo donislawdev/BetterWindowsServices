@@ -254,4 +254,32 @@
             </Grid>
         </Border>
     </DataTemplate>
+
+    <!--
+        A SENTENCE UNDER THE STEPS THAT IS THERE ONLY WHEN IT SAYS SOMETHING - how many entries come along,
+        and which are named twice. Gone when empty, because an empty TextBlock still measures a line and
+        its margin. Since 2026-11-25 a style rather than a flag on the model per sentence: the two flags
+        said the same thing twice, and the room they took on the sheet's markup was the room the recovery
+        form needed (backlog 555 a2). Sections with a heading keep their flags - Planned.Sections.cs.
+    -->
+    <Style x:Key="PlanAside" TargetType="TextBlock" BasedOn="{StaticResource NoticeText}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="{StaticResource MarginAboveStatus}" />
+        <Style.Triggers>
+            <Trigger Property="Text" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- The same, quieter - a fact about the plan rather than something to act on. -->
+    <Style x:Key="PlanAsideSubdued" TargetType="TextBlock" BasedOn="{StaticResource SubduedText}">
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="{StaticResource MarginAboveStatus}" />
+        <Style.Triggers>
+            <Trigger Property="Text" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 </ResourceDictionary>

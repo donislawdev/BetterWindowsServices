@@ -27,7 +27,8 @@ public sealed record BulkAction(
     IReadOnlyList<string> ServiceNames,
     bool IncludeDependents = false,
     StartSetting? To = null,
-    bool AlsoStop = false);
+    bool AlsoStop = false,
+    RecoveryChange? Recovery = null);
 
 /// <summary>
 /// Everything that would happen to a selection, worked out and frozen. `C2` in one type.

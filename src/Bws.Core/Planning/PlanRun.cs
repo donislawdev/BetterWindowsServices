@@ -359,4 +359,9 @@ public sealed record PlanRun
 ///
 /// Null for a stop or a start, where there is no such value and inventing one would be a claim.
 /// </param>
-public sealed record ReversalStep(string ServiceName, StepOperation Operation, StartSetting? To = null);
+/// <param name="Recovery">
+/// The recovery change that would put this entry back, for a way back that writes recovery - the same parts
+/// the run wrote, set to what the entry had before it (since 2026-11-24). Null for every other operation.
+/// </param>
+public sealed record ReversalStep(
+    string ServiceName, StepOperation Operation, StartSetting? To = null, RecoveryChange? Recovery = null);

@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Vai al contenuto",
@@ -43,6 +43,10 @@
   "switch.force": "Su <code>kill</code>, terminare subito il processo senza chiedere con garbo - l'anteprima mostra allora un passaggio invece di due. Su <code>snapshot create</code>, sostituire uno snapshot già presente - un file che non è uno snapshot non viene mai sostituito.",
   "switch.restart": "Su <code>kill</code>, rimettere la voce a posto una volta sparito il processo, insieme a tutto ciò che lo condivideva.",
   "switch.stop": "Su <code>start-type</code>, e solo accanto a <code>disabled</code>, fermare la voce nello stesso piano una volta scritta l'impostazione. Un tipo di avvio cambia il prossimo avvio e nulla adesso, quindi senza di esso una voce in esecuzione impostata su disabilitato continua a girare.",
+  "switch.reset": "Dopo quanto tempo senza errori Windows ricomincia a contare dal primo errore - un numero intero con s, m, h o d, 0, oppure <code>never</code>, che attende il riavvio del computer. Senza di esso la voce mantiene il periodo che ha.",
+  "switch.program": "Il programma che un'azione <code>program:DELAY</code> esegue, parola per parola, virgolette e <code>%1%</code> compresi - <code>%1%</code> indica il numero dell'errore. Viene eseguito con l'account con cui gira il servizio. Un valore vuoto lo rimuove.",
+  "switch.message": "Il messaggio inviato alle persone connesse prima che un'azione <code>reboot:DELAY</code> riavvii il computer. Un valore vuoto lo rimuove.",
+  "switch.on-error-stops": "<code>yes</code> fa sì che le azioni rispondano anche a un servizio che si ferma segnalando un errore, non solo a uno che si arresta in modo anomalo. <code>no</code> risponde solo agli arresti anomali.",
   "switch.full": "Su <code>show</code>, stampare anche i campi davvero vuoti. Un campo che nessuno ha potuto leggere viene stampato comunque.",
   "switch.components": "Su <code>license</code>, trasformare l'avviso in ogni componente di questo eseguibile con la sua versione, la sua licenza e la sua provenienza. Lo stesso insieme che porta la distinta dei materiali pubblicata accanto al download, perché entrambe sono prodotte da un unico registro.",
   "switch.json": "Lo stesso documento, leggibile da una macchina, sullo standard output.",

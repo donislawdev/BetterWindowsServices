@@ -260,13 +260,13 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock, IEndin
         // A CONFIGURATION CHANGE IS DONE WHEN IT RETURNS, so everything below - the target status,
         // the read before, the waiting after - is about a question this step does not ask. Writing
         // a start type moves nothing, so there is no state to arrive at and nothing to poll.
-        if (step.Operation == StepOperation.SetStartType)
+        if (Configures(step.Operation))
         {
             // The last look at both ways to stop, as below - here nothing is read first, so it comes
             // straight after the progress call the loop made.
             return halt.Unasked(step.Reason)
                 ? Skipped(step, SkipReason.Cancelled, EntryStatus.Unknown, Reading<int>.NotRead(), Elapsed(started))
-                : Configure(step, started);
+                : Configure(step, started, halt);
         }
 
         var target = Target(step.Operation);
@@ -349,8 +349,13 @@ public sealed partial class PlanRunner(IScmControl control, IClock clock, IEndin
     /// <b>An unreadable status is not a failed step.</b> The setting was written or it was not, and
     /// that answer comes from the write rather than from a reading beside it.
     /// </summary>
-    private StepResult Configure(PlanStep step, TimeSpan started)
+    private StepResult Configure(PlanStep step, TimeSpan started, Halt halt)
     {
+        if (step.Operation == StepOperation.SetRecovery)
+        {
+            return ConfigureRecovery(step, started, halt);
+        }
+
         var answer = control.Configure(step.ServiceName, step.To!.Value);
         var seen = control.Read(step.ServiceName);
 

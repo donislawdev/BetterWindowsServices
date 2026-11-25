@@ -63,6 +63,29 @@ public sealed class DriverPickGuards
         WpfHost.On(window.Close);
     }
 
+    /// <summary>
+    /// The recovery form keeps the same door as every plan: over drivers alone it does not open and the line
+    /// says why, and over nothing picked it opens nothing.
+    /// </summary>
+    [Fact]
+    public async Task Set_recovery_over_drivers_alone_opens_no_form_and_says_why()
+    {
+        var (window, model) = await Opened();
+
+        Pick(window, model, "disk");
+
+        Assert.False(WpfHost.On(window.AskRecovery));
+        Assert.Null(WpfHost.On(() => model.Planned.Question));
+        Assert.Contains(Texts.Of("gui.action.onlyDrivers"), WpfHost.On(() => model.Says.Problem), StringComparison.Ordinal);
+
+        WpfHost.On(() => window.Entries.UnselectAll());
+
+        Assert.False(WpfHost.On(window.AskRecovery));
+        Assert.Null(WpfHost.On(() => model.Planned.Question));
+
+        WpfHost.On(window.Close);
+    }
+
     private static async Task<(MainWindow Window, MainViewModel Model)> Opened()
     {
         var model = new MainViewModel(

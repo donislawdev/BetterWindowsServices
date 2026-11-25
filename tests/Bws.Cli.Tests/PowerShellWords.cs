@@ -69,8 +69,14 @@ internal sealed class PowerShellWords
         }
     }
 
-    /// <summary>What the plan writes outside quotes - EquivalentCommand.Typed and the words around a name.</summary>
-    internal static bool Bare(char character) => char.IsLetterOrDigit(character) || character is '.' or '_' or '-';
+    /// <summary>
+    /// What the plan writes outside quotes - EquivalentCommand.Typed and the words around a name. The colon and
+    /// the equals sign since 2026-11-24, for the recovery line (<c>restart:2m</c>, <c>--program=-dash</c>):
+    /// measured that day on pwsh 7.7.0, <c>bws recovery Spooler program:1m --program=-dash --message='-x $y'</c>
+    /// reached the tool as those three words, the quoted half joined to its switch.
+    /// </summary>
+    internal static bool Bare(char character) =>
+        char.IsLetterOrDigit(character) || character is '.' or '_' or '-' or ':' or '=';
 
     /// <summary>
     /// Whether the character at the index ends the quoted word. Inside single quotes a doubled mark

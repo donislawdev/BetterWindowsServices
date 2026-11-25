@@ -29,6 +29,18 @@ is not part of this repository.
   services with nothing set. A program to run, or a message to show before the computer restarts,
   that no failure uses is marked as not used. Snapshots keep it too and are written in version 8 - compared with a snapshot
   from an earlier version, recovery is left out and the comparison says so.
+- `bws recovery NAME` sets what Windows does when a service fails. The words after the name are the
+  actions, one per failure - `restart:1m`, `program:30s`, `reboot:5m`, `nothing` - and `--reset`,
+  `--program`, `--message` and `--on-error-stops` set the rest of the *Recovery* tab. Whatever you leave
+  out stays as it is. Like every change, it shows the plan first with `--dry-run`, and after it runs it
+  prints the line that puts the service back the way it was. A list that restarts the computer is
+  allowed and the plan says so. The plan also warns when the list it writes would never get past its
+  first action - two or more actions with a reset period of 0 - and when a program or a message would
+  be kept that no failure uses.
+- *Set recovery...* in the window opens the same change as a form over the plan, for one service or
+  for many at once. Each part has a tick: what you edit is ticked and written, and everything without
+  a tick stays as it is on each service. The plan under the form follows what you type, and the line
+  at the top of the sheet says how many warnings are under the form before you carry it out.
 
 - Clicking the empty search box shows your last five searches above the questions to start from,
   with a clock beside each. Delete forgets the chosen one. A search is kept when you leave the box or
@@ -71,6 +83,9 @@ is not part of this repository.
   every entry is done. The entries listed under the plan as not going to happen now count, so
   picking four rows with one refused reads "3 of 4 entries ended where you asked", and an interrupted
   run counts them the same way.
+- A switch that needs a value and is followed straight away by another switch written with `=`, such
+  as `bws list --query --note=before`, now ends with "--query needs a value after it." and code 2.
+  Before, the second switch was read as the value of the first.
 
 ## [0.5.0] - 2026-11-03
 

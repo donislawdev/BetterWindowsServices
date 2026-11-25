@@ -204,11 +204,7 @@ internal static class Refusals
             // Two keys, because the example has to be a line that works. The shared sentence ends
             // "bws {0} Spooler --dry-run", which for this verb is itself an incomplete command - so
             // answering a missing name would have handed somebody their next mistake.
-            Console.Error.WriteLine(Texts.Of(
-                WriteCommands.NeedsAStartType(options.Kind)
-                    ? "cli.missingServiceName.startType"
-                    : "cli.missingServiceName",
-                OptionSurface.Spelling(options.Kind)));
+            Console.Error.WriteLine(Texts.Of(MissingName(options.Kind), OptionSurface.Spelling(options.Kind)));
 
             return ExitCode.Usage;
         }
@@ -258,7 +254,7 @@ internal static class Refusals
             return forced;
         }
 
-        if (WriteCommands.NeedsAStartType(options.Kind) && AboutTheSetting(options.ServiceName, options.Setting) is { } code)
+        if (AboutTheValues(options) is { } code)
         {
             return code;
         }
@@ -289,6 +285,39 @@ internal static class Refusals
         }
 
         Console.Error.WriteLine(Texts.Of("cli.forceWithDependents", options.ServiceName));
+
+        return ExitCode.Usage;
+    }
+
+    /// <summary>
+    /// The sentence for a write verb given no name - one whose example is a line that works, so the two verbs
+    /// carrying a value beside the name get examples carrying one.
+    /// </summary>
+    private static string MissingName(CommandKind kind) => kind switch
+    {
+        CommandKind.SetStartType => "cli.missingServiceName.startType",
+        CommandKind.SetRecovery => "cli.missingServiceName.recovery",
+        _ => "cli.missingServiceName"
+    };
+
+    /// <summary>
+    /// What is wrong with the values a configuration verb carries, or nothing - the start type word, or the
+    /// recovery items and switches (since 2026-11-24). Every other verb carries none.
+    /// </summary>
+    private static int? AboutTheValues(CommandLine options)
+    {
+        if (WriteCommands.NeedsAStartType(options.Kind))
+        {
+            return AboutTheSetting(options.ServiceName, options.Setting);
+        }
+
+        if (options.Kind != CommandKind.SetRecovery
+            || RecoveryAsks.Mistake(options.Recovery, options.ServiceName) is not { } mistake)
+        {
+            return null;
+        }
+
+        Console.Error.WriteLine(mistake);
 
         return ExitCode.Usage;
     }

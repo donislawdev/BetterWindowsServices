@@ -44,7 +44,18 @@ public enum ActionKind
     /// the machine everything it took down - including the entries that shared the process and were
     /// never asked about.
     /// </summary>
-    ForceRestart
+    ForceRestart,
+
+    /// <summary>
+    /// Set what the manager does when the entry fails - the Recovery tab of services.msc, spec `C7`, backlog
+    /// 555 part (a2), on the owner's decisions of 2026-11-24.
+    ///
+    /// <b>The second ask that changes configuration, and it is everything <see cref="SetStartType"/> is</b> -
+    /// no cascade, nothing to wait for, one step - <b>plus a reading taken while the plan is built</b>, because
+    /// the parts somebody did not name have to be known to be kept, and the parts somebody did name have to be
+    /// known to be put back.
+    /// </summary>
+    SetRecovery
 }
 
 /// <summary>What one step actually does to one entry.</summary>
@@ -76,7 +87,16 @@ public enum StepOperation
     /// returns success and an entry that never reaches Stopped is a real pair, reported honestly as
     /// a step that ran out of time.
     /// </summary>
-    Terminate
+    Terminate,
+
+    /// <summary>
+    /// Write recovery. What travels on the step - <see cref="PlanStep.Recovering"/>.
+    ///
+    /// <b>Done when the call returns, like <see cref="SetStartType"/></b>, and read once more just before
+    /// the call: a list somebody changed between the preview and the press is refused rather than written
+    /// over, the logic report's R05 applied to a write.
+    /// </summary>
+    SetRecovery
 }
 
 /// <summary>Why a step is in the plan, which is the part a person reads first.</summary>
@@ -193,13 +213,19 @@ public enum StepReason
 /// difference is visible before anybody presses anything. An escalation decided while a run is
 /// under way could not be shown at all.
 /// </param>
+/// <param name="Recovery">
+/// What an ask of kind <see cref="ActionKind.SetRecovery"/> changes - the parts somebody named and their
+/// values - and nothing at all for every other kind. The parts nobody named stay as each entry has them,
+/// the owner's decision of 2026-11-24, which is what lets one ask go to fifteen entries with fifteen lists.
+/// </param>
 public sealed record ServiceAction(
     ActionKind Kind,
     string ServiceName,
     bool IncludeDependents = false,
     StartSetting? To = null,
     bool Immediate = false,
-    bool AlsoStop = false);
+    bool AlsoStop = false,
+    RecoveryChange? Recovery = null);
 
 /// <summary>One thing that will happen, to one entry.</summary>
 /// <param name="To">
@@ -275,6 +301,11 @@ public sealed record ServiceAction(
 /// The run now reads every list once more just before the process dies and refuses when any of them is
 /// not the one shown. Never printed: the warnings already say what the lists mean.
 /// </param>
+/// <param name="Recovering">
+/// What a step of kind <see cref="StepOperation.SetRecovery"/> writes, and the whole recovery the entry had
+/// when the plan was built. Nothing at all for every other kind - and NOT the same thing as
+/// <see cref="Recovery"/> beside it, which is what an ending sets off rather than what a write puts down.
+/// </param>
 public sealed record PlanStep(
     string ServiceName,
     string DisplayName,
@@ -285,7 +316,8 @@ public sealed record PlanStep(
     int? ProcessId = null,
     long? ProcessCreatedAt = null,
     IReadOnlyList<string>? TakesWithIt = null,
-    IReadOnlyList<RecoveryReading>? Recovery = null);
+    IReadOnlyList<RecoveryReading>? Recovery = null,
+    RecoveryWrite? Recovering = null);
 
 /// <summary>Why a plan could not be made at all.</summary>
 public enum PlanProblemKind
@@ -454,7 +486,35 @@ public enum PlanProblemKind
     /// every call succeeding, and the preview of the one step nobody can undo would name fewer casualties
     /// than the process has.
     /// </summary>
-    NeighboursUnreadable
+    NeighboursUnreadable,
+
+    /// <summary>
+    /// A recovery write names one half of the list - its items or its reset period - and the entry's recovery
+    /// could not be read, so the half nobody named is not known and the manager writes both.
+    ///
+    /// <b>Refused rather than written with a guess</b> (backlog 555 part a2, 2026-11-24): keeping what is not
+    /// named is the promise, and a period of zero put down under a list somebody changed would break it without
+    /// a word. A write that names neither half, or both, has nothing to guess and is planned without a way back.
+    /// </summary>
+    RecoveryUnreadable,
+
+    /// <summary>
+    /// A recovery write touches the list, and the list holds an item of a type this tool cannot name -
+    /// <c>Schedule</c> carries type 4, which Microsoft does not document.
+    ///
+    /// <b>Refused because the way back could not be written</b>: the manager accepts type 4 (measured on the
+    /// throwaway machine 2026-11-24), but neither the command line nor the window has a word for it, so the
+    /// list a person replaced would be gone with no line that puts it back. A program, a message or the flag
+    /// can still be changed on such an entry - those writes leave the list alone.
+    /// </summary>
+    RecoveryUnnamed,
+
+    /// <summary>
+    /// A recovery write sets a reset period and leaves the items as they are, and the entry has none. The
+    /// manager keeps no period beside an empty list - it zeroes it when the list goes (measured 2026-11-24) -
+    /// so the write would put down something other than what the preview says.
+    /// </summary>
+    NoActionsToReset
 }
 
 /// <summary>A reason there is no plan. Facts only, wording belongs above.</summary>

@@ -1636,12 +1636,15 @@ $mutations = @(
         # RE-ANCHORED 2026-09-29 (S-7): the ordering asks through the build's own DependentsAskedOnce,
         # passed in as `asking`, rather than through the catalogue field. The swap it makes is unchanged.
         From = @'
-        action.Kind is ActionKind.Start || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
+        action.Kind is ActionKind.Start or ActionKind.SetRecovery
+            || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
             ? asked
             : DependentsFirst.Order(asking, asked);
 '@
+        # RE-ANCHORED 2026-11-24, when a recovery write joined the unordered side (backlog 555 part a2).
         To = @'
-        action.Kind is ActionKind.Start || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
+        action.Kind is ActionKind.Start or ActionKind.SetRecovery
+            || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
             ? DependentsFirst.Order(asking, asked)
             : asked;
 '@
@@ -1669,8 +1672,9 @@ $mutations = @(
     @{
         Name = 'bulk: the plans share the answers the ordering already got'
         File = 'src\Bws.Core\Planning\BulkPlanBuilder.cs'
-        From = 'var builder = new PlanBuilder(entries, asking, processes);'
-        To = 'var builder = new PlanBuilder(entries, catalog, processes);'
+        # RE-ANCHORED 2026-11-24 - the builder takes the recovery reader as well (backlog 555 part a2).
+        From = 'var builder = new PlanBuilder(entries, asking, processes, recovery);'
+        To = 'var builder = new PlanBuilder(entries, catalog, processes, recovery);'
         Test = 'BulkPlanTests.A_bulk_plan_asks_who_depends_on_each_name_once'
     },
     @{
@@ -1860,11 +1864,12 @@ $mutations = @(
         File = 'src\Bws.Gui\ViewModels\Planned.cs'
         # RE-ANCHORED 2026-09-07, when a fifth clause arrived: the name typed back, for a plan
         # that ends more than the entry somebody named. AND AGAIN 2026-09-15, when the sixth did:
-        # the box of seconds saying something that is not seconds.
+        # the box of seconds saying something that is not seconds. AND 2026-11-24, when the seventh did:
+        # a recovery form that moved since the plan under it was worked out.
         From = '        Showing && Elevated && !Busy && _run is null && _plan is { IsRunnable: true }
-        && !HasWaitingProblem && Confirmed;'
+        && !HasWaitingProblem && Confirmed && _question is not { Outdated: true };'
         To = '        Showing && Elevated && _run is null && _plan is { IsRunnable: true }
-        && !HasWaitingProblem && Confirmed;'
+        && !HasWaitingProblem && Confirmed && _question is not { Outdated: true };'
         Test = 'CarryingGuards.The_button_is_live_only_while_there_is_a_plan_nobody_has_carried_out'
     },
     @{
@@ -1938,11 +1943,11 @@ $mutations = @(
         # from the manager and somebody working out why, which is what this clause exists against.
         Name = 'plan panel: a session that cannot change anything cannot press the button'
         File = 'src\Bws.Gui\ViewModels\Planned.cs'
-        # RE-ANCHORED 2026-09-07 with the clause above, for the same reason, and again 2026-09-15.
+        # RE-ANCHORED 2026-09-07 with the clause above, for the same reason, and again 2026-09-15 and 2026-11-24.
         From = '        Showing && Elevated && !Busy && _run is null && _plan is { IsRunnable: true }
-        && !HasWaitingProblem && Confirmed;'
+        && !HasWaitingProblem && Confirmed && _question is not { Outdated: true };'
         To = '        Showing && !Busy && _run is null && _plan is { IsRunnable: true }
-        && !HasWaitingProblem && Confirmed;'
+        && !HasWaitingProblem && Confirmed && _question is not { Outdated: true };'
         Test = 'CarryingGuards.A_session_that_cannot_change_anything_says_so_before_anybody_presses'
     },
     @{
@@ -2181,8 +2186,8 @@ $mutations = @(
         File = 'src\Bws.Gui\ViewModels\MainViewModel.Planning.cs'
         # The third argument arrived on 2026-09-08 and stale-check found this anchor the same
         # minute, which is the whole reason that script runs before this one.
-        From = '        return Task.Run(() => new BulkPlanBuilder(entries, _catalog, _processes).Build(action));'
-        To = '        return Task.FromResult(new BulkPlanBuilder(entries, _catalog, _processes).Build(action));'
+        From = '        return Task.Run(() => new BulkPlanBuilder(entries, _catalog, processes, recovery).Build(action));'
+        To = '        return Task.FromResult(new BulkPlanBuilder(entries, _catalog, processes, recovery).Build(action));'
         Test = 'PlanBuildingGuards.The_manager_is_not_asked_about_a_cascade_on_the_thread_that_draws'
     },
     @{
@@ -5615,8 +5620,9 @@ $mutations = @(
         # RE-ANCHORED 2026-09-24, when the line learned to carry --stop, and again 2026-10-05, when
         # the name learned to be quoted and the line moved into Line (W-12). The word is dropped by a
         # comparison that is never true, so `word` stays read and the mutant compiles.
-        From = 'return Line(Verb(action.Kind), action.ServiceName, word, action.AlsoStop ? [AlsoStop] : []);'
-        To = 'return Line(Verb(action.Kind), action.ServiceName, word.Length < 0 ? word : null, action.AlsoStop ? [AlsoStop] : []);'
+        # RE-ANCHORED 2026-11-24 - Line takes a list of words since the recovery line (backlog 555 part a2).
+        From = 'return Line(Verb(action.Kind), action.ServiceName, [word], action.AlsoStop ? [AlsoStop] : []);'
+        To = 'return Line(Verb(action.Kind), action.ServiceName, word.Length < 0 ? [word] : [], action.AlsoStop ? [AlsoStop] : []);'
         Test = 'EquivalentCommandBridgeGuards.The_start_type_the_core_writes_is_one_this_tool_reads_back'
     },
     @{
@@ -5769,7 +5775,7 @@ $mutations = @(
         # still opens, and the steps in it name one entry - the specification's own warning, word
         # for word: "admin kliknie stop na jednym wierszu i zatrzyma cztery uslugi".
         Name = 'folding: a plan over a folded row names every copy under it'
-        File = 'src\Bws.Gui\MainWindow.Menu.cs'
+        File = 'src\Bws.Gui\ViewModels\Picking.cs'
         From = '            names.AddRange(row.Instances.Select(instance => instance.ServiceName));'
         To = ''
         Test = 'FoldingGuards.A_plan_over_a_folded_row_names_the_template_and_every_copy_under_it'
@@ -5779,7 +5785,7 @@ $mutations = @(
         # WRONG. Leaving the template out is a change that evaporates at the next logon: the copies
         # that exist are set and the pattern the next one is made from is not.
         Name = 'folding: a plan over a folded row names the template as well as its copies'
-        File = 'src\Bws.Gui\MainWindow.Menu.cs'
+        File = 'src\Bws.Gui\ViewModels\Picking.cs'
         From = '            names.Add(row.ServiceName);'
         To = '            if (row.Instances.Count == 0) { names.Add(row.ServiceName); }'
         Test = 'FoldingGuards.A_plan_over_a_folded_row_names_the_template_and_every_copy_under_it'
@@ -7554,8 +7560,8 @@ $mutations = @(
         # number the box does not hold - the screen and the machine disagreeing.
         Name = 'waiting: a wrong box greys the button'
         File = 'src\Bws.Gui\ViewModels\Planned.cs'
-        From = '        && !HasWaitingProblem && Confirmed;'
-        To = '        && Confirmed;'
+        From = '        && !HasWaitingProblem && Confirmed && _question is not { Outdated: true };'
+        To = '        && Confirmed && _question is not { Outdated: true };'
         Test = 'Bws.Gui.Tests.WaitingGuards.A_wrong_box_stops_the_press_before_any_run_is_given_a_number'
     }
     @{
@@ -8651,7 +8657,7 @@ $mutations = @(
         # behind the press is a plan over all twenty-four.
         Name = 'forcing verbs: the bar is told entries rather than rows'
         File = 'src\Bws.Gui\MainWindow.Menu.cs'
-        From = 'private int PickedEntries() => Everything(PickedRows()).Count;'
+        From = 'private int PickedEntries() => Picking.Names(PickedRows()).Count;'
         To = 'private int PickedEntries() => PickedRows().Count;'
         Test = 'ForcingVerbGuards.A_folded_family_counts_as_many_entries_to_the_bar'
     },
@@ -8718,8 +8724,8 @@ $mutations = @(
         # click over a driver opens the plan of nothing the bar no longer offers.
         Name = 'drivers: a plan over drivers alone is refused before it exists'
         File = 'src\Bws.Gui\MainWindow.Menu.cs'
-        From = '        if (OnlyDrivers(picked))'
-        To = '        if (OnlyDrivers([]))'
+        From = '        if (Picking.OnlyDrivers(picked))'
+        To = '        if (Picking.OnlyDrivers([]))'
         Test = 'DriverPickGuards.Asking_for_a_plan_over_drivers_alone_opens_none_and_says_why'
     },
     @{
@@ -8774,7 +8780,7 @@ $mutations = @(
         File = 'src\Bws.Gui\Themes\Actions.xaml'
         From = '<Setter Property="Visibility" Value="Visible" />'
         To = '<Setter Property="Visibility" Value="Collapsed" />'
-        Test = 'RightsMarkGuards.The_six_write_buttons_wear_a_shield_while_the_session_cannot_carry_their_plans_out'
+        Test = 'RightsMarkGuards.The_write_buttons_wear_a_shield_while_the_session_cannot_carry_their_plans_out'
     },
     @{
         # The shield eats the button's left padding rather than adding its width. RE-AIMED 2026-11-03
@@ -8819,7 +8825,7 @@ $mutations = @(
         File = 'src\Bws.Gui\ActionBar.xaml.cs'
         From = '        button.ToolTip = on && NeedsRights ? saying + " " + Texts.Of("gui.action.needsRights") : saying;'
         To = '        button.ToolTip = saying;'
-        Test = 'RightsMarkGuards.The_six_write_buttons_wear_a_shield_while_the_session_cannot_carry_their_plans_out'
+        Test = 'RightsMarkGuards.The_write_buttons_wear_a_shield_while_the_session_cannot_carry_their_plans_out'
     },
     # ---- UX-GUI-004 (c), 2026-09-23: the restart as administrator opens where the old window was ----
     #
@@ -9204,9 +9210,10 @@ $mutations = @(
     @{
         Name = 'also stop: the line to paste carries --stop'
         File = 'src\Bws.Core\Planning\EquivalentCommand.cs'
-        # RE-ANCHORED 2026-10-05 - the line moved into Line (stability report W-12).
-        From = 'return Line(Verb(action.Kind), action.ServiceName, word, action.AlsoStop ? [AlsoStop] : []);'
-        To = 'return Line(Verb(action.Kind), action.ServiceName, word, action.AlsoStop && false ? [AlsoStop] : []);'
+        # RE-ANCHORED 2026-10-05 - the line moved into Line (stability report W-12) - and 2026-11-24, when Line
+        # took a list of words (backlog 555 part a2).
+        From = 'return Line(Verb(action.Kind), action.ServiceName, [word], action.AlsoStop ? [AlsoStop] : []);'
+        To = 'return Line(Verb(action.Kind), action.ServiceName, [word], action.AlsoStop && false ? [AlsoStop] : []);'
         Test = 'StartSettingTests.The_line_for_the_offer_carries_the_stop'
     },
     @{
@@ -9219,8 +9226,9 @@ $mutations = @(
     @{
         Name = 'also stop: the stop reaches every entry of a selection'
         File = 'src\Bws.Core\Planning\BulkPlanBuilder.cs'
-        From = 'action.Kind, name, action.IncludeDependents, action.To, AlsoStop: action.AlsoStop));'
-        To = 'action.Kind, name, action.IncludeDependents, action.To, AlsoStop: false));'
+        # RE-ANCHORED 2026-11-24 - the ask carries the recovery change as well (backlog 555 part a2).
+        From = 'action.Kind, name, action.IncludeDependents, action.To, AlsoStop: action.AlsoStop, Recovery: action.Recovery));'
+        To = 'action.Kind, name, action.IncludeDependents, action.To, AlsoStop: false, Recovery: action.Recovery));'
         Test = 'AlsoStopGuards.Taking_the_offer_rebuilds_the_sheet_with_the_stop_after_the_setting'
     },
     @{
@@ -10861,8 +10869,9 @@ $mutations = @(
         # the registry as well, so a reader that loses the flag still meets an entry that has it.
         Name = 'recovery: the flag for a stop with an error is read'
         File = 'src\Bws.Core\ScmDetailReader.Recovery.cs'
-        From = 'return Reading<RecoverySettings>.Present(new RecoverySettings(list.Value!, flag != 0));'
-        To = 'return Reading<RecoverySettings>.Present(new RecoverySettings(list.Value!, false));'
+        # RE-ANCHORED 2026-11-24 - the flag is read by WithFlag, shared with the whole reading a recovery write takes.
+        From = 'return Reading<RecoverySettings>.Present(new RecoverySettings(list, flag != 0));'
+        To = 'return Reading<RecoverySettings>.Present(new RecoverySettings(list, false));'
         Test = 'RecoveryListingContractTests.Recovery_in_the_listing_reads_as_sc_exe_prints_it'
     },
     @{
@@ -15401,6 +15410,30 @@ internal sealed class SizeValue(NumberOperator operation, long low, long high) :
         From = '        ViewModels.RecentQueries.Render(tree, RecentQueries);'
         To = ''
         Test = 'RecentQueriesTests.The_searches_go_into_the_layout_file_and_come_back_out'
+    }
+    @{
+        # 2026-11-24, backlog 555 part (a2), the recovery write. Rule 28 (b): a write over the person's own
+        # configuration, and the line the product tells them puts it back. Three entries, the limit for one
+        # piece of work - the round trip through the shell is a test of its own and needs no mutation.
+        Name = 'recovery write: a list changed after the preview is not written over'
+        File = 'src\Bws.Core\Planning\PlanRunner.Recovery.cs'
+        From = '? write.Change.Agrees(from, now.Value!) ? null : ControlAnswer.Refused(0, RecoveryChangedSince)'
+        To = '? null'
+        Test = 'RecoveryPlanTests.A_list_somebody_changed_after_the_preview_is_not_written_over'
+    }
+    @{
+        Name = 'recovery write: the way back puts back what the entry had'
+        File = 'src\Bws.Core\Planning\RecoveryChange.cs'
+        From = 'return Agrees(before, To) ? null : this with { To = before };'
+        To = 'return Agrees(before, To) ? null : this;'
+        Test = 'RecoveryPlanTests.A_list_alone_keeps_the_period_the_entry_has_and_puts_both_back_afterwards'
+    }
+    @{
+        Name = 'recovery write: the half of the list nobody named is read off the entry'
+        File = 'src\Bws.Core\Planning\RecoveryPlan.cs'
+        From = ': from!.List.ResetPeriod;'
+        To = ': asked.To.List.ResetPeriod;'
+        Test = 'RecoveryPlanTests.A_list_alone_keeps_the_period_the_entry_has_and_puts_both_back_afterwards'
     }
 )
 

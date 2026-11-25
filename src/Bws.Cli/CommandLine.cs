@@ -20,10 +20,19 @@ internal sealed partial record CommandLine
     internal string ServiceName { get; private init; } = string.Empty;
 
     /// <summary>
+    /// The values the two configuration verbs carry beside the name - one property for both, because this
+    /// record stands at the ceiling for state and the two are one subject: what a setting is to become.
+    /// </summary>
+    internal WriteValues Values { get; private init; } = WriteValues.None;
+
+    /// <summary>
     /// What the start-type verb was asked for: the word, as it was written, and whether a stop
     /// rides on it. <see cref="StartTypeAsk.None"/> for every other verb.
     /// </summary>
-    internal StartTypeAsk Setting { get; private init; } = StartTypeAsk.None;
+    internal StartTypeAsk Setting => Values.Setting;
+
+    /// <summary>What the recovery verb was asked for, as typed. <see cref="RecoveryAsk.None"/> for every other verb.</summary>
+    internal RecoveryAsk Recovery => Values.Recovery;
 
     internal bool Json { get; private init; }
 

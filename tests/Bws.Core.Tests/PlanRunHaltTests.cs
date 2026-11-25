@@ -130,7 +130,7 @@ public sealed class PlanRunHaltTests
         using var interruption = new CancellationTokenSource();
         var control = new FakeScmControl();
 
-        var run = new PlanRunner(new Interrupting(control, interruption, whileReadingStatuses: true), new FakeClock())
+        var run = new PlanRunner(new Interrupting(control, interruption, Interrupting.Moment.WhileReadingStatuses), new FakeClock())
             .Run(Ending(), TimeSpan.FromSeconds(60), interruption.Token);
 
         Assert.Equal(SkipReason.Cancelled, Assert.Single(run.Results).SkippedBecause);

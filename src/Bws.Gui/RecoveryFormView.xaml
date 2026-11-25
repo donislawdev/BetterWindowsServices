@@ -1,0 +1,140 @@
+<UserControl x:Class="Bws.Gui.RecoveryFormView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Focusable="False"
+             IsTabStop="False">
+
+    <!--
+        WHAT WINDOWS DOES WHEN THE ENTRY FAILS, AS A FORM ON THE PLAN SHEET - backlog 555 part a2, owner's
+        decisions of 2026-11-24 and 2026-11-25 (`docs/PROJEKT-LUKI-SERVICES-MSC-20261123.md` section 8). Bound
+        to a ViewModels.RecoveryForm, which says why each part has a tick and what the form leaves to the plan
+        under it.
+
+        A UserControl of its own from the start, GUI rule 9: a section with its own state and its own
+        controls. In the steps' block, so the form and the plan it asks for read as one sheet. Stacked, each
+        part a tick with its control under it - Themes/RecoveryForm.xaml says why not two columns.
+
+        Focusable and IsTabStop are off because a UserControl is both by default - `docs/10` trap 8.
+    -->
+
+    <!--
+        GONE WITH NO FORM TO SHOW: the sheet hands this its question's form, and nothing on every other sheet
+        and once a run begins (Planned.Question). The catalogue hands it a form in every state, so it shows.
+    -->
+    <UserControl.Style>
+        <Style TargetType="UserControl">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding}" Value="{x:Null}">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Style>
+
+    <Border Style="{StaticResource PlanStepsBlock}">
+        <StackPanel Grid.IsSharedSizeScope="True">
+            <TextBlock Text="{DynamicResource gui.recovery.form.title}"
+                       Style="{StaticResource SectionHeadingText}" />
+
+            <!-- What a tick means, once, before the first one - it is why a filled box can be unticked. -->
+            <TextBlock AutomationProperties.AutomationId="recoveryIntro"
+                       Text="{Binding Intro}"
+                       Style="{StaticResource RecoveryNote}" />
+
+            <CheckBox x:Name="ListTick"
+                      AutomationProperties.AutomationId="recoveryChangesList"
+                      Content="{DynamicResource gui.recovery.form.list}"
+                      IsChecked="{Binding ChangesList}"
+                      Style="{StaticResource RecoveryPart}" />
+
+            <TextBlock Text="{Binding ListNote}" Style="{StaticResource RecoveryNote}" />
+
+            <!--
+                ONE LINE PER FAILURE, drawn by RecoveryLineTemplate in Themes/RecoveryForm.xaml. The press of
+                either button on a line is caught here, because a template in a theme has no class behind it -
+                the same arrangement as the plan's own lists.
+            -->
+            <ItemsControl AutomationProperties.AutomationId="recoveryItems"
+                          ItemsSource="{Binding Items}"
+                          Button.Click="LinePressed"
+                          ItemTemplate="{StaticResource RecoveryLineTemplate}" />
+
+            <Button AutomationProperties.AutomationId="recoveryAdd"
+                    Content="{DynamicResource gui.recovery.form.add}"
+                    HorizontalAlignment="Left"
+                    Margin="{StaticResource MarginUnderSearchField}"
+                    Click="AddPressed" />
+
+            <TextBlock AutomationProperties.AutomationId="recoveryListProblem"
+                       Text="{Binding ListProblem}"
+                       Style="{StaticResource RecoveryProblem}" />
+
+            <CheckBox AutomationProperties.AutomationId="recoveryChangesPeriod"
+                      Content="{DynamicResource gui.recovery.form.period}"
+                      IsChecked="{Binding ChangesPeriod}"
+                      Style="{StaticResource RecoveryPart}" />
+
+            <TextBox AutomationProperties.AutomationId="recoveryPeriod"
+                     AutomationProperties.Name="{DynamicResource gui.recovery.form.period}"
+                     Text="{Binding PeriodText, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="{DynamicResource gui.recovery.form.period.hint}"
+                     HorizontalAlignment="Left"
+                     Width="{StaticResource WidthRecoveryPeriod}"
+                     Style="{StaticResource RecoveryText}" />
+
+            <TextBlock Text="{Binding PeriodNote}" Style="{StaticResource RecoveryNote}" />
+
+            <TextBlock AutomationProperties.AutomationId="recoveryPeriodProblem"
+                       Text="{Binding PeriodProblem}"
+                       Style="{StaticResource RecoveryProblem}" />
+
+            <CheckBox AutomationProperties.AutomationId="recoveryChangesProgram"
+                      Content="{DynamicResource gui.recovery.form.program}"
+                      IsChecked="{Binding ChangesProgram}"
+                      Style="{StaticResource RecoveryPart}" />
+
+            <TextBox AutomationProperties.AutomationId="recoveryProgram"
+                     AutomationProperties.Name="{DynamicResource gui.recovery.form.program}"
+                     Text="{Binding ProgramText, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="{DynamicResource gui.recovery.form.program.hint}"
+                     Style="{StaticResource RecoveryText}" />
+
+            <TextBlock Text="{Binding ProgramNote}" Style="{StaticResource RecoveryNote}" />
+
+            <CheckBox AutomationProperties.AutomationId="recoveryChangesMessage"
+                      Content="{DynamicResource gui.recovery.form.message}"
+                      IsChecked="{Binding ChangesMessage}"
+                      Style="{StaticResource RecoveryPart}" />
+
+            <TextBox AutomationProperties.AutomationId="recoveryMessage"
+                     AutomationProperties.Name="{DynamicResource gui.recovery.form.message}"
+                     Text="{Binding MessageText, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{StaticResource RecoveryText}" />
+
+            <TextBlock Text="{Binding MessageNote}" Style="{StaticResource RecoveryNote}" />
+
+            <CheckBox AutomationProperties.AutomationId="recoveryChangesFlag"
+                      Content="{DynamicResource gui.recovery.form.flag}"
+                      IsChecked="{Binding ChangesFlag}"
+                      Style="{StaticResource RecoveryPart}" />
+
+            <!--
+                TWO OPTIONS, NOT A SECOND TICK - the owner's decision P4 of 2026-11-25, after a picture where the
+                value's tick read as the part's. In a panel of their own, which is what makes them one group.
+            -->
+            <StackPanel>
+                <RadioButton AutomationProperties.AutomationId="recoveryCrashesOnly"
+                             Content="{DynamicResource gui.recovery.form.flag.off}"
+                             IsChecked="{Binding CrashesOnly}"
+                             Style="{StaticResource RecoveryOption}" />
+
+                <RadioButton AutomationProperties.AutomationId="recoveryFlag"
+                             Content="{DynamicResource gui.recovery.form.flag.on}"
+                             IsChecked="{Binding Flag}"
+                             Style="{StaticResource RecoveryOption}" />
+            </StackPanel>
+
+            <TextBlock Text="{Binding FlagNote}" Style="{StaticResource RecoveryNote}" />
+        </StackPanel>
+    </Border>
+</UserControl>

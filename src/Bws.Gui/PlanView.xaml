@@ -230,6 +230,12 @@
                         INSIDE the rule with the steps, so the two are one object rather than a
                         label pointing at a box. The block carries MarginSection now.
                     -->
+                    <!--
+                        THE RECOVERY FORM, ABOVE THE STEPS IT ASKS FOR - backlog 555 part a2. Question is
+                        nothing on every other sheet and once a run begins, and the form goes with it.
+                    -->
+                    <local:RecoveryFormView x:Name="FormPart" DataContext="{Binding Question.Form}" />
+
                     <Border Style="{StaticResource PlanStepsBlock}">
                         <StackPanel>
                             <TextBlock Text="{DynamicResource gui.plan.steps}"
@@ -243,19 +249,14 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- Two sentences that are there only when they say something - PlanAside says how. -->
                     <TextBlock AutomationProperties.AutomationId="planExtra"
                                Text="{Binding Extra}"
-                               TextWrapping="Wrap"
-                               Margin="{StaticResource MarginAboveStatus}"
-                               Visibility="{Binding HasExtra, Converter={StaticResource WhenTrue}}"
-                               Style="{StaticResource NoticeText}" />
+                               Style="{StaticResource PlanAside}" />
 
                     <TextBlock AutomationProperties.AutomationId="planOverlapping"
                                Text="{Binding Overlapping}"
-                               TextWrapping="Wrap"
-                               Margin="{StaticResource MarginAboveStatus}"
-                               Visibility="{Binding HasOverlapping, Converter={StaticResource WhenTrue}}"
-                               Style="{StaticResource SubduedText}" />
+                               Style="{StaticResource PlanAsideSubdued}" />
 
                     <StackPanel Visibility="{Binding HasWarnings, Converter={StaticResource WhenTrue}}">
                         <TextBlock Text="{DynamicResource gui.plan.warnings}"

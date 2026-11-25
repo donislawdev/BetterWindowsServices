@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Ir para o conteúdo",
@@ -43,6 +43,10 @@
   "switch.force": "No <code>kill</code>, encerrar o processo na hora sem pedir com educação - a pré-visualização mostra então uma etapa em vez de duas. No <code>snapshot create</code>, substituir um instantâneo que já existe - um arquivo que não é um instantâneo nunca é substituído.",
   "switch.restart": "No <code>kill</code>, trazer a entrada de volta depois que o processo some, junto com tudo o que o dividia.",
   "switch.stop": "No <code>start-type</code>, e só ao lado de <code>disabled</code>, parar a entrada no mesmo plano depois que a configuração é gravada. Um tipo de inicialização muda a próxima inicialização e nada agora, então sem ele uma entrada em execução configurada como desabilitada continua rodando.",
+  "switch.reset": "Depois de quanto tempo sem falhas o Windows volta a contar a partir da primeira falha - um número inteiro com s, m, h ou d, 0, ou <code>never</code>, que espera o computador reiniciar. Sem ele, a entrada mantém o período que tem.",
+  "switch.program": "O programa que uma ação <code>program:DELAY</code> executa, palavra por palavra, com aspas e <code>%1%</code> - <code>%1%</code> representa o número da falha. Ele roda na conta em que o serviço roda. Um valor vazio o remove.",
+  "switch.message": "A mensagem enviada às pessoas conectadas antes que uma ação <code>reboot:DELAY</code> reinicie o computador. Um valor vazio a remove.",
+  "switch.on-error-stops": "<code>yes</code> faz as ações responderem também a um serviço que para com um erro, não só a um que trava. <code>no</code> responde só a travamentos.",
   "switch.full": "No <code>show</code>, imprimir também os campos realmente vazios. Um campo que ninguém conseguiu ler é impresso de qualquer jeito.",
   "switch.components": "No <code>license</code>, transformar o aviso em cada componente dentro deste executável com sua versão, sua licença e sua origem. O mesmo conjunto que a lista de materiais publicada ao lado do download traz, porque as duas são geradas de um único registro.",
   "switch.json": "O mesmo documento, legível por máquina, na saída padrão.",

@@ -36,6 +36,9 @@ public sealed partial class Planned
             if (Set(ref _busy, value))
             {
                 Raise(nameof(CanClose));
+
+                // The recovery form leaves the sheet when the run begins - Planned.Recovery.cs says why.
+                Raise(nameof(Question));
             }
         }
     }

@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Zum Inhalt springen",
@@ -43,6 +43,10 @@
   "switch.force": "Bei <code>kill</code> den Prozess sofort beenden, ohne höflich zu fragen - die Vorschau zeigt dann einen Schritt statt zwei. Bei <code>snapshot create</code> einen bereits vorhandenen Snapshot ersetzen - eine Datei, die kein Snapshot ist, wird nie ersetzt.",
   "switch.restart": "Bei <code>kill</code> den Eintrag zurückbringen, sobald der Prozess weg ist, samt allem, was ihn teilte.",
   "switch.stop": "Bei <code>start-type</code> und nur neben <code>disabled</code> den Eintrag im selben Plan anhalten, sobald die Einstellung geschrieben ist. Ein Starttyp ändert den nächsten Start und jetzt nichts, daher läuft ein laufender Eintrag, der auf deaktiviert gesetzt wird, ohne ihn weiter.",
+  "switch.reset": "Nach welcher Zeit ohne Fehler Windows wieder ab dem ersten Fehler zählt - eine ganze Zahl mit s, m, h oder d, 0 oder <code>never</code>, das bis zum Neustart des Computers wartet. Ohne diese Option behält der Eintrag seinen bisherigen Zeitraum.",
+  "switch.program": "Das Programm, das eine Aktion <code>program:DELAY</code> ausführt, Wort für Wort, mit Anführungszeichen und <code>%1%</code> - <code>%1%</code> steht für die Nummer des Fehlers. Es läuft unter dem Konto, unter dem der Dienst läuft. Ein leerer Wert entfernt es.",
+  "switch.message": "Die Nachricht an die angemeldeten Personen, bevor eine Aktion <code>reboot:DELAY</code> den Computer neu startet. Ein leerer Wert entfernt sie.",
+  "switch.on-error-stops": "<code>yes</code> lässt die Aktionen auch auf einen Dienst reagieren, der mit einem Fehler anhält, nicht nur auf einen, der abstürzt. <code>no</code> reagiert nur auf Abstürze.",
   "switch.full": "Bei <code>show</code> auch die Felder ausgeben, die wirklich leer sind. Ein Feld, das niemand lesen konnte, wird in jedem Fall ausgegeben.",
   "switch.components": "Bei <code>license</code> aus dem Hinweis jede Komponente in dieser ausführbaren Datei machen, mit Version, Lizenz und Herkunft. Dieselbe Menge, die die neben dem Download veröffentlichte Stückliste trägt, weil beide aus einem Register erzeugt werden.",
   "switch.json": "Dasselbe Dokument, maschinenlesbar, auf der Standardausgabe.",

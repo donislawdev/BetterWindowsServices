@@ -17,7 +17,7 @@ namespace Bws.Cli;
 /// </summary>
 internal sealed partial record CommandLine
 {
-    private static readonly string[] CarriesAValue = ["--query", "--note", "--timeout"];
+    private static readonly string[] CarriesAValue = ["--query", "--note", "--timeout", .. RecoverySwitches.Names];
 
     // Exempted rather than defended: at 221 lines of code, 50 forks and five levels deep this one
     // really is too long, and the length, branching and depth ceilings all say so. Splitting it is
@@ -63,6 +63,11 @@ internal sealed partial record CommandLine
         var extra = new List<string>();
         var incomplete = new List<string>();
         var given = new List<string>();
+
+        // The recovery verb's items and switches (since 2026-11-24) - collected beside this method rather than
+        // in it, which backlog 24 is about.
+        var recoveryItems = new List<string>();
+        var recoverySwitches = new RecoverySwitches();
 
         var help = arguments.Length == 0;
         var version = false;
@@ -236,6 +241,14 @@ internal sealed partial record CommandLine
                     continue;
                 }
 
+                // EVERY BARE WORD AFTER THE NAME OF THE RECOVERY VERB IS AN ITEM OF THE LIST, in order - failure 1
+                // first. The verb has room for as many as somebody types, so none of them is a word too many.
+                if (kind == CommandKind.SetRecovery)
+                {
+                    recoveryItems.Add(argument);
+                    continue;
+                }
+
                 // AND THE SECOND ONE IS THE START TYPE, ON THE ONE VERB THAT TAKES A VALUE. Kept as
                 // a bare word rather than made a switch, because it is not optional - "bws
                 // start-type Spooler" is not a shorter way of asking the same thing, and a switch
@@ -272,6 +285,7 @@ internal sealed partial record CommandLine
             if (Arguments.Matches(argument, "--exit-code")) { exitCode = true; given.Add("--exit-code"); continue; }
             if (Arguments.Matches(argument, "--components")) { components = true; given.Add("--components"); continue; }
             if (Arguments.Matches(argument, "--live")) { live = true; given.Add("--live"); continue; }
+            if (recoverySwitches.Take(arguments, ref index, given, incomplete)) { continue; }
 
             // Both spellings, because both are what people's fingers do.
             if (argument.StartsWith("--query=", StringComparison.OrdinalIgnoreCase))
@@ -358,7 +372,7 @@ internal sealed partial record CommandLine
         {
             Kind = kind,
             ServiceName = serviceName,
-            Setting = new StartTypeAsk(startTypeWord, alsoStop),
+            Values = new WriteValues(new StartTypeAsk(startTypeWord, alsoStop), recoverySwitches.Ask(recoveryItems)),
             Json = json,
             Timing = timing,
             DryRun = dryRun,

@@ -23,10 +23,12 @@ namespace Bws.Core.Planning;
 /// exactly where a refusal discovered late is most expensive: the entries before it in the order
 /// have already been dealt with by then.
 /// </param>
+/// <param name="recovery">Handed straight to <see cref="PlanBuilder"/> as well, for a recovery write.</param>
 public sealed class BulkPlanBuilder(
     IReadOnlyList<ScmEntry> entries,
     IScmCatalog catalog,
-    IEndingFactsReader? processes = null)
+    IEndingFactsReader? processes = null,
+    IRecoveryReader? recovery = null)
 {
     public BulkPlan Build(BulkAction action)
     {
@@ -39,14 +41,14 @@ public sealed class BulkPlanBuilder(
         // One answer per name for the whole of this build - the ordering and every plan below ask
         // about the same names, and DependentsAskedOnce says what that cost before it was shared.
         var asking = new DependentsAskedOnce(catalog);
-        var builder = new PlanBuilder(entries, asking, processes);
+        var builder = new PlanBuilder(entries, asking, processes, recovery);
         var plans = new List<OperationPlan>();
         var problems = new List<PlanProblem>();
 
         foreach (var name in InTheOrderTheyMustHappen(action, asked, asking))
         {
             var plan = builder.Build(new ServiceAction(
-                action.Kind, name, action.IncludeDependents, action.To, AlsoStop: action.AlsoStop));
+                action.Kind, name, action.IncludeDependents, action.To, AlsoStop: action.AlsoStop, Recovery: action.Recovery));
 
             if (plan.Problems.Count > 0)
             {
@@ -101,9 +103,13 @@ public sealed class BulkPlanBuilder(
     /// plan does take its entry down, and two selected entries where one depends on the other have
     /// to stop in the order a plain stop of both would use - or the first stop meets the second
     /// entry still running and the manager refuses it.
+    ///
+    /// <b>A recovery write is on the unordered side from its first day (2026-11-24)</b>, for the reason a
+    /// start type without a stop is: it takes nothing down.
     /// </summary>
     private static List<string> InTheOrderTheyMustHappen(BulkAction action, List<string> asked, IScmCatalog asking) =>
-        action.Kind is ActionKind.Start || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
+        action.Kind is ActionKind.Start or ActionKind.SetRecovery
+            || (action.Kind == ActionKind.SetStartType && !action.AlsoStop)
             ? asked
             : DependentsFirst.Order(asking, asked);
 }

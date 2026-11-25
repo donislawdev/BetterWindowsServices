@@ -22,7 +22,7 @@ namespace Bws.Gui.Tests;
 public sealed class RightsMarkGuards
 {
     [Fact]
-    public void The_six_write_buttons_wear_a_shield_while_the_session_cannot_carry_their_plans_out()
+    public void The_write_buttons_wear_a_shield_while_the_session_cannot_carry_their_plans_out()
     {
         _ = WpfHost.Resources;
 
@@ -35,8 +35,9 @@ public sealed class RightsMarkGuards
             return (Shown(bar), bar.Stop.ToolTip as string);
         });
 
-        // Six, not nine: Refresh, Export and Overview change nothing, so they wear nothing.
-        Assert.Equal(6, shields);
+        // Seven, not ten: Refresh, Export and Overview change nothing, so they wear nothing. Six until
+        // 2026-11-24, when "Set recovery..." joined the verbs that open a plan (backlog 555 a2).
+        Assert.Equal(7, shields);
         Assert.Equal(Texts.Of("gui.action.stop.hint") + " " + Texts.Of("gui.action.needsRights"), tip);
     }
 
@@ -101,12 +102,12 @@ public sealed class RightsMarkGuards
                 with.Zip(without, (wide, narrow) => (Before: narrow.RightGap, After: wide.RightGap)).ToArray());
         });
 
-        // NOT VACUOUS: six buttons wear the shield, so six have to have grown at all.
-        Assert.Equal(6, grown.Count(by => by > 0));
+        // NOT VACUOUS: seven buttons wear the shield, so seven have to have grown at all.
+        Assert.Equal(7, grown.Count(by => by > 0));
         Assert.All(grown.Where(by => by > 0), by => Assert.True(
             footprint - by > ordinary / 2,
             $"A write button grew by {by} with the shield, whose mark and gap take {footprint} - so the shield took {footprint - by} of "
-            + $"a left padding of {ordinary}, not most of it, and the bar that cannot wrap grows by the rest on every one of six buttons."));
+            + $"a left padding of {ordinary}, not most of it, and the bar that cannot wrap grows by the rest on every one of seven buttons."));
         Assert.All(edges, edge => Assert.True(
             Math.Abs(edge.After - edge.Before) < 0.5,
             $"A label ends {edge.Before} short of its button's right edge without the shield and {edge.After} with it - so the "
@@ -145,7 +146,7 @@ public sealed class RightsMarkGuards
     }
 
     /// <summary>
-    /// The six write buttons laid out, in the order the bar holds them: each one's width, its left
+    /// The seven write buttons laid out, in the order the bar holds them: each one's width, its left
     /// padding, and how far its label ends short of its right edge.
     /// </summary>
     private static (double Width, double LeftPadding, double RightGap)[] WriteButtons(ActionBar bar)

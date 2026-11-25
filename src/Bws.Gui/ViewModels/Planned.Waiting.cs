@@ -168,5 +168,5 @@ public sealed partial class Planned
         Showing
         && _run is null
         && _plan is { } plan
-        && plan.Plans.Any(one => one.Steps.Any(step => step.Operation != StepOperation.SetStartType));
+        && plan.Plans.Any(one => one.Steps.Any(step => step.Operation is not (StepOperation.SetStartType or StepOperation.SetRecovery)));
 }

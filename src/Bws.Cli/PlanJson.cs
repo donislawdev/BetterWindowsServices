@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Bws.Core.Planning;
+using Bws.Core.Snapshots;
 
 namespace Bws.Cli;
 
@@ -44,8 +45,48 @@ namespace Bws.Cli;
 /// it. Every setting writes the flag since that day - false for all but one - so a step of that kind
 /// always carries true or false here, and an addition to the document changes no field it had.
 /// </param>
+/// <param name="Recovery">
+/// What a recovery step writes, and null for every other step - added 2026-11-24 beside the two above, the same
+/// way they were added (backlog 555 part a2, `docs/02`).
+/// </param>
 internal sealed record PlanStepJson(
-    string ServiceName, string DisplayName, string Operation, string Reason, string? StartType, bool? DelayedAuto);
+    string ServiceName, string DisplayName, string Operation, string Reason, string? StartType, bool? DelayedAuto,
+    RecoveryWriteJson? Recovery);
+
+/// <summary>
+/// The parts a recovery step writes and the value of each - and null in the field of every part it leaves alone.
+///
+/// <b><see cref="Parts"/> is what makes the nulls readable</b>, and the shape is the API's own: a null command is
+/// "leave it" there too, and an empty one "remove it". Here a removed program is <c>"command": null</c> with
+/// <c>Command</c> in the parts, and a program left alone is the same null without it. Units and spellings are
+/// the listing's (<see cref="RecoveryDocument"/>), so the script reading <c>bws list --json</c> reads this.
+/// </summary>
+internal sealed record RecoveryWriteJson(
+    IReadOnlyList<string> Parts,
+    IReadOnlyList<RecoveryActionDocument>? Actions,
+    long? ResetPeriodSeconds,
+    string? Command,
+    string? RebootMessage,
+    bool? OnNonCrashFailures)
+{
+    internal static RecoveryWriteJson? Of(PlanStep step)
+    {
+        if (step.Recovering?.Change is not { } change)
+        {
+            return null;
+        }
+
+        var document = RecoveryDocument.Of(change.To);
+
+        return new(
+            [.. change.Named().Select(part => part.ToString())],
+            change.Writes(RecoveryParts.Actions) ? document.Actions : null,
+            change.Writes(RecoveryParts.ResetPeriod) ? document.ResetPeriodSeconds : null,
+            change.Writes(RecoveryParts.Command) ? document.Command : null,
+            change.Writes(RecoveryParts.RebootMessage) ? document.RebootMessage : null,
+            change.Writes(RecoveryParts.OnNonCrashFailures) ? document.OnNonCrashFailures : null);
+    }
+}
 
 internal sealed record PlanWarningJson(string Kind, string ServiceName, IReadOnlyList<string> Related, string Message);
 
@@ -108,7 +149,8 @@ internal sealed record StepResultJson(
     string? Error,
     long Milliseconds,
     string? StartType,
-    bool? DelayedAuto);
+    bool? DelayedAuto,
+    RecoveryWriteJson? Recovery);
 
 internal sealed record PlanJsonShape
 {
@@ -181,7 +223,8 @@ internal static class PlanJson
                     step.Operation.ToString(),
                     step.Reason.ToString(),
                     Written(step),
-                    Delayed(step)))
+                    Delayed(step),
+                    RecoveryWriteJson.Of(step)))
             ],
 
             Warnings =
@@ -210,7 +253,8 @@ internal static class PlanJson
                     result.Error,
                     result.Milliseconds,
                     Written(result.Step),
-                    Delayed(result.Step)))],
+                    Delayed(result.Step),
+                    RecoveryWriteJson.Of(result.Step)))],
 
             Completed = run?.Completed,
             Cancelled = run?.Cancelled

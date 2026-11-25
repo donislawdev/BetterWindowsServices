@@ -95,6 +95,7 @@ public static class NetEffect
         ArgumentNullException.ThrowIfNull(results);
 
         var (moves, settings) = Tally(results);
+        var recoveries = Recovered(results);
 
         var back = moves
             .Where(move => Before(move.Value.First) != After(move.Value.Last))
@@ -109,7 +110,15 @@ public static class NetEffect
                     When: moves.TryGetValue(written.Key, out var moved)
                         ? Math.Max(written.Value.When, moved.When)
                         : written.Value.When,
-                    Setting: true)));
+                    Setting: true)))
+
+            // RECOVERY GOES BACK AS A CHANGE OF THE SAME PARTS TO WHAT THE ENTRY HAD, since 2026-11-24 - the
+            // value the step froze when the plan was built, like a start type's. A setting like it in the order:
+            // writing it never depends on where the entry is.
+            .Concat(recoveries.Select(written => (
+                Step: new ReversalStep(written.Name, StepOperation.SetRecovery, Recovery: written.Back),
+                written.When,
+                Setting: true)));
 
         // Sorted once over both, rather than each list sorted and then joined. The order is the
         // reverse of the RUN, and two lists appended would put every setting after every move
@@ -148,6 +157,28 @@ public static class NetEffect
         && moved.Last is StepOperation.Stop or StepOperation.Terminate;
 
     /// <summary>
+    /// A THIRD TALLY FOR A THIRD KIND OF ANSWER, since 2026-11-24: a written recovery is put back by the change
+    /// that undoes it, worked out on the step itself (<see cref="RecoveryChange.Undoing"/>) from what it froze.
+    /// Only a write that landed counts - a refused one says in its own words which half is on the machine, the
+    /// way a start type refused half way does - and a write that changed nothing has nothing to undo. The first
+    /// write of an entry is the one whose before is the run's before, and a plan holds one per entry.
+    ///
+    /// <b>Its own pass rather than a branch of <see cref="Tally"/></b>, which stands near the length ceiling. The
+    /// positions are the same positions, counted over the same results, so the lines sort together in Of.
+    /// </summary>
+    private static List<(string Name, RecoveryChange Back, int When)> Recovered(IEnumerable<StepResult> results) =>
+    [
+        .. results
+            .Select((result, at) => (result, at))
+            .Where(one => one.result.Outcome == StepOutcome.Succeeded
+                && one.result.Step is { Operation: StepOperation.SetRecovery, Recovering.From: not null })
+            .Select(one => (one.result.Step.ServiceName, Back: one.result.Step.Recovering!.Change.Undoing(one.result.Step.Recovering.From!), When: one.at))
+            .Where(one => one.Back is not null)
+            .DistinctBy(one => one.ServiceName, StringComparer.OrdinalIgnoreCase)
+            .Select(one => (one.ServiceName, one.Back!, one.When))
+    ];
+
+    /// <summary>
     /// Where each entry was first and last moved, and what each startup setting was before and after -
     /// the two tallies <see cref="Of"/> turns into lines.
     ///
@@ -164,6 +195,7 @@ public static class NetEffect
         Dictionary<string, (StartSetting? From, StartSetting? To, int When)> Settings)
         Tally(IEnumerable<StepResult> results, bool endingCounts = false)
     {
+
         var moves = new Dictionary<string, (StepOperation First, StepOperation Last, int When)>(
             StringComparer.OrdinalIgnoreCase);
 
@@ -196,11 +228,13 @@ public static class NetEffect
             }
 
             // A request the manager took counts whatever came of the watching after it - arrived, ran
-            // out of time, or lost from sight (R02, 2026-10-26). A refusal and a skip moved nothing.
-            if (result.Outcome != StepOutcome.Succeeded
-                && result.Outcome != StepOutcome.TimedOut
-                && !result.LostSight
-                && !(endingCounts && result.StartedAgain))
+            // out of time, or lost from sight (R02, 2026-10-26). A refusal and a skip moved nothing. A recovery
+            // write moved nothing either - it has a tally of its own, Recovered.
+            if ((result.Outcome != StepOutcome.Succeeded
+                    && result.Outcome != StepOutcome.TimedOut
+                    && !result.LostSight
+                    && !(endingCounts && result.StartedAgain))
+                || result.Step.Operation == StepOperation.SetRecovery)
             {
                 continue;
             }

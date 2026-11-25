@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "Salt la conținut",
@@ -43,6 +43,10 @@
   "switch.force": "La <code>kill</code>, încheie procesul imediat fără a cere politicos - previzualizarea arată atunci un pas în loc de doi. La <code>snapshot create</code>, înlocuiește un instantaneu care există deja - un fișier care nu este instantaneu nu este înlocuit niciodată.",
   "switch.restart": "La <code>kill</code>, readuce intrarea după ce procesul a dispărut, împreună cu tot ce l-a împărțit.",
   "switch.stop": "La <code>start-type</code>, și doar alături de <code>disabled</code>, oprește intrarea în același plan după ce setarea este scrisă. Un tip de pornire schimbă următoarea pornire și nimic acum, deci fără el o intrare care rulează, setată pe disabled, continuă să ruleze.",
+  "switch.reset": "După cât timp fără eșecuri Windows numără din nou de la primul eșec - un număr întreg cu s, m, h sau d, 0 sau <code>never</code>, care așteaptă repornirea computerului. Fără el, intrarea își păstrează perioada pe care o are.",
+  "switch.program": "Programul pe care îl rulează o acțiune <code>program:DELAY</code>, cuvânt cu cuvânt, cu ghilimele și <code>%1%</code> - <code>%1%</code> înseamnă numărul eșecului. Rulează sub contul sub care rulează serviciul. O valoare goală îl elimină.",
+  "switch.message": "Mesajul trimis persoanelor conectate înainte ca o acțiune <code>reboot:DELAY</code> să repornească computerul. O valoare goală îl elimină.",
+  "switch.on-error-stops": "<code>yes</code> face ca acțiunile să răspundă și unui serviciu care se oprește cu o eroare, nu doar unuia care se blochează. <code>no</code> răspunde doar blocărilor.",
   "switch.full": "La <code>show</code>, tipărește și câmpurile care sunt cu adevărat goale. Un câmp pe care nimeni nu l-a putut citi este tipărit oricum.",
   "switch.components": "La <code>license</code>, transformă mențiunea în fiecare componentă din acest executabil cu versiunea, licența și proveniența ei. Același set pe care îl poartă lista de materiale publicată lângă descărcare, pentru că ambele sunt generate dintr-un singur registru.",
   "switch.json": "Același document, citibil de mașină, la ieșirea standard.",

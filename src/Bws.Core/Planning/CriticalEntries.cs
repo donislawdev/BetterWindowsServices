@@ -116,5 +116,13 @@ internal static class CriticalEntries
                     PlanWarningKind.CriticalStartType, target.ServiceName, disabling));
             }
         }
+
+        // ANY RECOVERY WRITE ON ONE, since 2026-11-24 (backlog 555 part a2). Those entries answer a failure by
+        // restarting the computer, and what changes is what the machine does the day one of them dies - a
+        // sentence for every part rather than a judgement about which change is the dangerous one.
+        if (action.Kind == ActionKind.SetRecovery && Named([target]) is { Count: > 0 } changing)
+        {
+            warnings.Add(new PlanWarning(PlanWarningKind.CriticalRecovery, target.ServiceName, changing));
+        }
     }
 }

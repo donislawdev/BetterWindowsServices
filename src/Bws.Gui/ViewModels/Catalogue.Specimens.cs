@@ -186,6 +186,9 @@ public static partial class Catalogue
                     offering: true)[0]),
             "PlanCommandTemplate" => ("bws stop Spooler --dry-run", "bws stop " + LongName + " --dependents --timeout 90 --json --timing --follow-network"),
 
+            // A line of the recovery form's list: a restart edited to two minutes, and a delay that does not read.
+            "RecoveryLineTemplate" => (RecoveryFormSpecimens.Edited().Items[0], RecoveryFormSpecimens.Mistyped().Items[1]),
+
             _ => null
         };
     }

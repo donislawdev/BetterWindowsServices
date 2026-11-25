@@ -23,17 +23,6 @@ namespace Bws.Gui.ViewModels;
 public sealed partial class Planned
 {
     /// <summary>
-    /// Whether each section has anything in it.
-    ///
-    /// <b>These exist so a section can take its heading off the screen with it.</b> A heading
-    /// reading "Not included, and why" over nothing states something false, and the owner saw
-    /// exactly that on the first look at this panel - backlog 203. Bound properties rather than a
-    /// style trigger per section, because six trigger blocks would have taken this file past the
-    /// markup ceiling to say one thing six times.
-    /// </summary>
-    public bool HasExtra => Extra.Length > 0;
-
-    /// <summary>
     /// Whether there is anything in the way of carrying this out.
     ///
     /// <b>The block backlog 203 missed, found 2026-08-19 by reading the markup rather than by any
@@ -69,10 +58,17 @@ public sealed partial class Planned
     /// </summary>
     public CommandBlock CommandBlock => _run is null ? _commandBlock : CommandBlock.None;
 
-    /// <summary>Whether an entry is named by more than one plan.</summary>
-    public bool HasOverlapping => Overlapping.Length > 0;
-
-    /// <summary>Whether there is anything worth knowing before pressing.</summary>
+    /// <summary>
+    /// Whether each section has anything in it.
+    ///
+    /// <b>These exist so a section can take its heading off the screen with it.</b> A heading
+    /// reading "Not included, and why" over nothing states something false, and the owner saw
+    /// exactly that on the first look at this panel - backlog 203. Bound properties rather than a
+    /// style trigger per section, because a section is a heading and a list, and six trigger blocks
+    /// would have said one thing six times. The two sections that are one sentence each - the
+    /// entries that come along and the ones named twice - wear PlanAside instead, which says it once.
+    /// This one is whether there is anything worth knowing before pressing.
+    /// </summary>
     public bool HasWarnings => Warnings.Count > 0;
 
     /// <summary>Whether any entry got no plan at all.</summary>
@@ -114,7 +110,6 @@ public sealed partial class Planned
     /// </summary>
     private void RaiseTheCounts()
     {
-        Raise(nameof(HasExtra));
         Raise(nameof(HasBlocked));
 
         // The line itself as well as whether it is there, because this one carries text rather
@@ -165,7 +160,6 @@ public sealed partial class Planned
         // and becomes one again when the next plan shows it.
         RaiseTheProblem();
         Raise(nameof(CommandBlock));
-        Raise(nameof(HasOverlapping));
         Raise(nameof(HasWarnings));
 
         // The lines as well as whether there are any, since 2026-09-24: one of them carries an

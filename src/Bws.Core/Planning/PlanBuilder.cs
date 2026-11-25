@@ -26,10 +26,16 @@ namespace Bws.Core.Planning;
 /// listing would be a cost on the path a person waits for, paid for facts that are different a second
 /// later - the argument the specification already makes about memory.
 /// </param>
+/// <param name="recovery">
+/// Something to ask for the whole recovery of the one entry a recovery write is about, since 2026-11-24.
+/// Optional on the same terms as <paramref name="processes"/>: without it such a write is planned as one whose
+/// entry could not be read - no way back, and a write of half the list refused.
+/// </param>
 public sealed class PlanBuilder(
     IReadOnlyList<ScmEntry> entries,
     IScmCatalog catalog,
-    IEndingFactsReader? processes = null)
+    IEndingFactsReader? processes = null,
+    IRecoveryReader? recovery = null)
 {
     public OperationPlan Build(ServiceAction action)
     {
@@ -47,9 +53,9 @@ public sealed class PlanBuilder(
             return Refuse(action, PlanProblemKind.UnknownService);
         }
 
-        if (RefusedOnSight(action, target) is { } refused)
+        if (DecidedOnSight(action, target) is { } onSight)
         {
-            return refused;
+            return onSight;
         }
 
         // What is worked out below, which is not always what was asked for - AsPlanned says when. The
@@ -182,12 +188,13 @@ public sealed class PlanBuilder(
     }
 
     /// <summary>
-    /// The refusals the entry itself decides before anything is worked out - a driver, and a late
-    /// start where Windows is known to refuse one. Out of Build with the method above, and for the
-    /// same ceiling: these are about WHAT the entry is, and everything left in Build is about what
-    /// is in its way.
+    /// The plans the entry itself decides before anything is worked out - a refusal for a driver, and for
+    /// a late start where Windows is known to refuse one - and, since 2026-11-24, the whole of a recovery
+    /// write. Out of Build with the method above, and for the same ceiling: these are about WHAT the entry
+    /// is, and everything left in Build is about what is in its way. A recovery write has nothing in its
+    /// way and puts nothing back by moving, so <see cref="RecoveryPlan"/> decides it whole.
     /// </summary>
-    private static OperationPlan? RefusedOnSight(ServiceAction action, ScmEntry target)
+    private OperationPlan? DecidedOnSight(ServiceAction action, ScmEntry target)
     {
         if (target.IsDriver)
         {
@@ -209,7 +216,9 @@ public sealed class PlanBuilder(
             return Refuse(action, PlanProblemKind.CannotStartLate, [target.LoadOrderGroup.Value!]);
         }
 
-        return null;
+        return action.Kind == ActionKind.SetRecovery
+            ? RecoveryPlan.Planned(action, target, recovery ?? NoRecoveryReader.Instance)
+            : null;
     }
 
     /// <summary>

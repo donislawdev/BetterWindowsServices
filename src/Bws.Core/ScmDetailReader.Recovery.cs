@@ -128,7 +128,7 @@ internal static partial class ScmDetailReader
     /// refusal of one is a refusal of the other in every case this project has seen, and a field that was
     /// half read would be the half-complete answer rule 8 forbids.
     /// </summary>
-    internal static unsafe Reading<RecoverySettings> ReadRecoverySettings(SafeHandle service)
+    internal static Reading<RecoverySettings> ReadRecoverySettings(SafeHandle service)
     {
         var list = ReadRecovery(service);
 
@@ -147,6 +147,36 @@ internal static partial class ScmDetailReader
             return Reading<RecoverySettings>.Absent();
         }
 
+        return WithFlag(service, list.Value!);
+    }
+
+    /// <summary>
+    /// The whole tab WHATEVER is set, the flag included - for a plan that writes recovery, since 2026-11-24
+    /// (backlog 555, part a2).
+    ///
+    /// <b>Not the listing's answer, and the difference is the one case where it matters.</b> The listing calls
+    /// an entry with no item, program or message Absent and leaves the flag unread, because without an item
+    /// the flag decides nothing. A write that sets the flag on such an entry still needs to know what it was,
+    /// or the way back would put back a guess - so this reads the flag every time and never says Absent for
+    /// an entry that is there.
+    /// </summary>
+    internal static Reading<RecoverySettings> ReadWholeRecovery(SafeHandle service)
+    {
+        var list = ReadRecovery(service);
+
+        if (!list.IsPresent)
+        {
+            return list.Outcome == ReadOutcome.Denied
+                ? Reading<RecoverySettings>.Denied(list.ErrorCode, list.Reason ?? string.Empty)
+                : Reading<RecoverySettings>.Absent();
+        }
+
+        return WithFlag(service, list.Value!);
+    }
+
+    /// <summary>The flag beside a list that was read, at its own information level.</summary>
+    private static unsafe Reading<RecoverySettings> WithFlag(SafeHandle service, RecoveryList list)
+    {
         // SERVICE_FAILURE_ACTIONS_FLAG is one BOOL, so it is read into a four-byte local rather than adding
         // the structure's name to NativeMethods.txt, the list docs/09 reviews as this tool's surface.
         var flag = 0u;
@@ -158,7 +188,7 @@ internal static partial class ScmDetailReader
             return Refused<RecoverySettings>(Marshal.GetLastWin32Error());
         }
 
-        return Reading<RecoverySettings>.Present(new RecoverySettings(list.Value!, flag != 0));
+        return Reading<RecoverySettings>.Present(new RecoverySettings(list, flag != 0));
     }
 
     /// <summary>

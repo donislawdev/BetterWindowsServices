@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using Bws.Core;
+using Bws.Core.Planning;
 using Bws.Core.Snapshots;
 
 namespace Bws.Gui.ViewModels;
@@ -103,6 +104,36 @@ internal static class RecoveryWords
         var (worded, otherWorded) = (Line(before), Line(after));
 
         return worded == otherWorded ? (null, null) : (worded, otherWorded);
+    }
+
+    /// <summary>
+    /// What one recovery step writes, on one line - the parts it names and nothing else, in the words a
+    /// comparison uses, so the plan and the comparison after it say a change the same way. A part named to
+    /// be removed says so, where the comparison would leave it out: a step that removes the program must
+    /// not read as a step about nothing.
+    /// </summary>
+    internal static string Written(RecoveryChange change)
+    {
+        ArgumentNullException.ThrowIfNull(change);
+
+        var recovery = RecoveryDocument.Of(change.To);
+
+        string?[] parts =
+        [
+            change.Writes(RecoveryParts.Actions) ? Actions(recovery) : null,
+            change.Writes(RecoveryParts.ResetPeriod) && change.To.List.Items.Count > 0 ? Reset(recovery) : null,
+            !change.Writes(RecoveryParts.Command) ? null
+                : recovery.Command is { } command ? Texts.Of("gui.recovery.line.command", command)
+                : Texts.Of("gui.recovery.written.noCommand"),
+            !change.Writes(RecoveryParts.RebootMessage) ? null
+                : recovery.RebootMessage is { } message ? Texts.Of("gui.recovery.line.message", message)
+                : Texts.Of("gui.recovery.written.noMessage"),
+            !change.Writes(RecoveryParts.OnNonCrashFailures) ? null
+                : change.To.OnNonCrashFailures ? Texts.Of("gui.recovery.line.nonCrash")
+                : Texts.Of("gui.recovery.written.crashesOnly")
+        ];
+
+        return string.Join(", ", parts.OfType<string>());
     }
 
     /// <summary>A reset period in the largest unit that divides it evenly - 30 s, 15 min, 1 h, 24 h - the owner's decision of 2026-10-07.</summary>

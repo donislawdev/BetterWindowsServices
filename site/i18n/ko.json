@@ -1,5 +1,5 @@
 {
-  "_translated_from": "23a7445be497",
+  "_translated_from": "64bfabbe6559",
   "_note": "The site's chrome, and the sentences beside the tables the generator builds out of the program. Every language file carries exactly these keys - a missing one fails the build rather than falling back, because a page half in one language looks finished.",
 
   "chrome.skip": "본문으로 건너뛰기",
@@ -43,6 +43,10 @@
   "switch.force": "<code>kill</code>에서는 정중하게 묻지 않고 프로세스를 바로 종료하며, 그러면 미리 보기가 두 단계 대신 한 단계를 보여 줍니다. <code>snapshot create</code>에서는 이미 있는 스냅샷을 바꿉니다. 스냅샷이 아닌 파일은 절대 바꾸지 않습니다.",
   "switch.restart": "<code>kill</code>에서는 프로세스가 사라진 뒤, 그 프로세스를 공유하던 모든 것과 함께 항목을 되돌려 놓습니다.",
   "switch.stop": "<code>start-type</code>에서, 그리고 <code>disabled</code> 옆에서만, 설정을 쓴 뒤 같은 계획 안에서 항목을 중지합니다. 시작 유형은 다음 부팅을 바꿀 뿐 지금은 아무것도 바꾸지 않으므로, 이것이 없으면 disabled로 설정된 실행 중인 항목은 계속 실행됩니다.",
+  "switch.reset": "실패 없이 얼마나 지나면 Windows가 첫 번째 실패부터 다시 세는지 - s, m, h, d를 붙인 정수, 0, 또는 컴퓨터가 다시 시작될 때까지 기다리는 <code>never</code>. 지정하지 않으면 항목은 지금의 기간을 유지합니다.",
+  "switch.program": "<code>program:DELAY</code> 작업이 실행하는 프로그램으로, 따옴표와 <code>%1%</code>를 포함해 입력한 그대로 사용됩니다. <code>%1%</code>는 실패 횟수를 뜻합니다. 서비스가 실행되는 계정으로 실행됩니다. 빈 값을 주면 제거됩니다.",
+  "switch.message": "<code>reboot:DELAY</code> 작업이 컴퓨터를 다시 시작하기 전에 로그인한 사용자에게 보내는 메시지. 빈 값을 주면 제거됩니다.",
+  "switch.on-error-stops": "<code>yes</code>로 하면 충돌한 서비스뿐 아니라 오류로 중지된 서비스에도 작업이 응답합니다. <code>no</code>는 충돌에만 응답합니다.",
   "switch.full": "<code>show</code>에서는 정말로 비어 있는 필드도 출력합니다. 아무도 읽지 못한 필드는 어느 쪽이든 출력됩니다.",
   "switch.components": "<code>license</code>에서는 알림을 이 실행 파일 안에 있는 모든 구성 요소의 버전, 라이선스, 출처로 바꿉니다. 다운로드 옆에 게시된 자재 명세서가 담은 것과 같은 집합이며, 둘 다 하나의 목록에서 만들어지기 때문입니다.",
   "switch.json": "같은 문서를 기계가 읽을 수 있는 형태로 표준 출력에 냅니다.",

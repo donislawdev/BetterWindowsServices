@@ -127,7 +127,12 @@ internal static class CountedWords
         // One more on 2026-10-14, from the sentence over a comparison: "taken {1} by {2} with
         // administrator rights". The placeholder is the account that took the snapshot, never a
         // count, and "rights" belongs to "administrator" two words on.
-        "rights"
+        "rights",
+        // Three more on 2026-11-25, from the recovery plan's sentences: "restarts the computer when {0}
+        // fails", "the recovery list of {0} holds an action" and "{0} keeps a program to run on failure". The
+        // placeholder is a service name each time. The first two arrived on 2026-11-24 with the write in the
+        // core, whose narrow run did not take this guard - found when the form's own run did.
+        "fails", "holds", "keeps"
     ];
 
     /// <summary>
